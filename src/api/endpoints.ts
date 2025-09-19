@@ -1,0 +1,1 @@
+export const ENDPOINT = "https://chat.moonchan.xyz/api/twitter"
