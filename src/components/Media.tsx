@@ -56,7 +56,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
     };
 
     return (
-        <div className="flex justify-center items-start bg-gray-900"> {/* 新增外层容器用于居中 */}
+        <div className="flex justify-center items-start"> {/* 新增外层容器用于居中 */}
             <div className="relative w-full max-w-4xl max-h-screen h-auto rounded-lg overflow-hidden group"> {/* 添加 max-w-4xl 限制最大宽度 */}
                 {showPoster && poster && (
                     <img
@@ -77,10 +77,10 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                 </video>
 
                 {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-10 transition-all duration-300">
+                    <div className="absolute inset-0 flex items-center justify-center bg-opacity-30 group-hover:bg-opacity-10 transition-all duration-300">
                         <button
                             onClick={handlePlay}
-                            className="bg-black bg-opacity-50 text-white rounded-full p-3 hover:bg-opacity-70 transition-colors"
+                            className="bg-opacity-100 text-white rounded-full p-3 hover:bg-opacity-70 transition-colors"
                         >
                             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z" />
