@@ -1,12 +1,8 @@
 import { ENDPOINT } from "./endpoints.ts";
 
-export default function getMetaData(username: string) {
-    fetch(`${ENDPOINT}/?username=${username}`, {
+export default async function createMetaData(username: string) {
+    await fetch(`${ENDPOINT}/?username=${username}`, {
         method: "POST",
-    }).then(res => res.text()).then(data => {
-        return { data };
-    }).catch(err => {
-        console.error(err);
-        return { error: err };
-    });
+    })
+    return 
 }

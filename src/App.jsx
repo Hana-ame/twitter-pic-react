@@ -5,21 +5,50 @@ import useScreenMode from './Tools/hooks/useScreenMode';
 import MediaList from './components/MediaList.tsx'; // 请替换为实际路径
 import HeaderList from './components/HeaderList'; // 请替换为实际路径
 
-import getList from './api/getUserList.ts';
+import { getUserList, searchUserList } from './api/getUserList.ts';
+import SearchBar from './components/SearchBar.jsx';
+import HelpPage from './components/HelpPage.jsx';
+import SearchList from './components/SearchList.jsx';
+import LoadMoreButton from './components/LoadMoreButton.jsx';
+import AddUser from './components/AddUser.jsx';
+
+const SideBar = ({ onClick }) => {
+  const [userList, setUserList] = useState(null);
+  const [search, setSearch] = useState("");
+
+  // 仅作初始化
+  useEffect(() => {
+    getUserList().then(users => {
+      setUserList(users)
+    })
+  }, [])
 
 
+  return <>
+    <SearchBar onChange={setSearch} />
+    <div className={search !== "" ? "" : "hidden"}>
+      <AddUser username={search} />
+      <SearchList by="username" search={search} onClick={onClick} />
+      <SearchList by="nick" search={search} onClick={onClick} />
+    </div>
+    <div className={search === "" ? "" : "hidden"}>
+      <HeaderList userList={userList} onClick={onClick} />
+      <LoadMoreButton after={userList?.at(-1) || ""} setUserList={setUserList} />
+    </div>
+  </>
+}
+
+const Main = ({ timeline }) => {
+  return <main>
+    {timeline?.length > 0 ? <MediaList timeline={timeline} /> : <HelpPage />}
+  </main>
+}
 // 主布局组件
 const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [userList, setUserList] = useState([]);
   const [timeline, setTimeline] = useState([]);
 
-  useEffect(() => {
-    getList("users").then(users => {
-      setUserList(users)
-    })
-  }, [])
 
   // 切换抽屉状态
   const toggleDrawer = () => {
@@ -35,13 +64,13 @@ const ResponsiveLayout = () => {
     <div className="flex h-screen bg-gray-100 relative">
       {/* 主要内容区域 */}
       <div className={`flex-1 p-4 overflow-auto ${isMobile ? 'w-full' : 'w-3/4'}`}>
-        <MediaList timeline={timeline} />
+        <Main timeline={timeline} />
       </div>
 
       {/* 桌面模式下的用户列表 */}
       {!isMobile && (
         <div className="w-1/4 p-4 bg-white border-l border-gray-200 overflow-auto">
-          <HeaderList userList={userList} onClick={(data) => { setTimeline(data.timeline) }} />
+          <SideBar onClick={(data) => { setTimeline(data.timeline) }} />
         </div>
       )}
 
@@ -86,7 +115,7 @@ const ResponsiveLayout = () => {
               </button>
             </div>
             <div className="overflow-auto h-full">
-              <HeaderList userList={userList} onClick={(data) => { closeDrawer(); setTimeline(data.timeline) }} />
+              <SideBar onClick={(data) => { closeDrawer(); setTimeline(data.timeline) }} />
             </div>
           </div>
         </>

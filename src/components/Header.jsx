@@ -28,25 +28,25 @@ const Header = ({ username, onClick }) => {
     }, [username])
 
     if (userData.loading) {
-        return <div className='flex items-center m-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200 max-w-md'>
+        return <div className='flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md'>
             loading
         </div>
     }
 
     if (error) {
-        return <div className='flex items-center m-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200 max-w-md'
+        return <div className='flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md'
             onClick={() => { fetchAndSet() }}>
             点击重试
         </div>
     }
 
     return (
-        <div className="flex items-center m-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200 max-w-md"
+        <div className="flex items-center m-4 p-4 bg-gray-200 hover:bg-gray-100 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md"
             onClick={() => onClick(userData)}>
             {/* 用户头像 */}
             <div className="flex-shrink-0 mr-4">
                 <img
-                    src={userData.account_info.profile_image}
+                    src={userData.account_info.profile_image.replace("pbs.twimg.com", "twimg.nmbyd3.top")}
                     alt={userData.account_info.nick}
                     className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
                 />

@@ -1,1 +1,1 @@
-export const ENDPOINT = "https://chat.moonchan.xyz/api/twitter"
+export const ENDPOINT = "https://x.nmbyd3.top/api/twitter"

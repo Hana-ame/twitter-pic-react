@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 
 type MediaProps = {
     url: string,
@@ -44,14 +44,18 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
     const [showPoster, setShowPoster] = useState(true);
 
     const handlePlay = () => {
-        if (videoRef.current) {
-            if (isPlaying) {
-                videoRef.current.pause();
-            } else {
-                videoRef.current.play();
-                setShowPoster(false);
+        try {
+            if (videoRef.current) {
+                if (isPlaying) {
+                    videoRef.current?.pause();
+                } else {
+                    videoRef.current?.play();
+                    setShowPoster(false);
+                }
+                setIsPlaying(!isPlaying);
             }
-            setIsPlaying(!isPlaying);
+        } catch (e) {
+            // The play() request was interrupted because the media was removed from the document.
         }
     };
 
@@ -77,7 +81,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                 </video>
 
                 {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-opacity-30 group-hover:bg-opacity-10 transition-all duration-300">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-10 transition-all duration-300">
                         <button
                             onClick={handlePlay}
                             className="bg-opacity-100 text-white rounded-full p-3 hover:bg-opacity-70 transition-colors"
