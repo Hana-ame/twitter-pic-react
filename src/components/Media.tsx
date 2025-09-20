@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { PhotoView } from "react-photo-view"
 import urlOverride from "../api/urlOverride.ts"
+import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx"
 
 type MediaProps = {
     url: string,
@@ -8,7 +9,9 @@ type MediaProps = {
 }
 
 const Media = ({ url, type }: MediaProps) => {
-    if (type === "photo") return <Photo url={urlOverride(url)} />
+    const [override] = useLocalStorage("override-v2", "https://twimg.moonchan.xyz")
+
+    if (type === "photo") return <Photo url={urlOverride(url, override)} />
     if (type === "video") return <Video url={url} />
 }
 
