@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+
+import { PhotoProvider } from 'react-photo-view';
+
 import Media from './Media.tsx';
 
 const MediaList = ({ timeline }: { timeline: any[] }) => {
@@ -21,7 +24,7 @@ const MediaList = ({ timeline }: { timeline: any[] }) => {
         return <div>Loading...</div>;
     }
 
-    return <div>
+    return <PhotoProvider>
         {timeline.slice(0, limit).map(status => <Media key={status.url} url={status.url} type={status.type} />)}
         {limit < timeline.length && <div className="flex justify-center my-4">
             <button
@@ -31,7 +34,7 @@ const MediaList = ({ timeline }: { timeline: any[] }) => {
                 Load More
             </button>
         </div>}
-    </div>
+    </PhotoProvider>
 
 };
 

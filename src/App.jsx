@@ -11,6 +11,7 @@ import HelpPage from './components/HelpPage.jsx';
 import SearchList from './components/SearchList.jsx';
 import LoadMoreButton from './components/LoadMoreButton.jsx';
 import AddUser from './components/AddUser.jsx';
+import getMetaData from './api/getMetaData.ts';
 
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
@@ -49,6 +50,15 @@ const ResponsiveLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [timeline, setTimeline] = useState([]);
 
+  useEffect(() => {
+    // 得到path，split by "/"，得到第一个非空字符串，然后console.log（如果为空直接return）
+    const fullPath = window.location.pathname; // 获取完整路径，如 "/user/123/profile"
+    const parts = fullPath.split('/');
+    const firstNonEmptyPart = parts.find(elem => elem !== '');
+    if (firstNonEmptyPart) {
+      getMetaData(firstNonEmptyPart).then(data => setTimeline(data.timeline))
+    }
+  }, [])
 
   // 切换抽屉状态
   const toggleDrawer = () => {
@@ -60,6 +70,11 @@ const ResponsiveLayout = () => {
     setDrawerOpen(false);
   };
 
+  const onClick = (data) => {
+    window.history.pushState({}, null, '/' + data.account_info.name);
+    setTimeline(data.timeline);
+  }
+
   return (
     <div className="flex h-screen bg-gray-100 relative">
       {/* 主要内容区域 */}
@@ -70,7 +85,7 @@ const ResponsiveLayout = () => {
       {/* 桌面模式下的用户列表 */}
       {!isMobile && (
         <div className="w-1/4 p-4 bg-white border-l border-gray-200 overflow-auto">
-          <SideBar onClick={(data) => { setTimeline(data.timeline) }} />
+          <SideBar onClick={(data) => { onClick(data) }} />
         </div>
       )}
 
@@ -115,7 +130,7 @@ const ResponsiveLayout = () => {
               </button>
             </div>
             <div className="overflow-auto h-full">
-              <SideBar onClick={(data) => { closeDrawer(); setTimeline(data.timeline) }} />
+              <SideBar onClick={(data) => { closeDrawer(); onClick(data) }} />
             </div>
           </div>
         </>
