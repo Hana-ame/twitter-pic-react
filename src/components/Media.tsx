@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { PhotoView } from "react-photo-view"
+import urlOverride from "../api/urlOverride.ts"
 
 type MediaProps = {
     url: string,
@@ -7,7 +8,7 @@ type MediaProps = {
 }
 
 const Media = ({ url, type }: MediaProps) => {
-    if (type === "photo") return <Photo url={url.replace("pbs.twimg.com", "twimg.nmbyd3.top")} />
+    if (type === "photo") return <Photo url={urlOverride(url)} />
     if (type === "video") return <Video url={url} />
 }
 
