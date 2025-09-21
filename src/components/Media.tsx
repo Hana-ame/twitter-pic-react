@@ -10,15 +10,37 @@ type MediaProps = {
 
 const Media = ({ url, type }: MediaProps) => {
     const [override] = useLocalStorage("override-v2", "https://twimg.moonchan.xyz")
+    const [videoProxy] = useLocalStorage("video-proxy", "https://video.twimg.com")
+
+    const videoProxyOverride = (url: string) => {
+        url = url.replace("https://video.twimg.com", videoProxy)
+        if (videoProxy === "https://proxy.moonchan.xyz") {
+            const newUrl = new URL(url);
+            newUrl.searchParams.set("proxy_host", "video.twimg.com");
+            return newUrl.toString();
+        }
+        return url;
+    }
 
     if (type === "photo") return <Photo url={urlOverride(url, override)} />
-    if (type === "video") return <Video url={url} />
+    if (type === "video" || type === "animated_gif") return <Video url={videoProxyOverride(url)} />
 }
 
 
 // 图片组件
 const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
+    const ref = useRef<HTMLImageElement>(null)
     const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const current = ref.current;
+        return () => {
+            if (current) {
+                current.src = ""
+                current.srcset = ""
+            }
+        }
+    }, [ref])
 
     return (
         <div className="flex justify-center items-start max-h-screen"> {/* 实现水平居中，容器高度为屏幕高度 */}
@@ -30,6 +52,7 @@ const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
                 )}
                 {/* <PhotoView key={url} src={url}> */}
                 <img
+                    ref={ref}
                     src={url}
                     alt={alt || 'Image'}
                     className="mx-auto max-h-screen object-contain transition-opacity duration-300"
@@ -45,17 +68,31 @@ const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
 
 // 视频组件
 const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
+    const ref = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [showPoster, setShowPoster] = useState(true);
 
+    useEffect(() => {
+        const current = ref.current;
+        return () => {
+            if (current) {
+                current.pause();
+                current.src = ''; // 清空 src
+                current.load(); // 调用 load() 方法，浏览器会中止正在进行的请求[8](@ref)
+                const sources = current.querySelectorAll('source');
+                sources.forEach(source => source.src = '');
+            }
+        }
+    }, [ref])
+
     const handlePlay = () => {
+        const current = ref.current;
         try {
-            if (videoRef.current) {
+            if (current) {
                 if (isPlaying) {
-                    videoRef.current?.pause();
+                    current.pause();
                 } else {
-                    videoRef.current?.play();
+                    current.play();
                     setShowPoster(false);
                 }
                 setIsPlaying(!isPlaying);
@@ -64,6 +101,8 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
             // The play() request was interrupted because the media was removed from the document.
         }
     };
+
+
 
     return (
         <div className="flex justify-center items-start"> {/* 新增外层容器用于居中 */}
@@ -77,7 +116,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                 )}
 
                 <video
-                    ref={videoRef}
+                    ref={ref}
                     className="w-full max-h-screen object-contain mx-auto" // 添加 mx-auto 实现水平居中
                     poster={poster}
                     controls={isPlaying}

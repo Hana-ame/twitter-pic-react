@@ -50,6 +50,7 @@ const ResponsiveLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [timeline, setTimeline] = useState([]);
 
+  // 首次加载时
   useEffect(() => {
     // 得到path，split by "/"，得到第一个非空字符串，然后console.log（如果为空直接return）
     const fullPath = window.location.pathname; // 获取完整路径，如 "/user/123/profile"

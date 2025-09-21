@@ -28,10 +28,19 @@ const MediaList = ({ timeline }: { timeline: any[] }) => {
         {timeline.slice(0, limit).map(status => <Media key={status.url} url={status.url} type={status.type} />)}
         {limit < timeline.length && <div className="flex justify-center my-4">
             <button
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className={`mb-24
+                    bg-gradient-to-r from-blue-500 to-indigo-600
+                    hover:from-blue-600 hover:to-indigo-700
+                    text-white font-semibold
+                    py-2 px-4 rounded shadow-md
+                    hover:shadow-lg transition duration-300 ease-in-out
+                    focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50
+                    disabled:opacity-75 disabled:cursor-not-allowed
+                    flex items-center justify-center w-full h-24
+                `}
                 onClick={() => setLimit(limit + 10)}
             >
-                Load More
+                加载更多
             </button>
         </div>}
     </PhotoProvider>

@@ -21,7 +21,8 @@ const HelpPage = () => (
             {/* 豆腐块5 */}
             <div className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100">
                 <h2 className="text-xl font-semibold text-gray-700 mb-3">设置</h2>
-                <Config />
+                <Config.ImageConfig />
+                <Config.VideoConfig />
             </div>
 
             {/* 豆腐块1 */}
