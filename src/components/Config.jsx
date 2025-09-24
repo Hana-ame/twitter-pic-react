@@ -1,36 +1,79 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
+import { delay } from "../Tools/utils.ts";
 
 const AutoConfig = () => {
     const [image, setImage] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY);
     const [video, SetVideo] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
-
+    const [hint, setHint] = useState("测试中 ...")
     useEffect(() => {
+        /**
+         * 带超时功能的fetch封装
+         * @param {string} resource 请求的URL
+         * @param {object} options 请求选项，同fetch API。可在此对象中设置timeout属性。
+         * @returns {Promise} 返回fetch的Promise，超时或失败时会reject
+         */
+        async function testWithTimeout(resource, options = {}) {
+            // 从options中提取timeout，默认设置为8000毫秒
+            const { timeout = 8000 } = options;
+
+            // 创建AbortController实例，用于控制请求的中止
+            const controller = new AbortController();
+            // 设置一个定时器，在超时时间后触发中止操作
+            const id = setTimeout(() => controller.abort(), timeout);
+
+            // 发起fetch请求，将AbortController的signal与请求关联
+            const ok = await fetch(resource, {
+                ...options, // 合并用户传入的options
+                signal: controller.signal // 设置中止信号
+            }).then((response) => {
+                // 请求成功完成，清除超时定时器
+                clearTimeout(id);
+                return true;
+            }).catch((error) => {
+                // 请求出错，清除超时定时器
+                clearTimeout(id);
+                // throw error; // 重新抛出错误，以便外部捕获
+                return false;
+            });
+
+            return ok;
+        }
+
         const f = async () => {
             // 能翻墙
-            if ((await fetch("https://pbs.twimg.com/favicon.ico")).ok){
-                setImage("https://pbs.twimg.com")
-                SetVideo("https://video.twimg.com")
+            if ((await testWithTimeout("https://pbs.twimg.com/media/GxJIrSUagAAK-ZP?format=jpg&name=240x240", {
+                timeout: 2500,
+            }))) {
+                if (["https://twimg.nmbyd2.top", "https://twimg.moonchan.xyz"].includes(image))
+                    setImage("https://pbs.twimg.com")
+                if (["https://twimg.nmbyd2.top", "https://proxy.moonchan.xyz"].includes(video))
+                    SetVideo("https://video.twimg.com")
+                setHint("能够访问官方网址, 已设置为官方网址")
                 return;
-            }else {
-                setImage((prev) => prev.replace("https://pbs.twimg.com", "https://twimg.nmbyd2.top"))
-            }
-            
-            // 检测是否额度还在,如果在的话就下一个
-            const resp = await fetch("https://twimg.nmbyd2.top/favicon.ico")
-            if (resp.ok) {
-                setImage((prev) => prev.replace("https://twimg.moonchan.xyz", "https://twimg.nmbyd2.top"))
-                SetVideo((prev) => prev.replace("https://proxy.moonchan.xyz", "https://video.twimg.com"))
             } else {
-                setImage((prev) => prev.replace("https://twimg.nmbyd2.top", "https://twimg.moonchan.xyz"))
-                SetVideo((prev) => prev.replace("https://twimg.nmbyd2.top", "https://video.twimg.com"))
+
+                // 检测是否额度还在,如果在的话就下一个
+                const resp = await fetch("https://twimg.nmbyd2.top/favicon.ico")
+                if (resp.ok) {
+                    if (["https://pbs.twimg.com", "https://twimg.moonchan.xyz"].includes(image))
+                        setImage("https://twimg.nmbyd2.top")
+                    if (["https://twimg.nmbyd2.top", "https://proxy.moonchan.xyz"].includes(video))
+                        SetVideo("https://twimg.nmbyd2.top")
+                } else {
+                    if (["https://pbs.twimg.com", "https://twimg.nmbyd2.top"].includes(image))
+                        setImage("https://twimg.moonchan.xyz")
+                    if (["https://twimg.nmbyd2.top"].includes(video))
+                        SetVideo("https://video.twimg.com")
+                }
+                setHint("不能访问官方网址, 已设置为分流网址")
             }
         }
         f()
     }, [])
 
-    return <div className="invisible"></div>
+    return <div>{hint}</div>
 }
 
 
