@@ -7,6 +7,11 @@ const AddUser = ({ username }) => {
         setIsClicked(false);
     }, [username])
     const onClick = () => {
+        // if (window.location.host === "x.nmbyd3.top") {
+        //     alert("准备迁移中，暂停添加");
+        //     return;
+        // }
+
         const usernameRegex = /^[a-zA-Z0-9_]*$/
         // 如果username不是只包含数字字母和下划线的字符串
         if (!usernameRegex.test(username)) {

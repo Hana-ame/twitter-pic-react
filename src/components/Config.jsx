@@ -1,7 +1,42 @@
+import { useEffect } from "react";
+import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 
+const AutoConfig = () => {
+    const [image, setImage] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY);
+    const [video, SetVideo] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
+
+    useEffect(() => {
+        const f = async () => {
+            // 能翻墙
+            if ((await fetch("https://pbs.twimg.com/favicon.ico")).ok){
+                setImage("https://pbs.twimg.com")
+                SetVideo("https://video.twimg.com")
+                return;
+            }else {
+                setImage((prev) => prev.replace("https://pbs.twimg.com", "https://twimg.nmbyd2.top"))
+            }
+            
+            // 检测是否额度还在,如果在的话就下一个
+            const resp = await fetch("https://twimg.nmbyd2.top/favicon.ico")
+            if (resp.ok) {
+                setImage((prev) => prev.replace("https://twimg.moonchan.xyz", "https://twimg.nmbyd2.top"))
+                SetVideo((prev) => prev.replace("https://proxy.moonchan.xyz", "https://video.twimg.com"))
+            } else {
+                setImage((prev) => prev.replace("https://twimg.nmbyd2.top", "https://twimg.moonchan.xyz"))
+                SetVideo((prev) => prev.replace("https://twimg.nmbyd2.top", "https://video.twimg.com"))
+            }
+        }
+        f()
+    }, [])
+
+    return <div className="invisible"></div>
+}
+
+
+
 const ImageConfig = () => {
-    const [override, setOverride] = useLocalStorage("override-v2", "https://twimg.moonchan.xyz");
+    const [override, setOverride] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY);
 
     // 处理输入框变化
     const handleInputChange = (event) => {
@@ -16,6 +51,7 @@ const ImageConfig = () => {
     // 三个默认选项
     const defaultOptions = [
         ["官方（需翻墙）", "https://pbs.twimg.com"],
+        ["分流", "https://twimg.nmbyd2.top"],
         ["分流v4", "https://twimg.moonchan.xyz"],
         ["分流v6", "https://twimg.nmbyd3.top"],
     ];
@@ -68,7 +104,7 @@ const ImageConfig = () => {
 
 
 const VideoConfig = () => {
-    const [override, setOverride] = useLocalStorage("video-proxy", "https://video.twimg.com")
+    const [override, setOverride] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
 
     // 处理输入框变化
     const handleInputChange = (event) => {
@@ -83,6 +119,7 @@ const VideoConfig = () => {
     // 三个默认选项
     const defaultOptions = [
         ["官方", "https://video.twimg.com"],
+        ["分流", "https://twimg.nmbyd2.top"],
         ["分流v4", "https://proxy.moonchan.xyz"],
     ];
 
@@ -132,5 +169,5 @@ const VideoConfig = () => {
     );
 };
 
-const Config = { ImageConfig, VideoConfig };
+const Config = { ImageConfig, VideoConfig, AutoConfig };
 export default Config;

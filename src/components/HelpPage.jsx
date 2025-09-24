@@ -13,9 +13,29 @@ const HelpPage = () => (
                 <h2 className="text-xl font-semibold text-gray-700 mb-3">守则</h2>
                 <p className="text-gray-500">
                     二次元的女的和三次元的女的至少占一个你再加吧
-                </p><p className="text-gray-500">
+                </p>
+                <p className="text-gray-500">
                     阳痿禁止使用本站
                 </p>
+            </div>
+
+            {/* 豆腐块4 */}
+            <div className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100">
+                <h2 className="text-xl font-semibold text-gray-700 mb-3">反馈</h2>
+                <p className="text-gray-500">
+                    已迁移至服务器长期运行。
+                </p>
+                <p className="text-gray-500">
+                    TODO List:
+                </p>
+                <ul>
+                    <li>暂无</li>
+                </ul>
+                <a href="https://nmbyd3.top/?bid=103">
+                    <p className="text-blue-500 cursor-pointer border-blue-700">
+                        任何反馈请点击这里。
+                    </p>
+                </a>
             </div>
 
             {/* 豆腐块5 */}
@@ -23,6 +43,7 @@ const HelpPage = () => (
                 <h2 className="text-xl font-semibold text-gray-700 mb-3">设置</h2>
                 <Config.ImageConfig />
                 <Config.VideoConfig />
+                <Config.AutoConfig />
             </div>
 
             {/* 豆腐块1 */}
@@ -55,14 +76,6 @@ const HelpPage = () => (
                 </p>
             </div>
 
-            {/* 豆腐块4 */}
-            <div className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100">
-                <a href="https://nmbyd3.top/?bid=103">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-3">讨论</h2>
-                    <p className="text-blue-500 cursor-pointer border-blue-700">
-                        点击这里
-                    </p></a>
-            </div>
 
             <div className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100">
                 <a href="https://ex.nmbyd3.top/">

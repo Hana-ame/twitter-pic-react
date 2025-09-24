@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react"
-import { PhotoView } from "react-photo-view"
-import urlOverride from "../api/urlOverride.ts"
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx"
+import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts"
 
 type MediaProps = {
     url: string,
@@ -9,8 +8,13 @@ type MediaProps = {
 }
 
 const Media = ({ url, type }: MediaProps) => {
-    const [override] = useLocalStorage("override-v2", "https://twimg.moonchan.xyz")
-    const [videoProxy] = useLocalStorage("video-proxy", "https://video.twimg.com")
+    const [imageProxy] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY)
+    const [videoProxy] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
+
+    const imageProxyOverride = (url: string) => {
+        console.log(url, imageProxy)
+        return url.replace("https://pbs.twimg.com", imageProxy)
+    }
 
     const videoProxyOverride = (url: string) => {
         url = url.replace("https://video.twimg.com", videoProxy)
@@ -22,7 +26,7 @@ const Media = ({ url, type }: MediaProps) => {
         return url;
     }
 
-    if (type === "photo") return <Photo url={urlOverride(url, override)} />
+    if (type === "photo") return <Photo url={imageProxyOverride(url)} />
     if (type === "video" || type === "animated_gif") return <Video url={videoProxyOverride(url)} />
 }
 
@@ -46,7 +50,7 @@ const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
         <div className="flex justify-center items-start max-h-screen"> {/* 实现水平居中，容器高度为屏幕高度 */}
             <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden"> {/* 修改：限制最大宽度，高度继承 */}
                 {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50">
                         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 )}
