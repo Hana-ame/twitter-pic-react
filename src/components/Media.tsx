@@ -8,11 +8,11 @@ type MediaProps = {
 }
 
 const Media = ({ url, type }: MediaProps) => {
-    const [imageProxy] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY)
-    const [videoProxy] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
+    const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY)
+    const [videoProxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY)
 
     const imageProxyOverride = (url: string) => {
-        console.log(url, imageProxy)
+        // console.log(url, imageProxy)
         return url.replace("https://pbs.twimg.com", imageProxy)
     }
 

@@ -2,145 +2,107 @@ import { useEffect, useState } from "react";
 import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 import { delay } from "../Tools/utils.ts";
+import { testLatency } from "../Tools/network/tesLatency.ts";
 
 const AutoConfig = () => {
-    const [image, setImage] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY);
-    const [video, setVideo] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
+    const [image, setImage] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
+    const [video, setVideo] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY)
     const [hint, setHint] = useState("测试中 ...")
     useEffect(() => {
-        /**
-         * 带超时功能的fetch封装
-         * @param {string} resource 请求的URL
-         * @param {object} options 请求选项，同fetch API。可在此对象中设置timeout属性。
-         * @returns {Promise} 返回fetch的Promise，超时或失败时会reject
-         */
-        function testWithTimeout(resource, options = {}) {
-            return new Promise((resolve, reject) => {
-                // 从options中提取timeout，默认设置为8000毫秒
-                const { timeout = 8000 } = options;
-
-                // 创建AbortController实例，用于控制请求的中止
-                const controller = new AbortController();
-                // 设置一个定时器，在超时时间后触发中止操作
-                const id = setTimeout(() => {
-                    controller.abort();
-                    resolve(false);
-                }, timeout);
-
-                // 发起fetch请求，将AbortController的signal与请求关联
-                fetch(resource, {
-                    ...options, // 合并用户传入的options
-                    signal: controller.signal // 设置中止信号
-                }).then((response) => {
-                    // 请求成功完成，清除超时定时器
-                    clearTimeout(id);
-                    resolve(true);
-                }).catch((error) => {
-                    // 请求出错，清除超时定时器
-                    clearTimeout(id);
-                    // throw error; // 重新抛出错误，以便外部捕获
-                    resolve(true);
-                });
-
-            })
-        }
-
-        const f = async () => {
-            // 能翻墙
 
 
-
-            // if ((await testWithTimeout("https://twitter.com/favicon.ico", {
-            //     timeout: 2500,
-            // }))) {
-            //     if (["https://twimg.nmbyd2.top", "https://twimg.moonchan.xyz"].includes(image))
-            //         setImage("https://pbs.twimg.com")
-            //     if (["https://twimg.nmbyd2.top", "https://proxy.moonchan.xyz"].includes(video))
-            //         SetVideo("https://video.twimg.com")
-            //     setHint("能够访问官方网址, 已设置为官方网址")
-            //     return;
-            // } else {
-
-
-            // } else {
-            const r = await (await fetch("https://proxy.moonchan.xyz/", {
-                headers: {
-                    "x-scheme": "http",
-                    "x-host": "127.25.23.101:8080",
-                }
-            })).json();
-
-            if (r["Cf-Ipcountry"][0] === "CN") {
-                // 检测是否额度还在,如果在的话就下一个
-                if ((await fetch("https://twimg.nmbyd2.top/favicon.ico",)).ok) {
-                    if (["https://pbs.twimg.com", "https://twimg.moonchan.xyz"].includes(image))
-                        setImage("https://twimg.nmbyd2.top");
-                    if (["https://twimg.nmbyd2.top", "https://proxy.moonchan.xyz"].includes(video))
-                        setVideo("https://twimg.nmbyd2.top");
-                } else {
-                    if (["https://pbs.twimg.com", "https://twimg.nmbyd2.top"].includes(image))
-                        setImage("https://twimg.moonchan.xyz");
-                    if (["https://twimg.nmbyd2.top"].includes(video))
-                        setVideo("https://video.twimg.com");
-                }
-                setHint("不能访问官方网址, 已设置为分流网址")
-            } else {
-                if (["https://twimg.nmbyd2.top", "https://twimg.nmbyd3.top", "https://twimg.moonchan.xyz"].includes(image))
-                    setImage("https://pbs.twimg.com");
-                if (["https://twimg.nmbyd2.top", "https://proxy.moonchan.xyz"].includes(video))
-                    setVideo("https://twimg.nmbyd2.top");
-                setHint("IP属地: " + r["Cf-Ipcountry"][0]);
-            }
-
-
-            // } else {
-
-            // // 检测是否额度还在,如果在的话就下一个
-            // if ((await fetch("https://twimg.nmbyd2.top/favicon.ico",)).ok) {
-            //     if (["https://twimg.moonchan.xyz"].includes(image))
-            //         setImage("https://twimg.nmbyd2.top")
-            //     if (["https://twimg.nmbyd2.top", "https://proxy.moonchan.xyz"].includes(video))
-            //         SetVideo("https://twimg.nmbyd2.top")
-            // } else {
-            //     if (["https://twimg.nmbyd2.top"].includes(image))
-            //         setImage("https://twimg.moonchan.xyz")
-            //     if (["https://twimg.nmbyd2.top"].includes(video))
-            //         SetVideo("https://video.twimg.com")
-            // }
-            // setHint("不能访问官方网址, 已设置为分流网址")
-            // }
-        }
-        f()
     }, [])
 
     return <div className="invisiable">{hint}</div>
 }
 
+const ConfigItem = ({ value, url, onClick, noTest }) => {
+    const [latency, setLatency] = useState(-1);
+    const [color, setColor] = useState(["text-gray-400", "bg-gray-400"]);
+
+    useEffect(() => {
+        if (noTest) {
+            setColor(["text-gray-600 invisible", "bg-gray-400"])
+            return
+        }
+
+        const f = async () => {
+            const [delay, isFailed] = await testLatency(url + "/favicon.ico", {
+                mode: 'cors',
+            });
+            setLatency(delay);
+            if (isFailed || delay < 100 || delay > 2250) {
+                setColor(["text-red-600", "bg-red-600"]);
+            } else {
+                setColor(["text-green-600", "bg-green-600"] );
+            }
+        };
+
+        f();
+
+        return
+    }, []);
+
+    const isActive = value === url;
+
+    return (
+        <div
+            className={`flex justify-between items-center w-full p-3 rounded-lg border border-gray-200 transition-all duration-200 cursor-pointer ${isActive
+                ? 'bg-blue-50 border-blue-300 shadow-sm'
+                : 'hover:bg-gray-50'
+                }`}
+            onClick={() => onClick(url)}
+        >
+            {/* 左边URL显示 */}
+            <div className="flex items-center">
+                <span className={`text-sm text-gray-500 truncate max-w-[200px] ${isActive ? 'text-blue-600' : ''
+                    }`}>
+                    {url}
+                </span>
+            </div>
+
+            {/* 右边延迟显示 */}
+            <div className={`flex items-center space-x-2 ${color[0]}`}>
+                <span className={`text-sm font-mono ${latency === -1 ? 'animate-pulse' : ''}`}>
+                    {latency === -1 ? '测试中...' : `${Math.floor(latency)}ms`}
+                </span>
+                {/* 状态指示点 */}
+                <div className={`w-2 h-2 rounded-full ${color[1]}`} />
+            </div>
+        </div>
+    );
+};
 
 
 const ImageConfig = () => {
-    const [override, setOverride] = useLocalStorage("image-proxy-v3", DEFAULT_IMAGE_PROXY);
+    const [imgProxy, setImgProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
 
     // 处理输入框变化
     const handleInputChange = (event) => {
-        setOverride(event.target.value);
+        setImgProxy(event.target.value);
     };
 
     // 处理按钮点击，设置对应的默认值
     const handleButtonClick = (value) => {
-        setOverride(value);
+        setImgProxy(value);
     };
 
     // 三个默认选项
-    const defaultOptions = [
-        ["官方（需翻墙）", "https://pbs.twimg.com"],
-        ["分流", "https://twimg.nmbyd2.top"],
-        ["分流v4", "https://twimg.moonchan.xyz"],
-        ["分流v6", "https://twimg.nmbyd3.top"],
+    const officialOptions = [
+        "https://pbs.twimg.com",
+        // "https://p.twimg.com",
+        "https://pbs-t-1.twimg.com",
+        "https://pbs-t-2.twimg.com",
+        "https://pbs-t-3.twimg.com",
+        "https://pbs-t-4.twimg.com",
     ];
+    const otherOptions = [
+        "https://twimg.nmbyd2.top",
+        "https://twimg.moonchan.xyz",
+    ]
 
     return (
-        <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md space-y-6">
+        <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-1">
 
             {/* 输入框 */}
             <div className="space-y-2">
@@ -150,64 +112,66 @@ const ImageConfig = () => {
                 <input
                     id="override-input"
                     type="text"
-                    value={override || ''}
+                    value={imgProxy || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                     placeholder="请输入覆盖值"
                 />
             </div>
 
-            {/* 当前值显示 */}
-            {/* <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">当前值:</p>
-                <p className="text-lg font-semibold text-gray-800 break-all">{override}</p>
-            </div> */}
-
-            {/* 默认选项按钮 */}
-            <div className="space-y-3">
-                {/* <p className="text-sm font-medium text-gray-700">快速选择:</p> */}
-                <div className="flex flex-wrap gap-2">
-                    {defaultOptions.map((option, index) => (
-                        <button
-                            key={index}
-                            onClick={() => handleButtonClick(option[1])}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${override === option[1]
-                                ? 'bg-blue-500 text-white shadow-inner'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            {option[0]}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {officialOptions.map(url => (
+                <ConfigItem
+                    key={url}
+                    value={imgProxy}
+                    url={url}
+                    onClick={handleButtonClick}
+                />
+            ))}
+            {otherOptions.map(url => (
+                <ConfigItem
+                    key={url}
+                    value={imgProxy}
+                    url={url}
+                    onClick={handleButtonClick}
+                    noTest={true}
+                />
+            ))}
         </div>
     );
 };
 
 
 const VideoConfig = () => {
-    const [override, setOverride] = useLocalStorage("video-proxy-v3", DEFAULT_VIDEO_PROXY)
+    const [vidProxy, setVidPorxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY)
 
     // 处理输入框变化
     const handleInputChange = (event) => {
-        setOverride(event.target.value);
+        setVidPorxy(event.target.value);
     };
 
     // 处理按钮点击，设置对应的默认值
     const handleButtonClick = (value) => {
-        setOverride(value);
+        setVidPorxy(value);
     };
 
     // 三个默认选项
-    const defaultOptions = [
-        ["官方", "https://video.twimg.com"],
-        ["分流", "https://twimg.nmbyd2.top"],
-        ["分流v4", "https://proxy.moonchan.xyz"],
+    // 三个默认选项
+    const officialOptions = [
+        "https://video.twimg.com",
+        // "https://video-s.twimg.com",
+        // "https://video-cf.twimg.com",
+        "https://video-t-1.twimg.com",
+        "https://video-t-2.twimg.com",
+        "https://video-t-3.twimg.com",
+        "https://video-t-4.twimg.com",
     ];
+    const otherOptions = [
+        "https://twimg.nmbyd2.top",
+        "https://proxy.moonchan.xyz",
+    ]
 
     return (
-        <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md space-y-6">
+        <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md space-y-1">
 
             {/* 输入框 */}
             <div className="space-y-2">
@@ -217,40 +181,34 @@ const VideoConfig = () => {
                 <input
                     id="override-input"
                     type="text"
-                    value={override || ''}
+                    value={vidProxy || ''}
                     onChange={handleInputChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                     placeholder="请输入覆盖值"
                 />
             </div>
 
-            {/* 当前值显示 */}
-            {/* <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">当前值:</p>
-                <p className="text-lg font-semibold text-gray-800 break-all">{override}</p>
-            </div> */}
 
-            {/* 默认选项按钮 */}
-            <div className="space-y-3">
-                {/* <p className="text-sm font-medium text-gray-700">快速选择:</p> */}
-                <div className="flex flex-wrap gap-2">
-                    {defaultOptions.map((option, index) => (
-                        <button
-                            key={index}
-                            onClick={() => handleButtonClick(option[1])}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${override === option[1]
-                                ? 'bg-blue-500 text-white shadow-inner'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                        >
-                            {option[0]}
-                        </button>
-                    ))}
-                </div>
-            </div>
+            {officialOptions.map(url => (
+                <ConfigItem
+                    key={url}
+                    value={vidProxy}
+                    url={url}
+                    onClick={handleButtonClick}
+                />
+            ))}
+            {otherOptions.map(url => (
+                <ConfigItem
+                    key={url}
+                    value={vidProxy}
+                    url={url}
+                    onClick={handleButtonClick}
+                    noTest={true}
+                />
+            ))}
         </div>
     );
 };
 
-const Config = { ImageConfig, VideoConfig, AutoConfig };
+const Config = { ImageConfig, VideoConfig, AutoConfig, ConfigItem };
 export default Config;
