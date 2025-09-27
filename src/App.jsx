@@ -13,6 +13,7 @@ import LoadMoreButton from './components/LoadMoreButton.jsx';
 import AddUser from './components/AddUser.jsx';
 import getMetaData from './api/getMetaData.ts';
 import useLocalStorage from './Tools/localstorage/useLocalStorageStatus.tsx';
+import createMetaData from './api/createMetaData.ts';
 
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
@@ -40,8 +41,9 @@ const SideBar = ({ onClick }) => {
   </>
 }
 
-const Main = ({ profile }) => {
+const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
+  const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
 
   const username = profile?.account_info?.name;
@@ -55,7 +57,28 @@ const Main = ({ profile }) => {
     }))
   }
 
-  if (!(profile?.timeline?.length > 0)) return <HelpPage />
+  const handleFavorite = () => {
+    if (!username) return;
+
+    setFavMap(prev => {
+      const isCurrentlyFavorited = prev[username];
+
+      if (isCurrentlyFavorited) {
+        // 如果当前已收藏，则删除该键[1,4](@ref)
+        const { [username]: _, ...rest } = prev;
+        return rest;
+      } else {
+        // 如果当前未收藏，则添加该键并设置为 true[2](@ref)
+        return {
+          ...prev,
+          [username]: true
+        };
+      }
+    });
+  };
+
+
+  if (!(profile?.timeline?.length > 0)) return <HelpPage onClick={handleSetProfile} />
 
   return <main>
     <div className="mb-4 flex space-x-2">
@@ -79,6 +102,52 @@ const Main = ({ profile }) => {
             d="M6 9l6 6 6-6" />
         </svg>
         展开全部
+      </button>
+
+      {/* 收藏按钮 */}
+      <button
+        onClick={handleFavorite}
+        className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 ${favMap?.[username] ? "bg-yellow-500 text-white" : "bg-yellow-100 hover:bg-yellow-500 text-yellow-700"}`}
+        aria-label="收藏"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 mr-2"
+          fill={favMap?.[username] ? "currentColor" : "none"}
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+          />
+        </svg>
+        {favMap?.[username] ? "已收藏" : "收藏"}
+      </button>
+
+      {/* 更新按钮 */}
+      <button
+        onClick={() => createMetaData(username)}
+        className="flex-1 py-2 px-4 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
+        aria-label="更新"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          />
+        </svg>
+        更新
       </button>
 
       {/* 屏蔽用户按钮 */}
@@ -175,7 +244,7 @@ const ResponsiveLayout = () => {
           </button>
         </div>
 
-        <Main profile={profile} />
+        <Main profile={profile} handleSetProfile={handleSetProfile} />
       </div>
 
       {/* 桌面模式下的用户列表 */}

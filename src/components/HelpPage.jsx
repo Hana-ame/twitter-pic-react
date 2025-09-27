@@ -1,5 +1,6 @@
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 import Config from "./Config";
+import FavList from "./FavList.jsx";
 
 const Block = ({ title, children, closed, onClick }) => {
     if (closed) return <div className="bg-white rounded-lg shadow-sm p-2 text-center border border-gray-100 relative">
@@ -24,7 +25,7 @@ const Block = ({ title, children, closed, onClick }) => {
         </div>
     );
 };
-const HelpPage = () => {
+const HelpPage = ({ onClick }) => {
 
     const [isClosedMap, setIsClosedMap] = useLocalStorage("closedMap", {})
 
@@ -69,6 +70,9 @@ const HelpPage = () => {
                 </a>
             </Block>
 
+            <Block title="收藏夹" closed={isClosedMap["收藏夹"]} onClick={handleOnClickBlock}>
+                <FavList onClick={onClick}></FavList>
+            </Block>
             {/* 豆腐块5 */}
             <Block title="设置" closed={isClosedMap["设置"]} onClick={handleOnClickBlock}>
                 <Config.ImageConfig />
