@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import getMetaData from '../api/getMetaData.ts';
+import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
 const Header = ({ username, onClick }) => {
+    // const [blockMap] = useLocalStorage("block-map", {});
+
+
     // 模拟从API获取的用户数据（实际应用中这里会是API调用）
     const [userData, setUserData] = useState({ loading: true });
     const [error, setError] = useState(false);
+    const [blocked, setBlocked] = useState(false);
 
     function fetchAndSet() {
         setUserData({ loading: true })
@@ -20,18 +25,42 @@ const Header = ({ username, onClick }) => {
 
     }
 
+    // 当username变化时更新
     useEffect(() => {
 
-        fetchAndSet()
 
-        return () => { }
+        let flag = true;
+        try {
+            const s = window.localStorage.getItem("block-map");
+            if (s) {
+                let o = JSON.parse(s);
+                if (typeof o !== 'object' || o === null || Array.isArray(o)) {
+                    o = {};
+                }
+                if (o[username] === true) { // 或者 if (Boolean(o[username])) 用于更宽松的判断
+                    setBlocked(true);
+                    flag = false;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+
+        if (flag) fetchAndSet();
+
+        return
     }, [username])
 
-    if (userData.loading) {
+    // 被屏蔽不返回
+    if (blocked)
+        return null;
+
+
+    if (userData.loading)
         return <div className='flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md'>
             loading
         </div>
-    }
+
 
     if (error) {
         return <div className='flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md'

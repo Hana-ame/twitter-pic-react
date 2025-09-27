@@ -2,18 +2,38 @@ import { useEffect, useState } from "react";
 import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 import { delay } from "../Tools/utils.ts";
-import { testLatency } from "../Tools/network/tesLatency.ts";
+import { testLatency } from "../Tools/network/testLatency.ts";
 
 const AutoConfig = () => {
     const [image, setImage] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
     const [video, setVideo] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY)
     const [hint, setHint] = useState("测试中 ...")
     useEffect(() => {
-
-
+        const randomImageProxy = () => {
+            const arr = [
+                "https://pbs-t-1.twimg.com",
+                "https://pbs-t-2.twimg.com",
+                "https://pbs-t-3.twimg.com",
+                "https://pbs-t-4.twimg.com",
+            ]
+            return arr[Math.floor(Math.random() * arr.length)]
+        }
+        const randomVideoProxy = () => {
+            const arr = [
+                "https://video-t-1.twimg.com",
+                "https://video-t-2.twimg.com",
+                "https://video-t-3.twimg.com",
+                "https://video-t-4.twimg.com",
+            ]
+            return arr[Math.floor(Math.random() * arr.length)]
+        }
+        if (window.localStorage && window.localStorage.length === 0) {
+            setImage(randomImageProxy());
+            setVideo(randomVideoProxy());
+        }
     }, [])
 
-    return <div className="invisiable">{hint}</div>
+    return null
 }
 
 const ConfigItem = ({ value, url, onClick, noTest }) => {
@@ -34,7 +54,7 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
             if (isFailed || delay < 100 || delay > 2250) {
                 setColor(["text-red-600", "bg-red-600"]);
             } else {
-                setColor(["text-green-600", "bg-green-600"] );
+                setColor(["text-green-600", "bg-green-600"]);
             }
         };
 

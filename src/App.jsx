@@ -12,6 +12,7 @@ import SearchList from './components/SearchList.jsx';
 import LoadMoreButton from './components/LoadMoreButton.jsx';
 import AddUser from './components/AddUser.jsx';
 import getMetaData from './api/getMetaData.ts';
+import useLocalStorage from './Tools/localstorage/useLocalStorageStatus.tsx';
 
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
@@ -39,16 +40,78 @@ const SideBar = ({ onClick }) => {
   </>
 }
 
-const Main = ({ timeline }) => {
+const Main = ({ profile }) => {
+  const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
+  const [showAll, setShowAll] = useState(false);
+
+  const username = profile?.account_info?.name;
+
+  const handleBlockUser = () => {
+    if (!username) return;
+
+    setBlockMap(prev => ({
+      ...prev,
+      [username]: !(prev[username] || false) // 如果不存在，默认为false然后取反
+    }))
+  }
+
+  if (!(profile?.timeline?.length > 0)) return <HelpPage />
+
   return <main>
-    {timeline?.length > 0 ? <MediaList timeline={timeline} /> : <HelpPage />}
+    <div className="mb-4 flex space-x-2">
+      {/* 展开全部按钮 */}
+      <button
+        onClick={() => setShowAll(true)}
+        className="flex-1 py-2 px-4 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200"
+        aria-label="展开全部"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 9l6 6 6-6" />
+        </svg>
+        展开全部
+      </button>
+
+      {/* 屏蔽用户按钮 */}
+      <button
+        onClick={handleBlockUser}
+        className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md  hover:text-white transition-colors duration-200 ${username && blockMap[username] ? "bg-red-500 text-white" : "bg-red-100 hover:bg-red-500 text-red-700"}`}
+        aria-label="屏蔽用户"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5 mr-2"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+          />
+        </svg>
+        {username && blockMap[username] ? "取消屏蔽" : "屏蔽用户"}
+      </button>
+    </div>
+    <MediaList timeline={profile?.timeline} showAll={showAll} />
   </main>
 }
 // 主布局组件
 const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [timeline, setTimeline] = useState([]);
+  const [profile, setProfile] = useState(null);
 
   // 首次加载时
   useEffect(() => {
@@ -57,7 +120,7 @@ const ResponsiveLayout = () => {
     const parts = fullPath.split('/');
     const firstNonEmptyPart = parts.find(elem => elem !== '');
     if (firstNonEmptyPart) {
-      getMetaData(firstNonEmptyPart).then(data => setTimeline(data.timeline))
+      getMetaData(firstNonEmptyPart).then(data => setProfile(data))
     }
   }, [])
 
@@ -71,14 +134,14 @@ const ResponsiveLayout = () => {
     setDrawerOpen(false);
   };
 
-  const onClick = (data) => {
-    window.history.pushState({}, null, '/' + data.account_info.name);
-    setTimeline(data.timeline);
+  const handleSetProfile = (profile) => {
+    window.history.pushState({}, null, '/' + profile.account_info.name);
+    setProfile(profile);
   }
 
   const onClickHome = () => {
     window.history.pushState({}, null, '/');
-    setTimeline(null);
+    setProfile(null);
   }
 
   return (
@@ -112,13 +175,13 @@ const ResponsiveLayout = () => {
           </button>
         </div>
 
-        <Main timeline={timeline} />
+        <Main profile={profile} />
       </div>
 
       {/* 桌面模式下的用户列表 */}
       {!isMobile && (
         <div className="w-1/4 p-4 bg-white border-l border-gray-200 overflow-auto">
-          <SideBar onClick={(data) => { onClick(data) }} />
+          <SideBar onClick={(data) => { handleSetProfile(data) }} />
         </div>
       )}
 
@@ -163,7 +226,7 @@ const ResponsiveLayout = () => {
               </button>
             </div>
             <div className="overflow-auto h-full">
-              <SideBar onClick={(data) => { closeDrawer(); onClick(data) }} />
+              <SideBar onClick={(profile) => { closeDrawer(); handleSetProfile(profile) }} />
             </div>
           </div>
         </>

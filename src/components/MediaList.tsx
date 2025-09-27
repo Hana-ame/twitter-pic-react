@@ -4,15 +4,16 @@ import { PhotoProvider } from 'react-photo-view';
 
 import Media from './Media.tsx';
 
-const MediaList = ({ timeline }: { timeline: any[] }) => {
+const MediaList = ({ timeline, showAll }: { timeline: any[], showAll: boolean }) => {
     // 一种兼容性更好的检查方式是组合两种方法
     const [limit, setLimit] = useState(10);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         setLoading(true);
-        setLimit(10);
-    }, [timeline])
+        if (showAll) setLimit(999999999);
+        else setLimit(10);
+    }, [timeline, showAll])
 
     useEffect(() => {
         if (timeline && (typeof timeline === 'object' || Array.isArray(timeline))) {

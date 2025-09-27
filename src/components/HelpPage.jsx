@@ -74,7 +74,7 @@ const HelpPage = () => {
                 <Config.ImageConfig />
                 <br />
                 <Config.VideoConfig />
-                {/* <Config.AutoConfig /> */}
+                <Config.AutoConfig />
             </Block>
 
             {/* 豆腐块1 */}
