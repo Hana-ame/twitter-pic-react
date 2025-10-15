@@ -25,6 +25,8 @@ const Block = ({ title, children, closed, onClick }) => {
         </div>
     );
 };
+
+
 const HelpPage = ({ onClick }) => {
 
     const [isClosedMap, setIsClosedMap] = useLocalStorage("closedMap", {})
@@ -41,6 +43,12 @@ const HelpPage = ({ onClick }) => {
 
         {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
         <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
+
+            <Block title="提示" closed={isClosedMap["notice251009"]} onClick={() => handleOnClickBlock("notice251009")}>
+                <p className="text-gray-500">
+                    对于同一个账号,每日只能更新一次,多点没用.
+                </p>
+            </Block>
 
             {/* 豆腐块6 */}
             <Block title="守则" closed={isClosedMap["守则"]} onClick={handleOnClickBlock}>
@@ -61,7 +69,7 @@ const HelpPage = ({ onClick }) => {
                     TODO List:
                 </p>
                 <ul>
-                    <li>暂无</li>
+                    <li><s>收藏导入导出</s></li>
                 </ul>
                 <a href="https://nmbyd3.top/?bid=103">
                     <p className="text-blue-500 cursor-pointer border-blue-700">

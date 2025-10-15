@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import getMetaData from '../api/getMetaData.ts';
-import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
+// import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
 const Header = ({ username, onClick }) => {
     // const [blockMap] = useLocalStorage("block-map", {});
@@ -16,10 +16,15 @@ const Header = ({ username, onClick }) => {
         setError(false)
 
         getMetaData(username).then(data => {
-            // console.log(data);
-            setUserData(data);
+            if (data === null || data === undefined || data.error) {
+                console.log(username, data);
+                setError(true);
+                setUserData({ error: data.error || "未知错误", loading: false });
+            } else {
+                setUserData(data);
+            }
         }).catch(e => {
-            // console.error(e)
+            console.error(e)
             setError(true)
         })
 
@@ -44,6 +49,8 @@ const Header = ({ username, onClick }) => {
             }
         } catch (e) {
             console.error(e);
+            setError(true);
+            flag = false;
         }
 
         if (flag) fetchAndSet();
@@ -65,7 +72,7 @@ const Header = ({ username, onClick }) => {
     if (error) {
         return <div className='flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md'
             onClick={() => { fetchAndSet() }}>
-            点击重试
+            {userData.error}, 点击重试
         </div>
     }
 
@@ -75,8 +82,8 @@ const Header = ({ username, onClick }) => {
             {/* 用户头像 */}
             <div className="flex-shrink-0 mr-4">
                 <img
-                    src={userData.account_info.profile_image.replace("pbs.twimg.com", "twimg.nmbyd3.top")}
-                    alt={userData.account_info.nick}
+                    src={userData.account_info?.profile_image?.replace("pbs.twimg.com", "twimg.nmbyd3.top")}
+                    alt={userData.account_info?.nick}
                     className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
                 />
             </div>
@@ -84,10 +91,10 @@ const Header = ({ username, onClick }) => {
             {/* 用户信息 */}
             <div className="flex flex-col">
                 <span className="text-lg font-semibold text-gray-900 truncate">
-                    {userData.account_info.nick}
+                    {userData.account_info?.nick}
                 </span>
                 <span className="text-md text-gray-500 truncate">
-                    @{userData.account_info.name}
+                    @{userData.account_info?.name}
                 </span>
             </div>
         </div>

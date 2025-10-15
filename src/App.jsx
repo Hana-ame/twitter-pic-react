@@ -14,6 +14,7 @@ import AddUser from './components/AddUser.jsx';
 import getMetaData from './api/getMetaData.ts';
 import useLocalStorage from './Tools/localstorage/useLocalStorageStatus.tsx';
 import createMetaData from './api/createMetaData.ts';
+import Advertisement from './components/Advertisement.jsx';
 
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
@@ -41,10 +42,15 @@ const SideBar = ({ onClick }) => {
   </>
 }
 
+// 显示图片。瀑布流。
 const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    setShowAll(false);
+  }, [profile])
 
   const username = profile?.account_info?.name;
 
@@ -176,6 +182,9 @@ const Main = ({ profile, handleSetProfile }) => {
     <MediaList timeline={profile?.timeline} showAll={showAll} />
   </main>
 }
+
+
+
 // 主布局组件
 const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
@@ -218,6 +227,8 @@ const ResponsiveLayout = () => {
 
       {/* 主要内容区域 */}
       <div className={`flex-1 p-4 overflow-auto ${isMobile ? 'w-full' : 'w-3/4'}`}>
+
+        <Advertisement />
 
         {/* 添加的返回主页按钮 */}
         <div className="mb-4"> {/* 添加一些底部外边距 */}
