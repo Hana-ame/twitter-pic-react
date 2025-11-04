@@ -108,7 +108,8 @@ const HelpPage = ({ onClick }) => {
                     等待一段时间后（约1分钟）刷新
                 </p>
                 <p className="text-gray-500">
-                    <img src="https://upload.moonchan.xyz/api/01LLWEUUZ6EVLA2ZKA2NGL5OHMVYCIOR3F/image.png" alt="https://upload.moonchan.xyz/api/01LLWEUUZ6EVLA2ZKA2NGL5OHMVYCIOR3F/image.png" />
+                    恭喜郁奈s打舞萌找到小男友,bilibili已取关,教程图就换成柴吧
+                    <img src="https://upload.moonchan.xyz/api/01LLWEUU474CGPN2VLB5FKOYKHSPQFGPL2/%E6%95%99%E7%A8%8B.webp" alt="https://upload.moonchan.xyz/api/01LLWEUUZ6EVLA2ZKA2NGL5OHMVYCIOR3F/image.png" />
                 </p>
             </Block>
 
