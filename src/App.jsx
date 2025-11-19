@@ -15,10 +15,13 @@ import getMetaData from './api/getMetaData.ts';
 import useLocalStorage from './Tools/localstorage/useLocalStorageStatus.tsx';
 import createMetaData from './api/createMetaData.ts';
 import Advertisement from './components/Advertisement.jsx';
+import FavList from './components/FavList.jsx';
 
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
   const [search, setSearch] = useState("");
+  // 添加收藏夹显示状态
+  const [showFav, setShowFav] = useState(false);
 
   // 仅作初始化
   useEffect(() => {
@@ -27,18 +30,45 @@ const SideBar = ({ onClick }) => {
     })
   }, [])
 
-
   return <>
-    <SearchBar onChange={setSearch} />
-    <div className={search !== "" ? "" : "hidden"}>
-      <AddUser username={search} />
-      <SearchList by="username" search={search} onClick={onClick} />
-      <SearchList by="nick" search={search} onClick={onClick} />
+    {/* 添加切换收藏夹的按钮 */}
+    <button
+      className={`
+        bg-gradient-to-r from-blue-500 to-indigo-600
+        hover:from-blue-600 hover:to-indigo-700
+        text-white font-semibold
+        py-2 px-4 rounded shadow-md
+        hover:shadow-lg transition duration-300 ease-in-out
+        focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50
+        disabled:opacity-75 disabled:cursor-not-allowed
+        flex items-center justify-center w-full h-auto
+      `}
+      onClick={() => setShowFav(!showFav)}
+    >
+      {showFav ? '显示用户列表' : '显示收藏夹'}
+    </button>
+
+    {/* 根据 showFav 状态显示收藏夹或用户列表 */}
+
+    <div className={showFav ? "" : "hidden"}>
+      <FavList onClick={onClick} />
     </div>
-    <div className={search === "" ? "" : "hidden"}>
-      <HeaderList userList={userList} onClick={onClick} />
-      <LoadMoreButton after={userList?.at(-1) || ""} setUserList={setUserList} />
+
+    <div className={showFav ? "hidden" : ""}>
+      <SearchBar onChange={setSearch} />
+      <div className={search !== "" ? "" : "hidden"}>
+        <AddUser username={search} />
+        <SearchList by="username" search={search} onClick={onClick} />
+        <SearchList by="nick" search={search} onClick={onClick} />
+      </div>
+      <div className={search === "" ? "" : "hidden"}>
+        <HeaderList userList={userList} onClick={onClick} />
+        <LoadMoreButton after={userList?.at(-1) || ""} setUserList={setUserList} />
+      </div>
     </div>
+
+    <Advertisement />
+
   </>
 }
 
@@ -180,6 +210,7 @@ const Main = ({ profile, handleSetProfile }) => {
       </button>
     </div>
     <MediaList timeline={profile?.timeline} showAll={showAll} />
+    <Advertisement />
   </main>
 }
 

@@ -29,7 +29,7 @@ export default function LoadMoreButton({ after, setUserList }) {
 
     return (
         <button
-            className={`mb-24
+            className={`
         bg-gradient-to-r from-blue-500 to-indigo-600
         hover:from-blue-600 hover:to-indigo-700
         text-white font-semibold

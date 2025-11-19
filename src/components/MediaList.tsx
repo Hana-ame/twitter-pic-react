@@ -69,7 +69,7 @@ const MediaList = ({ timeline, showAll }: { timeline: any[], showAll: boolean })
             {limit < uniqueTimeline.length && (
                 <div className="flex justify-center my-4">
                     <button
-                        className={`mb-24
+                        className={`
                             bg-gradient-to-r from-blue-500 to-indigo-600
                             hover:from-blue-600 hover:to-indigo-700
                             text-white font-semibold
