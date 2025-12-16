@@ -16,7 +16,7 @@ const FavList = ({ onClick }) => {
         }
     }, [importText, showImport]);
 
-    // 导出功能：复制URL列表到剪贴板
+    // 导出功能：复制URL列表到剪贴板 (保持不变)
     const handleExport = () => {
         const baseUrl = `${window.location.origin}/`;
         const textToCopy = Object.keys(favMap)
@@ -32,19 +32,29 @@ const FavList = ({ onClick }) => {
             });
     };
 
-    // 导入功能：处理粘贴的文本并添加到收藏
+    // 导入功能：处理粘贴的文本并添加到收藏 (支持任意域名)
     const handleImport = () => {
         if (!importText.trim()) return;
 
         const lines = importText.split('\n').filter(line => line.trim());
+        // 复制一份旧数据
         const newFavMap = { ...favMap };
         
         let cnt = 0;
 
         lines.forEach(line => {
-            // 从URL中提取key（用户名）
-            const key = line.replace(`${window.location.origin}/`, '');
-            if (key) {
+            const cleanLine = line.trim();
+            // 1. 去除行尾可能存在的斜杠，防止 .pop() 取到空字符串
+            // 2. 按 '/' 分割
+            // 3. 取最后一部分作为 key (username)
+            const parts = cleanLine.replace(/\/+$/, '').split('/');
+            const key = parts.pop();
+
+            // 简单的校验：确保 key 存在且不是 http/https (防止只输入了域名没有username)
+            if (key && key !== 'http:' && key !== 'https:') {
+                // 如果为了保证导入的顺序也是“新入在前”，
+                // 实际上 JS Object 并不严格保证顺序，但通常追加的 Key 会在最后。
+                // 渲染时 reverse 即可。
                 newFavMap[key] = true;
                 cnt++;
             }
@@ -59,9 +69,9 @@ const FavList = ({ onClick }) => {
     return (
         <div className="space-y-4 w-full">
             
-            {/* 收藏列表 */}
+            {/* 收藏列表 - 增加 reverse() 以显示最新的在前面 */}
             <div className="space-y-2">
-                {Object.keys(favMap).map(username => (
+                {Object.keys(favMap).reverse().map(username => (
                     <Header key={username} username={username} onClick={onClick} />
                 ))}
             </div>
