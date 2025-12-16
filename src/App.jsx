@@ -158,10 +158,10 @@ const Main = ({ profile, handleSetProfile }) => {
   };
 
   // --- 新增：流式打包下载逻辑 ---
+  // --- 修复后的流式打包下载逻辑 ---
   const handleBatchDownload = async () => {
     if (!profile?.timeline || profile.timeline.length === 0) return;
 
-    // 1. 检查浏览器支持 (Chrome 86+, Edge 86+)
     if (!window.showSaveFilePicker) {
       alert(
         "当前浏览器不支持流式写入硬盘，请使用最新版 Chrome 或 Edge (PC端)。"
@@ -173,7 +173,6 @@ const Main = ({ profile, handleSetProfile }) => {
       setDownloadStatus("loading");
       setStatusMsg("准备保存...");
 
-      // 2. 弹出保存对话框
       const fileHandle = await window.showSaveFilePicker({
         suggestedName: `${username}_media_${new Date()
           .toISOString()
@@ -188,43 +187,76 @@ const Main = ({ profile, handleSetProfile }) => {
 
       const writable = await fileHandle.createWritable();
 
-      // 3. 构建下载迭代器
-      const fileIterators = profile.timeline.map(async (item) => {
-        // 转换 URL
-        const finalUrl = getProxiedUrl(item.url, item.type);
-        const fileName = item.url.split("/").pop().split("?")[0]; // 提取纯净文件名
+      // 构建下载迭代器
+      const fileIterators = profile.timeline.map(async (item, index) => {
+        // --- 1. 稳健的文件名处理 (关键修复) ---
+        let fileName = "unknown_file";
+        try {
+          // 尝试从 URL 截取
+          const urlPath = item.url.split("?")[0]; // 去掉参数
+          const extractedName = urlPath.split("/").pop(); // 获取最后一段
 
-        // 发起请求 (利用 force-cache 加速已加载资源)
-        const response = await fetch(finalUrl, {
-          cache: "force-cache",
-          mode: "cors", // 确保请求带有 CORS 头
-        });
-
-        if (!response.ok) {
-          console.warn(`文件下载失败: ${finalUrl}`);
-          // 这里可以抛出错误，或者返回一个空的 blob 避免中断整个流程
-          // 为了流程稳定，我们这里返回一个 0 字节的流或者跳过
-          return {
-            name: `FAILED_${fileName}.txt`,
-            lastModified: new Date(),
-            input: new Blob([`Failed to download: ${finalUrl}`]),
-          };
+          if (extractedName && extractedName.trim() !== "") {
+            fileName = extractedName;
+          } else {
+            // 如果截取为空，使用 tweet_id 或 索引 + 扩展名
+            const ext = item.type === "video" ? "mp4" : "jpg";
+            fileName = `${item.tweet_id || index}.${ext}`;
+          }
+        } catch (e) {
+          // 兜底
+          fileName = `file_${index}_${Date.now()}.${
+            item.type === "video" ? "mp4" : "jpg"
+          }`;
         }
 
-        setStatusMsg(`正在处理: ${fileName}`);
+        // --- 2. 代理转换 ---
+        const finalUrl = getProxiedUrl(item.url, item.type);
 
-        return {
-          name: fileName,
-          lastModified: new Date(item.date), // 使用推文时间作为文件修改时间
-          input: response, // client-zip 会自动读取 response.body 流
-        };
+        try {
+          // 发起请求
+          const response = await fetch(finalUrl, {
+            cache: "force-cache",
+            mode: "cors",
+          });
+
+          if (!response.ok) {
+            // 失败时生成一个错误文本文件，而不是抛出异常导致整个 zip 失败
+            return {
+              name: `ERROR_${fileName}.txt`,
+              lastModified: new Date(),
+              input: new Blob([
+                `Download failed for: ${finalUrl}\nStatus: ${response.status}`,
+              ]),
+            };
+          }
+
+          setStatusMsg(`处理: ${fileName}`);
+
+          // --- 3. 返回 client-zip 需要的对象 ---
+          // 确保 input 是 response，且 name 绝对存在
+          return {
+            name: fileName,
+            lastModified: new Date(item.date || Date.now()),
+            input: response,
+          };
+        } catch (networkError) {
+          // 网络层面的错误（如跨域失败、断网）
+          console.warn("Fetch error:", networkError);
+          return {
+            name: `NETWORK_ERR_${fileName}.txt`,
+            lastModified: new Date(),
+            input: new Blob([
+              `Network error for: ${finalUrl}\nError: ${networkError.message}`,
+            ]),
+          };
+        }
       });
 
-      // 4. 开始管道传输：网络 -> 压缩 -> 硬盘
       setStatusMsg("正在打包写入...");
-      const zipResponse = downloadZip(fileIterators);
 
-      // 管道对接 (自动背压，不爆内存)
+      // 开始下载管道
+      const zipResponse = downloadZip(fileIterators);
       await zipResponse.body.pipeTo(writable);
 
       setStatusMsg("下载完成！");
@@ -234,7 +266,7 @@ const Main = ({ profile, handleSetProfile }) => {
       if (error.name === "AbortError") {
         setStatusMsg("已取消");
       } else {
-        console.error(error);
+        console.error("Zip Error:", error);
         setStatusMsg("出错: " + error.message);
         setDownloadStatus("error");
       }
@@ -242,7 +274,6 @@ const Main = ({ profile, handleSetProfile }) => {
       if (statusMsg === "已取消") setDownloadStatus("");
     }
   };
-
   if (!(profile?.timeline?.length > 0))
     return <HelpPage onClick={handleSetProfile} />;
 
