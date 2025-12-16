@@ -3,9 +3,10 @@
   "name": "推图 - 推特看图纯享版",
   "icons": [
     {
-      "src": "https://twimg.nmbyd3.top/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16 192x192 512x512",
-      "type": "image/icon"
+      "src": "https://upload.moonchan.xyz/api/01LLWEUUYBCA6GZ42ZSBEIXHER477FBJBE/Logo_of_Twitter.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
