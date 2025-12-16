@@ -93,22 +93,34 @@ const Main = ({ profile, handleSetProfile }) => {
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
 
-  // --- 新增：Proxy 设置 ---
+  // Proxy 设置
   const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
   const [videoProxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY);
 
-  // --- 新增：下载状态管理 ---
-  const [downloadStatus, setDownloadStatus] = useState(""); // "" | "loading" | "error" | "success"
+  // 下载状态管理
+  const [downloadStatus, setDownloadStatus] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
+
+  // --- 新增：专门用于手机端调试的日志状态 ---
+  const [debugLog, setDebugLog] = useState("");
 
   useEffect(() => {
     setShowAll(false);
     setDownloadStatus("");
     setStatusMsg("");
+    setDebugLog(""); // 切页清空日志
   }, [profile]);
 
   const username = profile?.account_info?.name;
 
+  // 辅助函数：追加日志到屏幕
+  const logToScreen = (msg) => {
+    console.log(msg); // 依然保留控制台输出
+    setDebugLog((prev) => prev + "\n" + msg);
+  };
+
+  // ... handleBlockUser, handleFavorite, getProxiedUrl, extractFileName 保持不变 ...
+  // 请确保保留上面的 extractFileName 和 getProxiedUrl 函数！
   // ... 原有的 handleBlockUser 和 handleFavorite 保持不变 ...
   const handleBlockUser = () => {
     if (!username) return;
@@ -167,121 +179,164 @@ const Main = ({ profile, handleSetProfile }) => {
   const extractFileName = (urlStr, index, type) => {
     try {
       if (!urlStr) throw new Error("URL is empty");
-      
+
       const url = new URL(urlStr);
       // 获取路径最后一段，并移除参数（如 ?tag=21）
-      let baseName = url.pathname.split('/').pop() || "";
-      baseName = baseName.split('?')[0];
+      let baseName = url.pathname.split("/").pop() || "";
+      baseName = baseName.split("?")[0];
 
       // 处理 Twitter 的 format 参数情况 (如 G7FkId5aoAA3odu?format=jpg)
-      const format = url.searchParams.get('format');
-      
+      const format = url.searchParams.get("format");
+
       let finalName = "";
-      if (baseName.includes('.')) {
+      if (baseName.includes(".")) {
         finalName = baseName;
       } else if (format) {
         finalName = `${baseName}.${format}`;
       } else {
-        finalName = `${baseName || index}.${type === 'video' ? 'mp4' : 'jpg'}`;
+        finalName = `${baseName || index}.${type === "video" ? "mp4" : "jpg"}`;
       }
 
       // 最终检查：确保文件名不为空且不包含非法字符
       return finalName.trim() || `file_${index}_${Date.now()}`;
     } catch (e) {
-      return `file_${index}_${Date.now()}.${type === 'video' ? 'mp4' : 'jpg'}`;
+      return `file_${index}_${Date.now()}.${type === "video" ? "mp4" : "jpg"}`;
     }
   };
 
   // 2. 核心下载函数
+  // ---------------------------------------------------------
+  // --- 核心修复：handleBatchDownload ---
+  // ---------------------------------------------------------
   const handleBatchDownload = async () => {
     if (!profile?.timeline || profile.timeline.length === 0) return;
 
     try {
       setDownloadStatus("loading");
-      setStatusMsg("准备保存中...");
+      setStatusMsg("初始化中...");
+      setDebugLog("开始下载流程..."); // Log start
 
-      const zipFilename = `${username}_media_${new Date().toISOString().slice(0, 10)}.zip`;
+      const zipFilename = `${username}_media_${new Date()
+        .toISOString()
+        .slice(0, 10)}.zip`;
       let writable;
+      let useNativeFS = false;
 
-      // 选择写入流 (PC vs Android)
+      // 1. 尝试获取写入流
       if (window.showSaveFilePicker) {
         try {
+          // PC 端逻辑
           const fileHandle = await window.showSaveFilePicker({
             suggestedName: zipFilename,
-            types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
+            types: [
+              {
+                description: "ZIP Archive",
+                accept: { "application/zip": [".zip"] },
+              },
+            ],
           });
           writable = await fileHandle.createWritable();
+          useNativeFS = true;
+          logToScreen("模式: PC Native FileSystem");
         } catch (err) {
-          if (err.name === 'AbortError') return (setDownloadStatus(""), setStatusMsg(""));
+          if (err.name === "AbortError")
+            return setDownloadStatus(""), setStatusMsg("");
           throw err;
         }
       } else {
-        writable = streamSaver.createWriteStream(zipFilename);
+        // 手机/不支持原生FS的浏览器
+        // [关键] StreamSaver 在手机上必须通过点击事件同步触发创建，否则可能被拦截
+        logToScreen("模式: StreamSaver (Mobile/Legacy)");
+        try {
+          // 确保 mitm 地址绝对正确，建议在生产环境写死完整域名，例如 https://your-site.com/mitm.html
+          // 如果是在本地测试，确保 localhost 访问
+          writable = streamSaver.createWriteStream(zipFilename);
+          logToScreen("StreamSaver流创建成功");
+        } catch (err) {
+          logToScreen("StreamSaver创建失败: " + err.message);
+          throw err;
+        }
       }
 
-      // --- 关键改动：使用异步生成器 (Async Generator) ---
-      // 这种方式确保 client-zip 能够一个接一个地、正确地获取带名字的对象
+      // 2. 异步生成器 (保持不变，这部分逻辑是好的)
       async function* createZipFolder() {
         for (let i = 0; i < profile.timeline.length; i++) {
           const item = profile.timeline[i];
           const fileName = extractFileName(item.url, i, item.type);
           const finalUrl = getProxiedUrl(item.url, item.type);
 
-          console.log(`[打包中] 正在处理第 ${i+1} 个文件: ${fileName}`); // 调试用
-          setStatusMsg(`处理中 (${i+1}/${profile.timeline.length}): ${fileName}`);
+          setStatusMsg(
+            `处理 (${i + 1}/${profile.timeline.length}): ${fileName}`
+          );
 
           try {
-            const response = await fetch(finalUrl, { cache: 'force-cache' });
+            const response = await fetch(finalUrl, { cache: "force-cache" });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-            // 成功：产生一个符合 client-zip 要求的对象
             yield {
               name: fileName,
               lastModified: new Date(item.date || Date.now()),
-              input: response // 直接传入 response 流
+              input: response,
             };
           } catch (err) {
-            console.error(`文件 ${fileName} 下载失败:`, err);
-            // 失败：产生一个错误日志文件到压缩包，确保不中断整体下载
+            logToScreen(`文件失败[${i}]: ${fileName} - ${err.message}`);
             yield {
               name: `FAILED_${fileName}.txt`,
               lastModified: new Date(),
-              input: `URL: ${finalUrl}\nError: ${err.message}`
+              input: `URL: ${finalUrl}\nError: ${err.message}`,
             };
           }
         }
       }
 
-      // 3. 执行管道传输
-      setStatusMsg("正在打包写入硬盘...");
-      const zipResponse = downloadZip(createZipFolder()); // 传入生成器
+      // 3. 开始传输
+      setStatusMsg("正在打包...");
+      const zipResponse = downloadZip(createZipFolder());
 
-      // 使用最兼容的 pipe 方式
-      if (zipResponse.body.pipeTo) {
+      // [核心修复点] 手机端坚决不使用 pipeTo
+      // StreamSaver 的 writable stream 在手机浏览器上对 pipeTo 的兼容性很差
+      if (useNativeFS) {
+        // PC 端原生支持 pipeTo，效率最高
+        logToScreen("使用 pipeTo 传输");
         await zipResponse.body.pipeTo(writable);
       } else {
+        // 手机端/StreamSaver：强制使用手动泵 (Manual Pump)
+        logToScreen("使用 Manual Reader/Writer Loop 传输");
+
         const reader = zipResponse.body.getReader();
         const writer = writable.getWriter();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          await writer.write(value);
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            await writer.write(value);
+          }
+          logToScreen("写入循环完成");
+          writer.close();
+        } catch (pumpErr) {
+          logToScreen("写入循环中断: " + pumpErr.message);
+          writer.abort(pumpErr); // 尝试通知 StreamSaver 停止
+          throw pumpErr;
         }
-        await writer.close();
       }
 
       setStatusMsg("下载完成！");
+      logToScreen("全部流程结束: Success");
       setDownloadStatus("success");
-      setTimeout(() => { setStatusMsg(""); setDownloadStatus(""); }, 3000);
-
+      setTimeout(() => {
+        setStatusMsg("");
+        setDownloadStatus("");
+      }, 3000);
     } catch (error) {
-      console.error("Critical Download Error:", error);
-      setStatusMsg("打包失败: " + error.message);
+      logToScreen(
+        "致命错误: " + error.message + "\nStack: " + (error.stack || "N/A")
+      );
+      setStatusMsg("出错: " + error.message);
       setDownloadStatus("error");
     }
   };
 
-  
   if (!(profile?.timeline?.length > 0))
     return <HelpPage onClick={handleSetProfile} />;
 
@@ -366,6 +421,15 @@ const Main = ({ profile, handleSetProfile }) => {
             </span>
           </button>
         </div>
+
+        {/* 在按钮组下方，增加一个用于显示 Debug 日志的区域 */}
+        {/* 只有在有日志内容时才显示，方便手机查看报错 */}
+        {debugLog && (
+          <div className="mt-4 p-2 bg-black text-green-400 text-xs font-mono whitespace-pre-wrap break-all rounded border border-green-600 overflow-auto max-h-40">
+            <strong>Debug Console:</strong>
+            {debugLog}
+          </div>
+        )}
 
         {/* 第二行：新增打包下载按钮 */}
         <div className="flex space-x-2">
