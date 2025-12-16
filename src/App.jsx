@@ -163,46 +163,38 @@ const Main = ({ profile, handleSetProfile }) => {
       return originalUrl;
     }
   };
-
-  // --- 专门用于提取 Twitter/X 风格文件名的辅助函数 ---
+  
+// --- 专门用于提取 Twitter/X 风格文件名的辅助函数 (加强版) ---
   const extractFileName = (urlStr, index, type) => {
     try {
       const url = new URL(urlStr);
+      let baseName = url.pathname.split('/').pop();
 
-      // 1. 获取路径的最后一部分
-      // 例如 video: .../Nabuim_1BStG1Bzf.mp4
-      // 例如 image: .../G7FkId5aoAA3odu
-      let baseName = url.pathname.split("/").pop();
-
-      // 2. 视频处理逻辑：如果有后缀 (包含点)，直接用
-      if (baseName.includes(".")) {
+      if (baseName.includes('.')) {
         return baseName;
       }
 
-      // 3. 图片处理逻辑：如果没有后缀，去 query 参数找 format
-      // 例如: ?format=jpg&name=orig
-      const format = url.searchParams.get("format");
+      const format = url.searchParams.get('format');
       if (format) {
         return `${baseName}.${format}`;
       }
 
-      // 4. 如果既没有后缀，也没有 format 参数，手动根据 type 补全
-      const ext = type === "video" ? "mp4" : "jpg";
-      // 确保 baseName 不为空，如果为空（比如 url 是 /），用 index 兜底
-      return baseName && baseName.trim() !== ""
-        ? `${baseName}.${ext}`
-        : `${index}.${ext}`;
+      const ext = type === 'video' ? 'mp4' : 'jpg';
+      const finalName = (baseName && baseName.trim() !== "") ? `${baseName}.${ext}` : `${index}.${ext}`;
+
+      // 添加日志，方便调试
+      console.log(`[extractFileName] URL: ${urlStr}, Extracted Name: ${finalName}`);
+      return finalName;
+
     } catch (e) {
-      // 5. 绝对兜底：如果 URL 解析本身报错
-      const ext = type === "video" ? "mp4" : "jpg";
-      return `file_${index}_${Date.now()}.${ext}`;
+      const ext = type === 'video' ? 'mp4' : 'jpg';
+      const errorName = `file_${index}_${Date.now()}.${ext}`;
+      console.error(`[extractFileName] Error parsing URL: ${urlStr}, Falling back to: ${errorName}`, e);
+      return errorName;
     }
   };
 
-  // --- 新增：流式打包下载逻辑 ---
-  // --- 修复后的流式打包下载逻辑 ---
-  // 核心下载函数
-  // --- 修复后的流式打包下载逻辑 ---
+  // --- 修复后的流式打包下载逻辑 (带更详细错误处理) ---
   const handleBatchDownload = async () => {
     if (!profile?.timeline || profile.timeline.length === 0) return;
 
@@ -210,26 +202,18 @@ const Main = ({ profile, handleSetProfile }) => {
       setDownloadStatus("loading");
       setStatusMsg("准备数据流...");
 
-      const zipFilename = `${username}_media_${new Date()
-        .toISOString()
-        .slice(0, 10)}.zip`;
+      const zipFilename = `${username}_media_${new Date().toISOString().slice(0, 10)}.zip`;
       let writable;
 
-      // --- 1. 获取写入流 (PC vs Mobile) ---
       if (window.showSaveFilePicker) {
         try {
           const fileHandle = await window.showSaveFilePicker({
             suggestedName: zipFilename,
-            types: [
-              {
-                description: "ZIP Archive",
-                accept: { "application/zip": [".zip"] },
-              },
-            ],
+            types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
           });
           writable = await fileHandle.createWritable();
         } catch (err) {
-          if (err.name === "AbortError") {
+          if (err.name === 'AbortError') {
             setStatusMsg("已取消");
             setDownloadStatus("");
             return;
@@ -238,88 +222,93 @@ const Main = ({ profile, handleSetProfile }) => {
         }
       } else {
         // Android/iOS 降级方案 (StreamSaver)
-        // 确保你已经引入了 streamSaver
         const fileStream = streamSaver.createWriteStream(zipFilename);
         writable = fileStream;
       }
 
-      // --- 2. 构建文件迭代器 ---
+      // --- 关键修改：在 map 循环中增加 try...catch ---
       const fileIterators = profile.timeline.map(async (item, index) => {
-        // [关键修改] 使用新的文件名提取逻辑
-        const fileName = extractFileName(item.url, index, item.type);
-
-        // 代理转换
-        const finalUrl = getProxiedUrl(item.url, item.type);
-
+        let fileName;
         try {
-          // 发起请求
+          // 1. 提取文件名
+          fileName = extractFileName(item.url, index, item.type);
+
+          // 2. 代理转换
+          const finalUrl = getProxiedUrl(item.url, item.type);
+
+          // 3. 发起请求
           const response = await fetch(finalUrl, {
-            cache: "force-cache",
-            mode: "cors",
+            cache: 'force-cache',
+            mode: 'cors'
           });
 
           if (!response.ok) {
-            // 即使下载失败，也必须给 client-zip 返回一个有名字的对象，否则整个 zip 会崩
+            console.warn(`[Download] Failed to download: ${finalUrl}, Status: ${response.status}`);
             return {
               name: `ERROR_${fileName}.txt`,
               lastModified: new Date(),
-              input: new Blob([
-                `Failed: ${response.status} ${response.statusText}\nURL: ${finalUrl}`,
-              ]),
+              input: new Blob([`Failed: ${response.status} ${response.statusText}\nURL: ${finalUrl}`])
             };
           }
 
           setStatusMsg(`处理: ${fileName}`);
 
+          // 4. 成功返回
           return {
-            name: fileName, // 确保这里绝对是有效字符串
+            name: fileName,
             lastModified: new Date(item.date || Date.now()),
-            input: response,
+            input: response
           };
-        } catch (networkError) {
+
+        } catch (mapError) {
+          // 5. map 循环中的错误处理
+          console.error(`[Download] Error processing item ${index}, URL: ${item.url}, fileName: ${fileName}`, mapError);
+
+          const errorFileName = `ERROR_${fileName || index}.txt`; // 确保有文件名
           return {
-            name: `ERR_${fileName}.txt`,
+            name: errorFileName,
             lastModified: new Date(),
-            input: new Blob([
-              `Network Error: ${networkError.message}\nURL: ${finalUrl}`,
-            ]),
+            input: new Blob([`Error processing item ${index}: ${mapError.message}\nURL: ${item.url}`])
           };
         }
       });
 
       setStatusMsg("正在打包并传输...");
 
-      // --- 3. 管道传输 ---
-      const zipResponse = downloadZip(fileIterators);
+      try {
+        // --- 管道传输 ---
+        const zipResponse = downloadZip(fileIterators);
 
-      // 兼容性处理 pipeTo
-      if (
-        window.WritableStream &&
-        writable.locked === false &&
-        zipResponse.body.pipeTo
-      ) {
-        await zipResponse.body.pipeTo(writable);
-      } else {
-        const reader = zipResponse.body.getReader();
-        const writer = writable.getWriter();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          await writer.write(value);
+        if (window.WritableStream && writable.locked === false && zipResponse.body.pipeTo) {
+          await zipResponse.body.pipeTo(writable);
+        } else {
+          const reader = zipResponse.body.getReader();
+          const writer = writable.getWriter();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            await writer.write(value);
+          }
+          writer.close();
         }
-        writer.close();
+
+        setStatusMsg("下载完成！");
+        setDownloadStatus("success");
+        setTimeout(() => setStatusMsg(""), 3000);
+      } catch (zipError) {
+        // 压缩过程出错
+        console.error("Zip process error:", zipError);
+        setStatusMsg("压缩出错: " + zipError.message);
+        setDownloadStatus("error");
       }
 
-      setStatusMsg("下载完成！");
-      setDownloadStatus("success");
-      setTimeout(() => setStatusMsg(""), 3000);
     } catch (error) {
+      // 顶层错误处理
       console.error("Download Critical Error:", error);
       setStatusMsg("出错: " + error.message);
       setDownloadStatus("error");
     }
   };
-
   if (!(profile?.timeline?.length > 0))
     return <HelpPage onClick={handleSetProfile} />;
 
