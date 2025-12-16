@@ -1,0 +1,4 @@
+[submodule "src/Tools"]
+	path = src/Tools
+	url = https://github.com/Hana-ame/Tools.git
+	branch = js
