@@ -164,9 +164,45 @@ const Main = ({ profile, handleSetProfile }) => {
     }
   };
 
+  // --- 专门用于提取 Twitter/X 风格文件名的辅助函数 ---
+  const extractFileName = (urlStr, index, type) => {
+    try {
+      const url = new URL(urlStr);
+
+      // 1. 获取路径的最后一部分
+      // 例如 video: .../Nabuim_1BStG1Bzf.mp4
+      // 例如 image: .../G7FkId5aoAA3odu
+      let baseName = url.pathname.split("/").pop();
+
+      // 2. 视频处理逻辑：如果有后缀 (包含点)，直接用
+      if (baseName.includes(".")) {
+        return baseName;
+      }
+
+      // 3. 图片处理逻辑：如果没有后缀，去 query 参数找 format
+      // 例如: ?format=jpg&name=orig
+      const format = url.searchParams.get("format");
+      if (format) {
+        return `${baseName}.${format}`;
+      }
+
+      // 4. 如果既没有后缀，也没有 format 参数，手动根据 type 补全
+      const ext = type === "video" ? "mp4" : "jpg";
+      // 确保 baseName 不为空，如果为空（比如 url 是 /），用 index 兜底
+      return baseName && baseName.trim() !== ""
+        ? `${baseName}.${ext}`
+        : `${index}.${ext}`;
+    } catch (e) {
+      // 5. 绝对兜底：如果 URL 解析本身报错
+      const ext = type === "video" ? "mp4" : "jpg";
+      return `file_${index}_${Date.now()}.${ext}`;
+    }
+  };
+
   // --- 新增：流式打包下载逻辑 ---
   // --- 修复后的流式打包下载逻辑 ---
   // 核心下载函数
+  // --- 修复后的流式打包下载逻辑 ---
   const handleBatchDownload = async () => {
     if (!profile?.timeline || profile.timeline.length === 0) return;
 
@@ -174,18 +210,16 @@ const Main = ({ profile, handleSetProfile }) => {
       setDownloadStatus("loading");
       setStatusMsg("准备数据流...");
 
-      const filename = `${username}_media_${new Date()
+      const zipFilename = `${username}_media_${new Date()
         .toISOString()
         .slice(0, 10)}.zip`;
       let writable;
-      let fileHandle;
 
-      // --- 分支判断：PC 原生 vs 移动端 StreamSaver ---
+      // --- 1. 获取写入流 (PC vs Mobile) ---
       if (window.showSaveFilePicker) {
-        // [方案 A] PC Chrome/Edge 原生文件系统 (体验最好)
         try {
-          fileHandle = await window.showSaveFilePicker({
-            suggestedName: filename,
+          const fileHandle = await window.showSaveFilePicker({
+            suggestedName: zipFilename,
             types: [
               {
                 description: "ZIP Archive",
@@ -195,7 +229,6 @@ const Main = ({ profile, handleSetProfile }) => {
           });
           writable = await fileHandle.createWritable();
         } catch (err) {
-          // 用户在弹窗中点了取消
           if (err.name === "AbortError") {
             setStatusMsg("已取消");
             setDownloadStatus("");
@@ -204,52 +237,42 @@ const Main = ({ profile, handleSetProfile }) => {
           throw err;
         }
       } else {
-        // [方案 B] Android / iOS / Firefox 等 (使用 StreamSaver)
-        setStatusMsg("正在初始化下载流...");
-        // StreamSaver 创建一个写入流
-        const fileStream = streamSaver.createWriteStream(filename);
+        // Android/iOS 降级方案 (StreamSaver)
+        // 确保你已经引入了 streamSaver
+        const fileStream = streamSaver.createWriteStream(zipFilename);
         writable = fileStream;
       }
 
-      // --- 通用的数据构建逻辑 (PC/移动端共用) ---
+      // --- 2. 构建文件迭代器 ---
       const fileIterators = profile.timeline.map(async (item, index) => {
-        // 1. 文件名处理
-        let fileName = "unknown";
-        try {
-          const urlPath = item.url.split("?")[0];
-          const extractedName = urlPath.split("/").pop();
-          if (extractedName && extractedName.trim() !== "") {
-            fileName = extractedName;
-          } else {
-            const ext = item.type === "video" ? "mp4" : "jpg";
-            fileName = `${item.tweet_id || index}.${ext}`;
-          }
-        } catch (e) {
-          fileName = `file_${index}.${item.type === "video" ? "mp4" : "jpg"}`;
-        }
+        // [关键修改] 使用新的文件名提取逻辑
+        const fileName = extractFileName(item.url, index, item.type);
 
-        // 2. 代理转换
+        // 代理转换
         const finalUrl = getProxiedUrl(item.url, item.type);
 
         try {
-          // 3. Fetch 请求
+          // 发起请求
           const response = await fetch(finalUrl, {
             cache: "force-cache",
             mode: "cors",
           });
 
           if (!response.ok) {
+            // 即使下载失败，也必须给 client-zip 返回一个有名字的对象，否则整个 zip 会崩
             return {
               name: `ERROR_${fileName}.txt`,
               lastModified: new Date(),
-              input: new Blob([`Download failed: ${response.status}`]),
+              input: new Blob([
+                `Failed: ${response.status} ${response.statusText}\nURL: ${finalUrl}`,
+              ]),
             };
           }
 
           setStatusMsg(`处理: ${fileName}`);
 
           return {
-            name: fileName,
+            name: fileName, // 确保这里绝对是有效字符串
             lastModified: new Date(item.date || Date.now()),
             input: response,
           };
@@ -257,23 +280,26 @@ const Main = ({ profile, handleSetProfile }) => {
           return {
             name: `ERR_${fileName}.txt`,
             lastModified: new Date(),
-            input: new Blob([`Net Error: ${networkError.message}`]),
+            input: new Blob([
+              `Network Error: ${networkError.message}\nURL: ${finalUrl}`,
+            ]),
           };
         }
       });
 
       setStatusMsg("正在打包并传输...");
 
-      // --- 管道传输 ---
-      // client-zip 将多个 fetch 流合并为一个 zip 流
+      // --- 3. 管道传输 ---
       const zipResponse = downloadZip(fileIterators);
 
-      // 将 zip 流 泵入 (Pipe) 到 写入流 (无论是 PC 的硬盘还是 StreamSaver)
-      // client-zip 生成的是 ReadableStream，可以直接 pipeTo WritableStream
-      if (window.WritableStream && writable.locked === false) {
+      // 兼容性处理 pipeTo
+      if (
+        window.WritableStream &&
+        writable.locked === false &&
+        zipResponse.body.pipeTo
+      ) {
         await zipResponse.body.pipeTo(writable);
       } else {
-        // 针对一些极少数不支持 pipeTo 的旧浏览器环境的降级写法 (通常不需要)
         const reader = zipResponse.body.getReader();
         const writer = writable.getWriter();
         while (true) {
@@ -288,7 +314,7 @@ const Main = ({ profile, handleSetProfile }) => {
       setDownloadStatus("success");
       setTimeout(() => setStatusMsg(""), 3000);
     } catch (error) {
-      console.error("Download Error:", error);
+      console.error("Download Critical Error:", error);
       setStatusMsg("出错: " + error.message);
       setDownloadStatus("error");
     }
