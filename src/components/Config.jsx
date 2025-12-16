@@ -3,7 +3,6 @@ import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 import { delay } from "../Tools/utils.ts";
 import { testLatency } from "../Tools/network/testLatency.ts";
-import { log } from "console";
 
 // 定义常量，避免在组件内部重复创建数组
 const IMAGE_PROXIES = [
