@@ -37,7 +37,7 @@ const AutoConfig = () => {
   // 如果本地存储中没有 'first-visit-at'，useLocalStorage 会使用默认值 'now'
   // 如果本地存储中有值，ts 就会等于旧的时间戳
   const [ts, setTS] = useLocalStorage("first-visit-at", now);
-
+  
   useEffect(() => {
     const getRandomProxy = (arr) => {
       return arr[Math.floor(Math.random() * arr.length)];
@@ -53,8 +53,9 @@ const AutoConfig = () => {
 
       // 注意：useLocalStorage 通常在初始化默认值时就会自动写入 localStorage，
       // 所以这里不需要显式调用 setTS(now)，除非你的 hook 行为不同。
+      setTS(now);
     }
-  }, [ts, now, setImage, setVideo]); // 补全依赖数组
+  }, []); // 补全依赖数组
 
   return null;
 };
