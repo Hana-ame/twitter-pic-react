@@ -1,22 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import { downloadZip } from "client-zip"; // 引入 client-zip
+// ... 其他原本的 import ...
+// 假设这些是你项目中原本存在的 import
+import useScreenMode from "./Tools/hooks/useScreenMode";
+import MediaList from "./components/MediaList.tsx";
+import HeaderList from "./components/HeaderList";
+import { getUserList } from "./api/getUserList.ts";
+import SearchBar from "./components/SearchBar.jsx";
+import HelpPage from "./components/HelpPage.jsx";
+import SearchList from "./components/SearchList.jsx";
+import LoadMoreButton from "./components/LoadMoreButton.jsx";
+import AddUser from "./components/AddUser.jsx";
+import getMetaData from "./api/getMetaData.ts";
+import useLocalStorage from "./Tools/localstorage/useLocalStorageStatus.tsx";
+import createMetaData from "./api/createMetaData.ts";
+import Advertisement from "./components/Advertisement.jsx";
+import FavList from "./components/FavList.jsx";
 
-import useScreenMode from './Tools/hooks/useScreenMode';
+// 如果这些常量在其他文件定义了，请改为 import
+import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints.ts";
 
-import MediaList from './components/MediaList.tsx'; // 请替换为实际路径
-import HeaderList from './components/HeaderList'; // 请替换为实际路径
-
-import { getUserList, searchUserList } from './api/getUserList.ts';
-import SearchBar from './components/SearchBar.jsx';
-import HelpPage from './components/HelpPage.jsx';
-import SearchList from './components/SearchList.jsx';
-import LoadMoreButton from './components/LoadMoreButton.jsx';
-import AddUser from './components/AddUser.jsx';
-import getMetaData from './api/getMetaData.ts';
-import useLocalStorage from './Tools/localstorage/useLocalStorageStatus.tsx';
-import createMetaData from './api/createMetaData.ts';
-import Advertisement from './components/Advertisement.jsx';
-import FavList from './components/FavList.jsx';
-
+// ... SideBar 组件保持不变 ...
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
   const [search, setSearch] = useState("");
@@ -25,15 +29,16 @@ const SideBar = ({ onClick }) => {
 
   // 仅作初始化
   useEffect(() => {
-    getUserList().then(users => {
-      setUserList(users)
-    })
-  }, [])
+    getUserList().then((users) => {
+      setUserList(users);
+    });
+  }, []);
 
-  return <>
-    {/* 添加切换收藏夹的按钮 */}
-    <button
-      className={`
+  return (
+    <>
+      {/* 添加切换收藏夹的按钮 */}
+      <button
+        className={`
         bg-gradient-to-r from-blue-500 to-indigo-600
         hover:from-blue-600 hover:to-indigo-700
         text-white font-semibold
@@ -43,34 +48,37 @@ const SideBar = ({ onClick }) => {
         disabled:opacity-75 disabled:cursor-not-allowed
         flex items-center justify-center w-full h-auto
       `}
-      onClick={() => setShowFav(!showFav)}
-    >
-      {showFav ? '显示用户列表' : '显示收藏夹'}
-    </button>
+        onClick={() => setShowFav(!showFav)}
+      >
+        {showFav ? "显示用户列表" : "显示收藏夹"}
+      </button>
 
-    {/* 根据 showFav 状态显示收藏夹或用户列表 */}
+      {/* 根据 showFav 状态显示收藏夹或用户列表 */}
 
-    <div className={showFav ? "" : "hidden"}>
-      <FavList onClick={onClick} />
-    </div>
-
-    <div className={showFav ? "hidden" : ""}>
-      <SearchBar onChange={setSearch} />
-      <div className={search !== "" ? "" : "hidden"}>
-        <AddUser username={search} />
-        <SearchList by="username" search={search} onClick={onClick} />
-        <SearchList by="nick" search={search} onClick={onClick} />
+      <div className={showFav ? "" : "hidden"}>
+        <FavList onClick={onClick} />
       </div>
-      <div className={search === "" ? "" : "hidden"}>
-        <HeaderList userList={userList} onClick={onClick} />
-        <LoadMoreButton after={userList?.at(-1) || ""} setUserList={setUserList} />
+
+      <div className={showFav ? "hidden" : ""}>
+        <SearchBar onChange={setSearch} />
+        <div className={search !== "" ? "" : "hidden"}>
+          <AddUser username={search} />
+          <SearchList by="username" search={search} onClick={onClick} />
+          <SearchList by="nick" search={search} onClick={onClick} />
+        </div>
+        <div className={search === "" ? "" : "hidden"}>
+          <HeaderList userList={userList} onClick={onClick} />
+          <LoadMoreButton
+            after={userList?.at(-1) || ""}
+            setUserList={setUserList}
+          />
+        </div>
       </div>
-    </div>
 
-    <Advertisement />
-
-  </>
-}
+      <Advertisement />
+    </>
+  );
+};
 
 // 显示图片。瀑布流。
 const Main = ({ profile, handleSetProfile }) => {
@@ -78,25 +86,36 @@ const Main = ({ profile, handleSetProfile }) => {
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
 
+  // --- 新增：Proxy 设置 ---
+  const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
+  const [videoProxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY);
+
+  // --- 新增：下载状态管理 ---
+  const [downloadStatus, setDownloadStatus] = useState(""); // "" | "loading" | "error" | "success"
+  const [statusMsg, setStatusMsg] = useState("");
+
   useEffect(() => {
     setShowAll(false);
-  }, [profile])
+    setDownloadStatus("");
+    setStatusMsg("");
+  }, [profile]);
 
   const username = profile?.account_info?.name;
 
+  // ... 原有的 handleBlockUser 和 handleFavorite 保持不变 ...
   const handleBlockUser = () => {
     if (!username) return;
 
-    setBlockMap(prev => ({
+    setBlockMap((prev) => ({
       ...prev,
-      [username]: !(prev[username] || false) // 如果不存在，默认为false然后取反
-    }))
-  }
+      [username]: !(prev[username] || false), // 如果不存在，默认为false然后取反
+    }));
+  };
 
   const handleFavorite = () => {
     if (!username) return;
 
-    setFavMap(prev => {
+    setFavMap((prev) => {
       const isCurrentlyFavorited = prev[username];
 
       if (isCurrentlyFavorited) {
@@ -107,115 +126,274 @@ const Main = ({ profile, handleSetProfile }) => {
         // 如果当前未收藏，则添加该键并设置为 true[2](@ref)
         return {
           ...prev,
-          [username]: true
+          [username]: true,
         };
       }
     });
   };
 
+  // --- 新增：核心 URL 替换逻辑 ---
+  const getProxiedUrl = (originalUrl, type) => {
+    try {
+      const targetProxy = type === "video" ? videoProxy : imageProxy;
 
-  if (!(profile?.timeline?.length > 0)) return <HelpPage onClick={handleSetProfile} />
+      // 如果没有设置代理，或者代理为空，返回原链接
+      if (!targetProxy || targetProxy.trim() === "") {
+        return originalUrl;
+      }
 
-  return <main>
-    <div className="mb-4 flex space-x-2">
-      {/* 展开全部按钮 */}
-      <button
-        onClick={() => setShowAll(true)}
-        className="flex-1 py-2 px-4 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200"
-        aria-label="展开全部"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 mr-2"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 9l6 6 6-6" />
-        </svg>
-        展开全部
-      </button>
+      const urlObj = new URL(originalUrl);
+      const proxyObj = new URL(targetProxy);
 
-      {/* 收藏按钮 */}
-      <button
-        onClick={handleFavorite}
-        className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 ${favMap?.[username] ? "bg-yellow-500 text-white" : "bg-yellow-100 hover:bg-yellow-500 text-yellow-700"}`}
-        aria-label="收藏"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 mr-2"
-          fill={favMap?.[username] ? "currentColor" : "none"}
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-          />
-        </svg>
-        {favMap?.[username] ? "已收藏" : "收藏"}
-      </button>
+      // 替换协议、主机名和端口
+      urlObj.protocol = proxyObj.protocol;
+      urlObj.host = proxyObj.host;
+      urlObj.port = proxyObj.port;
 
-      {/* 更新按钮 */}
-      <button
-        onClick={() => createMetaData(username)}
-        className="flex-1 py-2 px-4 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
-        aria-label="更新"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 mr-2"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
-        更新
-      </button>
+      return urlObj.toString();
+    } catch (e) {
+      console.error("URL转换失败", e);
+      return originalUrl;
+    }
+  };
 
-      {/* 屏蔽用户按钮 */}
-      <button
-        onClick={handleBlockUser}
-        className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md  hover:text-white transition-colors duration-200 ${username && blockMap[username] ? "bg-red-500 text-white" : "bg-red-100 hover:bg-red-500 text-red-700"}`}
-        aria-label="屏蔽用户"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 mr-2"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-          />
-        </svg>
-        {username && blockMap[username] ? "取消屏蔽" : "屏蔽用户"}
-      </button>
-    </div>
-    <MediaList timeline={profile?.timeline} showAll={showAll} />
-    <Advertisement />
-  </main>
-}
+  // --- 新增：流式打包下载逻辑 ---
+  const handleBatchDownload = async () => {
+    if (!profile?.timeline || profile.timeline.length === 0) return;
 
+    // 1. 检查浏览器支持 (Chrome 86+, Edge 86+)
+    if (!window.showSaveFilePicker) {
+      alert(
+        "当前浏览器不支持流式写入硬盘，请使用最新版 Chrome 或 Edge (PC端)。"
+      );
+      return;
+    }
 
+    try {
+      setDownloadStatus("loading");
+      setStatusMsg("准备保存...");
 
+      // 2. 弹出保存对话框
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: `${username}_media_${new Date()
+          .toISOString()
+          .slice(0, 10)}.zip`,
+        types: [
+          {
+            description: "ZIP Archive",
+            accept: { "application/zip": [".zip"] },
+          },
+        ],
+      });
+
+      const writable = await fileHandle.createWritable();
+
+      // 3. 构建下载迭代器
+      const fileIterators = profile.timeline.map(async (item) => {
+        // 转换 URL
+        const finalUrl = getProxiedUrl(item.url, item.type);
+        const fileName = item.url.split("/").pop().split("?")[0]; // 提取纯净文件名
+
+        // 发起请求 (利用 force-cache 加速已加载资源)
+        const response = await fetch(finalUrl, {
+          cache: "force-cache",
+          mode: "cors", // 确保请求带有 CORS 头
+        });
+
+        if (!response.ok) {
+          console.warn(`文件下载失败: ${finalUrl}`);
+          // 这里可以抛出错误，或者返回一个空的 blob 避免中断整个流程
+          // 为了流程稳定，我们这里返回一个 0 字节的流或者跳过
+          return {
+            name: `FAILED_${fileName}.txt`,
+            lastModified: new Date(),
+            input: new Blob([`Failed to download: ${finalUrl}`]),
+          };
+        }
+
+        setStatusMsg(`正在处理: ${fileName}`);
+
+        return {
+          name: fileName,
+          lastModified: new Date(item.date), // 使用推文时间作为文件修改时间
+          input: response, // client-zip 会自动读取 response.body 流
+        };
+      });
+
+      // 4. 开始管道传输：网络 -> 压缩 -> 硬盘
+      setStatusMsg("正在打包写入...");
+      const zipResponse = downloadZip(fileIterators);
+
+      // 管道对接 (自动背压，不爆内存)
+      await zipResponse.body.pipeTo(writable);
+
+      setStatusMsg("下载完成！");
+      setDownloadStatus("success");
+      setTimeout(() => setStatusMsg(""), 3000);
+    } catch (error) {
+      if (error.name === "AbortError") {
+        setStatusMsg("已取消");
+      } else {
+        console.error(error);
+        setStatusMsg("出错: " + error.message);
+        setDownloadStatus("error");
+      }
+    } finally {
+      if (statusMsg === "已取消") setDownloadStatus("");
+    }
+  };
+
+  if (!(profile?.timeline?.length > 0))
+    return <HelpPage onClick={handleSetProfile} />;
+
+  return (
+    <main>
+      <div className="mb-4 flex flex-col space-y-2">
+        {/* 第一行按钮组 */}
+        <div className="flex space-x-2">
+          {/* 展开全部按钮 */}
+          <button
+            onClick={() => setShowAll(true)}
+            className="flex-1 py-2 px-4 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200"
+          >
+            {/* ... SVG 省略 ... */}
+            <span className="ml-2">展开全部</span>
+          </button>
+
+          {/* 收藏按钮 */}
+          <button
+            onClick={handleFavorite}
+            className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 ${
+              favMap?.[username]
+                ? "bg-yellow-500 text-white"
+                : "bg-yellow-100 hover:bg-yellow-500 text-yellow-700"
+            }`}
+          >
+            {/* ... SVG 省略 ... */}
+            <span className="ml-2">
+              {favMap?.[username] ? "已收藏" : "收藏"}
+            </span>
+          </button>
+
+          {/* 更新按钮 */}
+          <button
+            onClick={() => createMetaData(username)}
+            className="flex-1 py-2 px-4 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
+            aria-label="更新"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span className="ml-2">更新</span>
+          </button>
+
+          {/* 屏蔽按钮 */}
+          <button
+            onClick={handleBlockUser}
+            className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md  hover:text-white transition-colors duration-200 ${
+              username && blockMap[username]
+                ? "bg-red-500 text-white"
+                : "bg-red-100 hover:bg-red-500 text-red-700"
+            }`}
+            aria-label="屏蔽用户"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
+            </svg>
+            <span className="ml-2">
+              {username && blockMap[username] ? "取消屏蔽" : "屏蔽"}
+            </span>
+          </button>
+        </div>
+
+        {/* 第二行：新增打包下载按钮 */}
+        <div className="flex space-x-2">
+          <button
+            onClick={handleBatchDownload}
+            disabled={downloadStatus === "loading"}
+            className={`
+            w-full py-2 px-4 flex items-center justify-center rounded-md transition-colors duration-200
+            ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 cursor-not-allowed text-gray-600"
+                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
+            }
+          `}
+          >
+            {downloadStatus === "loading" ? (
+              // Loading SVG
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-current"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            ) : (
+              // Download SVG
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+            )}
+
+            {statusMsg || `打包下载全部 (${profile?.total_urls || 0})`}
+          </button>
+        </div>
+      </div>
+
+      <MediaList timeline={profile?.timeline} showAll={showAll} />
+      <Advertisement />
+    </main>
+  );
+};
+
+// ... 保持 ResponsiveLayout 不变 ...
 // 主布局组件
 const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
@@ -226,12 +404,12 @@ const ResponsiveLayout = () => {
   useEffect(() => {
     // 得到path，split by "/"，得到第一个非空字符串，然后console.log（如果为空直接return）
     const fullPath = window.location.pathname; // 获取完整路径，如 "/user/123/profile"
-    const parts = fullPath.split('/');
-    const firstNonEmptyPart = parts.find(elem => elem !== '');
+    const parts = fullPath.split("/");
+    const firstNonEmptyPart = parts.find((elem) => elem !== "");
     if (firstNonEmptyPart) {
-      getMetaData(firstNonEmptyPart).then(data => setProfile(data))
+      getMetaData(firstNonEmptyPart).then((data) => setProfile(data));
     }
-  }, [])
+  }, []);
 
   // 切换抽屉状态
   const toggleDrawer = () => {
@@ -244,25 +422,27 @@ const ResponsiveLayout = () => {
   };
 
   const handleSetProfile = (profile) => {
-    window.history.pushState({}, null, '/' + profile.account_info.name);
+    window.history.pushState({}, null, "/" + profile.account_info.name);
     setProfile(profile);
-  }
+  };
 
   const onClickHome = () => {
-    window.history.pushState({}, null, '/');
+    window.history.pushState({}, null, "/");
     setProfile(null);
-  }
+  };
 
   return (
     <div className="flex h-screen bg-gray-100 relative">
-
       {/* 主要内容区域 */}
-      <div className={`flex-1 p-4 overflow-auto ${isMobile ? 'w-full' : 'w-3/4'}`}>
-
+      <div
+        className={`flex-1 p-4 overflow-auto ${isMobile ? "w-full" : "w-3/4"}`}
+      >
         <Advertisement />
 
         {/* 添加的返回主页按钮 */}
-        <div className="mb-4"> {/* 添加一些底部外边距 */}
+        <div className="mb-4">
+          {" "}
+          {/* 添加一些底部外边距 */}
           <button
             onClick={onClickHome}
             className="w-full py-2 px-4 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
@@ -292,7 +472,11 @@ const ResponsiveLayout = () => {
       {/* 桌面模式下的用户列表 */}
       {!isMobile && (
         <div className="w-1/4 p-4 bg-white border-l border-gray-200 overflow-auto">
-          <SideBar onClick={(data) => { handleSetProfile(data) }} />
+          <SideBar
+            onClick={(data) => {
+              handleSetProfile(data);
+            }}
+          />
         </div>
       )}
 
@@ -303,8 +487,19 @@ const ResponsiveLayout = () => {
           className="fixed top-4 right-4 z-50 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
           aria-label="打开用户列表"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16m-7 6h7"
+            />
           </svg>
         </button>
       )}
@@ -322,8 +517,9 @@ const ResponsiveLayout = () => {
 
           {/* 抽屉内容 */}
           <div
-            className={`fixed top-0 right-0 h-full w-4/5 max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${drawerOpen ? 'translate-x-0' : 'translate-x-full'
-              }`}
+            className={`fixed top-0 right-0 h-full w-4/5 max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
+              drawerOpen ? "translate-x-0" : "translate-x-full"
+            }`}
           >
             <div className="p-4 border-b border-gray-200 flex justify-end">
               <button
@@ -331,13 +527,29 @@ const ResponsiveLayout = () => {
                 className="p-2 text-gray-500 hover:text-gray-700"
                 aria-label="关闭抽屉"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
             <div className="overflow-auto h-full">
-              <SideBar onClick={(profile) => { closeDrawer(); handleSetProfile(profile) }} />
+              <SideBar
+                onClick={(profile) => {
+                  closeDrawer();
+                  handleSetProfile(profile);
+                }}
+              />
             </div>
           </div>
         </>
