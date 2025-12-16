@@ -118,7 +118,6 @@ const ImageConfig = () => {
     ];
     const otherOptions = [
         "https://twimg.nmbyd2.top",
-        "https://twimg.moonchan.xyz",
     ]
 
     return (
@@ -187,7 +186,6 @@ const VideoConfig = () => {
     ];
     const otherOptions = [
         "https://twimg.nmbyd2.top",
-        "https://proxy.moonchan.xyz",
     ]
 
     return (
