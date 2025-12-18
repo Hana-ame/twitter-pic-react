@@ -348,7 +348,7 @@ const Main = ({ profile, handleSetProfile }) => {
           {/* 展开全部按钮 */}
           <button
             onClick={() => setShowAll(true)}
-            className="flex-1 py-2 px-4 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200"
+            className="flex-1 py-2 px-2 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -370,7 +370,7 @@ const Main = ({ profile, handleSetProfile }) => {
           {/* 收藏按钮 */}
           <button
             onClick={handleFavorite}
-            className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 ${
+            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 ${
               favMap?.[username]
                 ? "bg-yellow-500 text-white"
                 : "bg-yellow-100 hover:bg-yellow-500 text-yellow-700"
@@ -398,7 +398,7 @@ const Main = ({ profile, handleSetProfile }) => {
           {/* 更新按钮 */}
           <button
             onClick={() => createMetaData(username)}
-            className="flex-1 py-2 px-4 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
+            className="flex-1 py-2 px-2 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
             aria-label="更新"
           >
             <svg
@@ -421,7 +421,7 @@ const Main = ({ profile, handleSetProfile }) => {
           {/* 屏蔽按钮 */}
           <button
             onClick={handleBlockUser}
-            className={`flex-1 py-2 px-4 flex items-center justify-center rounded-md  hover:text-white transition-colors duration-200 ${
+            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md  hover:text-white transition-colors duration-200 ${
               username && blockMap[username]
                 ? "bg-red-500 text-white"
                 : "bg-red-100 hover:bg-red-500 text-red-700"
