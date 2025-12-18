@@ -352,7 +352,7 @@ const Main = ({ profile, handleSetProfile }) => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -378,7 +378,7 @@ const Main = ({ profile, handleSetProfile }) => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
+              className="h-5 w-5"
               fill={favMap?.[username] ? "currentColor" : "none"}
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -403,7 +403,7 @@ const Main = ({ profile, handleSetProfile }) => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -430,7 +430,7 @@ const Main = ({ profile, handleSetProfile }) => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -497,7 +497,7 @@ const Main = ({ profile, handleSetProfile }) => {
               // Download SVG
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
+                className="h-5 w-5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -579,7 +579,7 @@ const ResponsiveLayout = () => {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
+              className="h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
