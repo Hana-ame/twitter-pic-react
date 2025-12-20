@@ -124,6 +124,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                     className="w-full max-h-screen object-contain mx-auto" // 添加 mx-auto 实现水平居中
                     poster={poster}
                     controls={isPlaying}
+                    referrerpolicy="no-referrer"
                 >
                     <source src={url} type="video/mp4" />
                     您的浏览器不支持视频播放。
