@@ -270,7 +270,10 @@ const Main = ({ profile, handleSetProfile }) => {
           );
 
           try {
-            const response = await fetch(finalUrl, { cache: "force-cache" });
+            const response = await fetch(finalUrl, {
+              cache: "force-cache",
+              referrerPolicy: "no-referrer", // 关键属性：强制不发送 Referer
+            });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             yield {
