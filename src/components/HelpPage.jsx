@@ -46,7 +46,7 @@ const HelpPage = ({ onClick }) => {
 
             <Block title="提示" closed={isClosedMap["notice251220"]} onClick={() => handleOnClickBlock("notice251220")}>
                 <p className="text-gray-500">
-                    推特video禁用外链。
+                    修复推特video禁用外链。
                 </p>
             </Block>
 
