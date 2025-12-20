@@ -44,9 +44,9 @@ const HelpPage = ({ onClick }) => {
         {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
         <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
-            <Block title="提示" closed={isClosedMap["notice251009"]} onClick={() => handleOnClickBlock("notice251009")}>
+            <Block title="提示" closed={isClosedMap["notice251220"]} onClick={() => handleOnClickBlock("notice251220")}>
                 <p className="text-gray-500">
-                    对于同一个账号,每日只能更新一次,多点没用.
+                    推特video禁用外链。
                 </p>
             </Block>
 
