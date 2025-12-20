@@ -70,77 +70,82 @@ const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
 
 };
 
-// 视频组件
 const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
-    const ref = useRef<HTMLVideoElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [showPoster, setShowPoster] = useState(true);
-
-    useEffect(() => {
-        const current = ref.current;
-        return () => {
-            if (current) {
-                current.pause();
-                current.src = ''; // 清空 src
-                current.load(); // 调用 load() 方法，浏览器会中止正在进行的请求[8](@ref)
-                const sources = current.querySelectorAll('source');
-                sources.forEach(source => source.src = '');
-            }
-        }
-    }, [ref])
+    
+    // 构造 iframe 内部的 HTML
+    // 1. 设置 meta referrer 为 no-referrer 确保双重保险
+    // 2. 简单的 CSS 让视频居中且自适应
+    const iframeHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="referrer" content="no-referrer">
+            <style>
+                body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
+                video { width: 100%; height: 100%; object-fit: contain; }
+            </style>
+        </head>
+        <body>
+            <video 
+                id="v"
+                controls 
+                autoplay 
+                playsinline
+                poster="${poster || ''}"
+            >
+                <source src="${url}" type="video/mp4">
+            </video>
+            <script>
+                // 如果需要与父级通信，可以在这里添加逻辑
+            </script>
+        </body>
+        </html>
+    `;
 
     const handlePlay = () => {
-        const current = ref.current;
-        try {
-            if (current) {
-                if (isPlaying) {
-                    current.pause();
-                } else {
-                    current.play();
-                    setShowPoster(false);
-                }
-                setIsPlaying(!isPlaying);
-            }
-        } catch (e) {
-            // The play() request was interrupted because the media was removed from the document.
-        }
+        setIsPlaying(true);
     };
 
-
-
     return (
-        <div className="flex justify-center items-start"> {/* 新增外层容器用于居中 */}
-            <div className="relative w-full max-w-4xl max-h-screen h-auto rounded-lg overflow-hidden group"> {/* 添加 max-w-4xl 限制最大宽度 */}
-                {showPoster && poster && (
-                    <img
-                        src={poster}
-                        alt="Video thumbnail"
-                        className="w-auto h-auto object-cover max-h-screen" // 为图片也添加高度限制
-                    />
-                )}
-
-                <video
-                    ref={ref}
-                    className="w-full max-h-screen object-contain mx-auto" // 添加 mx-auto 实现水平居中
-                    poster={poster}
-                    controls={isPlaying}
-                    referrerpolicy="no-referrer"
-                >
-                    <source src={url} type="video/mp4" />
-                    您的浏览器不支持视频播放。
-                </video>
-
-                {!isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-10 transition-all duration-300">
-                        <button
-                            onClick={handlePlay}
-                            className="bg-opacity-100 text-white rounded-full p-3 hover:bg-opacity-70 transition-colors"
-                        >
-                            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        </button>
+        <div className="flex justify-center items-start">
+            <div className="relative w-full max-w-4xl rounded-lg overflow-hidden group bg-black" style={{ aspectRatio: '16/9' }}>
+                
+                {!isPlaying ? (
+                    // 封面状态
+                    <div className="relative w-full h-full cursor-pointer" onClick={handlePlay}>
+                        {poster ? (
+                            <img
+                                src={poster}
+                                alt="Video thumbnail"
+                                className="w-full h-full object-contain"
+                                referrerPolicy="no-referrer"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-black flex items-center justify-center">
+                                <span className="text-gray-500">点击播放视频</span>
+                            </div>
+                        )}
+                        
+                        {/* 播放按钮叠加层 */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 group-hover:bg-opacity-10 transition-all duration-300">
+                            <button className="bg-opacity-100 text-white rounded-full p-3 hover:bg-opacity-70 transition-colors">
+                                <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
+                ) : (
+                    // 播放状态：加载 iframe
+                    <iframe
+                        title="video-player"
+                        srcDoc={iframeHtml}
+                        className="w-full h-full border-none"
+                        referrerPolicy="no-referrer"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                        allowFullScreen
+                    />
                 )}
             </div>
         </div>
