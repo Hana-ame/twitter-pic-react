@@ -6,11 +6,11 @@ import streamSaver from "streamsaver"; // 引入 StreamSaver
 // 假设这些是你项目中原本存在的 import
 import useScreenMode from "./Tools/hooks/useScreenMode";
 import MediaList from "./components/MediaList.tsx";
-import HeaderList from "./components/HeaderList";
+import HeaderList from "./components/HeaderListV2.jsx";
 import { getUserList } from "./api/getUserList.ts";
 import SearchBar from "./components/SearchBar.jsx";
 import HelpPage from "./components/HelpPage.jsx";
-import SearchList from "./components/SearchList.jsx";
+import SearchList from "./components/SearchListV2.jsx";
 import LoadMoreButton from "./components/LoadMoreButton.jsx";
 import AddUser from "./components/AddUser.jsx";
 import getMetaData from "./api/getMetaData.ts";
@@ -18,9 +18,12 @@ import useLocalStorage from "./Tools/localstorage/useLocalStorageStatus.tsx";
 import createMetaData from "./api/createMetaData.ts";
 import Advertisement from "./components/Advertisement.jsx";
 import FavList from "./components/FavList.jsx";
-
+// ... 原有的 imports ...
+import getTags from "./api/getTags.ts"; // 确保有这个 API
+import TagSelectorModal from "./components/TagSelectorModal.jsx"; // 引入公共组件
 // 如果这些常量在其他文件定义了，请改为 import
 import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints.ts";
+import TagDisplayArea from "./components/TagDisplayArea.jsx";
 
 // --- 关键配置 ---
 // 指定你刚才放在 public 目录下的 mitm.html 的路径
@@ -104,6 +107,14 @@ const Main = ({ profile, handleSetProfile }) => {
   // --- 新增：专门用于手机端调试的日志状态 ---
   const [debugLog, setDebugLog] = useState("");
 
+  // --- 新增 State ---
+  const [showTagModal, setShowTagModal] = useState(false);
+  // 这里我们将 existingTags 重命名为 userTags 以便通用，或者继续使用 existingTags
+  const [userTags, setUserTags] = useState({});
+  const [loadingTags, setLoadingTags] = useState(false);
+
+  const username = profile?.account_info?.name;
+
   useEffect(() => {
     setShowAll(false);
     setDownloadStatus("");
@@ -111,7 +122,50 @@ const Main = ({ profile, handleSetProfile }) => {
     setDebugLog(""); // 切页清空日志
   }, [profile]);
 
-  const username = profile?.account_info?.name;
+  // --- 新增 useEffect: 初始加载 Tags ---
+  useEffect(() => {
+    if (username) {
+      // 默默加载 Tags 用于展示，不需要 loading 状态阻断 UI
+      getTags(username)
+        .then((data) => setUserTags(data.tags || {}))
+        .catch((err) => console.error("Auto fetch tags failed:", err));
+    } else {
+      setUserTags({});
+    }
+  }, [username]);
+
+  // --- 新增处理函数 ---
+  const handleModifyTagsClick = async () => {
+    if (!username) return;
+    setLoadingTags(true);
+    try {
+      // 获取现有 Tags
+      const data = await getTags(username);
+      setUserTags(data.tags || {});
+      setShowTagModal(true);
+    } catch (error) {
+      console.error("获取Tags失败", error);
+      alert("无法获取现有标签");
+    } finally {
+      setLoadingTags(false);
+    }
+  };
+
+  // --- 修改 handleConfirmTags ---
+  const handleConfirmTags = async (newTags) => {
+    setShowTagModal(false);
+
+    // 1. 乐观更新 UI (立即显示新 Tags，不用等接口返回)
+    setUserTags(newTags);
+
+    try {
+      // 2. 提交后端
+      await createMetaData(username, newTags, false, true);
+    } catch (e) {
+      alert("保存失败，请重试");
+      // 如果失败，可能需要回滚或重新获取，这里简化处理
+    }
+  };
 
   // 辅助函数：追加日志到屏幕
   const logToScreen = (msg) => {
@@ -460,13 +514,14 @@ const Main = ({ profile, handleSetProfile }) => {
           </div>
         )} */}
 
-        {/* 第二行：新增打包下载按钮 */}
+        {/* 第二行：打包下载 + 修改标签 */}
         <div className="flex space-x-2">
+          {/* 下载按钮 (修改: 添加 flex-1 占据主要宽度) */}
           <button
             onClick={handleBatchDownload}
             disabled={downloadStatus === "loading"}
             className={`
-            w-full py-2 px-4 flex items-center justify-center rounded-md transition-colors duration-200
+            flex-1 py-2 px-4 flex items-center justify-center rounded-md transition-colors duration-200
             ${
               downloadStatus === "loading"
                 ? "bg-gray-300 cursor-not-allowed text-gray-600"
@@ -474,8 +529,8 @@ const Main = ({ profile, handleSetProfile }) => {
             }
           `}
           >
+            {/* SVG 和 文字保持原样 */}
             {downloadStatus === "loading" ? (
-              // Loading SVG
               <svg
                 className="animate-spin -ml-1 mr-3 h-5 w-5 text-current"
                 xmlns="http://www.w3.org/2000/svg"
@@ -497,7 +552,6 @@ const Main = ({ profile, handleSetProfile }) => {
                 ></path>
               </svg>
             ) : (
-              // Download SVG
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-5 w-5"
@@ -513,13 +567,77 @@ const Main = ({ profile, handleSetProfile }) => {
                 />
               </svg>
             )}
-
             {statusMsg || `打包下载全部 (${profile?.total_urls || 0})`}
+          </button>
+
+          {/* 新增：标签修改按钮 */}
+          <button
+            onClick={handleModifyTagsClick}
+            disabled={loadingTags || downloadStatus === "loading"}
+            className={`
+              px-4 py-2 flex items-center justify-center rounded-md border border-gray-300 transition-colors duration-200
+              ${
+                loadingTags
+                  ? "bg-gray-100 cursor-wait text-gray-400"
+                  : "bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+              }
+            `}
+            title="修改标签"
+          >
+            {loadingTags ? (
+              <svg
+                className="animate-spin h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            ) : (
+              /* Tag Icon */
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                />
+              </svg>
+            )}
           </button>
         </div>
       </div>
+      <TagDisplayArea tags={userTags} />
 
       <MediaList timeline={profile?.timeline} showAll={showAll} />
+
+      {/* 插入 Modal */}
+      <TagSelectorModal
+        isOpen={showTagModal}
+        onClose={() => setShowTagModal(false)}
+        onConfirm={handleConfirmTags}
+        username={username}
+        initialValues={userTags}
+      />
+
       <Advertisement />
     </main>
   );
