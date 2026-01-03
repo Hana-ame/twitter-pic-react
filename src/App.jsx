@@ -79,7 +79,7 @@ const SideBar = ({ onClick }) => {
         <div className={search === "" ? "" : "hidden"}>
           <HeaderList userList={userList} onClick={onClick} />
           <LoadMoreButton
-            after={userList?.at(-1) || ""}
+            after={userList?.at(-1).username || ""}
             setUserList={setUserList}
           />
         </div>

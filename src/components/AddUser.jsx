@@ -27,7 +27,7 @@ const AddUser = ({ username }) => {
     // 关闭模态框
     setShowModal(false);
     // 提交数据 (username + tags)
-    createMetaData(username, tags);
+    createMetaData(username, tags, false);
     // 标记为已点击
     setIsClicked(true);
   };
@@ -54,7 +54,7 @@ const AddUser = ({ username }) => {
         onClose={() => setShowModal(false)}
         onConfirm={handleConfirm}
         username={username}
-        initialValues={{}} // 新增用户，初始标签为空
+        initialValues={{ 其他: 1 }} // 新增用户，初始标签为空
       />
     </>
   );

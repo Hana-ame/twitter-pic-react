@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 
 // --- 配置常量 ---
 const PRESET_CATEGORIES = [
-    { title: "主体", tags: ["男性", "女性", "男女性交", "二次元", "其他"] },
+    { title: "主体", tags: ["男性", "女性", "男女性交", "二次元", "其他", "无关内容"] },
     { title: "类别性质", tags: ["商业AV", "自拍", "原创", "合集收集", "AI"] },
     { title: "露出度", tags: ["不露", "露逼", "露屌", "露奶", "露脸"] },
     { title: "审查", tags: ["有马", "AI去马", "无马"] }

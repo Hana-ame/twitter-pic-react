@@ -1,6 +1,7 @@
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 import Config from "./Config";
 import FavList from "./FavList.jsx";
+import TagController from "./TagController.tsx";
 
 const Block = ({ title, children, closed, onClick }) => {
   if (closed)
@@ -44,11 +45,30 @@ const HelpPage = ({ onClick }) => {
   };
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      {/* 主标题 */}
-      {/* <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Hints:</h1> */}
-
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
+        <Block
+          title="迁移手滑了，只好回档了。我的锅"
+          closed={isClosedMap["notice26"]}
+          onClick={() => handleOnClickBlock("notice26")}
+        >
+          <p className="text-gray-500">现在添加twitter账号的时候必须带上tag</p>
+          <p className="text-gray-500">不带的话会失败,失败的情况不会有提示,因为我懒得做了</p>
+          <p className="text-gray-500">另外,现在开始也可以为tag进行投票了</p>
+          <p className="text-gray-500">
+            在首页的tag设置栏目也可以选择高亮的tag和屏蔽的tag,往下拉一点就能看到
+          </p>
+          <p className="text-gray-500">
+            另外,还顺带附有一些vmess翻墙订阅,不定期分享
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://810114.xyz/?bid=810514"
+            >
+              连接
+            </a>
+          </p>
+        </Block>
+
         <Block
           title="提示"
           closed={isClosedMap["notice251220"]}
@@ -57,7 +77,10 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">修复推特video禁用外链。</p>
           <p className="text-gray-500">
             自己搭建代理服务器，参考代码
-            <a href="https://pastebin.com/raw/3bL3GfAP">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://pastebin.com/raw/3bL3GfAP"
+            >
               https://pastebin.com/raw/3bL3GfAP
             </a>
           </p>
@@ -81,18 +104,22 @@ const HelpPage = ({ onClick }) => {
           closed={isClosedMap["反馈"]}
           onClick={handleOnClickBlock}
         >
-          <p className="text-gray-500">已迁移至服务器长期运行。</p>
-          <p className="text-gray-500">TODO List:</p>
-          <ul>
-            <li>
-              <s>收藏导入导出</s>
-            </li>
-          </ul>
-          <a href="https://nmbyd3.top/?bid=103">
+          <a href="https://810114.xyz/?bid=103">
             <p className="text-blue-500 cursor-pointer border-blue-700">
               任何反馈请点击这里。
             </p>
+            <p className="text-gray-500">
+              仔细描述问题,环境,操作步骤,并附上截图以获得解答
+            </p>
           </a>
+        </Block>
+
+        <Block
+          title="tag设置"
+          closed={isClosedMap["tag设置"]}
+          onClick={handleOnClickBlock}
+        >
+          <TagController></TagController>
         </Block>
 
         <Block
@@ -149,7 +176,7 @@ const HelpPage = ({ onClick }) => {
           closed={isClosedMap["推广"]}
           onClick={handleOnClickBlock}
         >
-          <a href="https://ex.nmbyd3.top/">
+          <a href="https://ex.810114.xyz/">
             <p className="text-blue-500 cursor-pointer border-blue-700">
               exhentai镜像，点我访问
             </p>
