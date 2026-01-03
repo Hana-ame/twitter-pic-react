@@ -48,12 +48,22 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
         <Block
+          title="瞎敲tag会被ban"
+          closed={isClosedMap["notice260104"]}
+          onClick={() => handleOnClickBlock("notice260104")}
+        >
+          <p className="text-gray-500">瞎敲tag会被ban权限</p>
+        </Block>
+
+        <Block
           title="迁移手滑了，只好回档了。我的锅"
           closed={isClosedMap["notice26"]}
           onClick={() => handleOnClickBlock("notice26")}
         >
           <p className="text-gray-500">现在添加twitter账号的时候必须带上tag</p>
-          <p className="text-gray-500">不带的话会失败,失败的情况不会有提示,因为我懒得做了</p>
+          <p className="text-gray-500">
+            不带的话会失败,失败的情况不会有提示,因为我懒得做了
+          </p>
           <p className="text-gray-500">另外,现在开始也可以为tag进行投票了</p>
           <p className="text-gray-500">
             在首页的tag设置栏目也可以选择高亮的tag和屏蔽的tag,往下拉一点就能看到

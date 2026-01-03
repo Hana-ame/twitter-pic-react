@@ -54,7 +54,7 @@ const AddUser = ({ username }) => {
         onClose={() => setShowModal(false)}
         onConfirm={handleConfirm}
         username={username}
-        initialValues={{ 其他: 1 }} // 新增用户，初始标签为空
+        initialValues={{}} // 新增用户，初始标签为空
       />
     </>
   );
