@@ -11,7 +11,7 @@ interface TagSettings {
 const TagController = () => {
   const [inputValue, setInputValue] = useState("");
   const [highlight, setHighlight] = useState<string[]>([]);
-  const [block, setBlock] = useState<string[]>([]);
+  const [block, setBlock] = useState<string[]>(["无关内容"]);
 
   // 1. 初始化：从 LocalStorage 读取
   useEffect(() => {
