@@ -20,7 +20,7 @@ const TagController = () => {
       try {
         const parsed: TagSettings = JSON.parse(savedData);
         setHighlight(parsed.highlight || []);
-        setBlock(parsed.block || []);
+        setBlock(parsed.block || ["无关内容"]);
       } catch (e) {
         console.error("Failed to parse tag settings", e);
       }
