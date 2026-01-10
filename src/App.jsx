@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { downloadZip } from "client-zip"; // 引入 client-zip
 import streamSaver from "streamsaver"; // 引入 StreamSaver
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 
 // ... 其他原本的 import ...
 // 假设这些是你项目中原本存在的 import
@@ -394,6 +396,72 @@ const Main = ({ profile, handleSetProfile }) => {
     }
   };
 
+  // --- 逻辑 B: 使用 JSZip 的兼容模式下载 ---
+  const handleCompatibleDownload = async () => {
+    if (!profile?.timeline || profile.timeline.length === 0) return;
+
+    try {
+      setDownloadStatus("loading");
+      setStatusMsg("准备中...");
+
+      const zip = new JSZip();
+      const zipFilename = `${username}_media_${new Date()
+        .toISOString()
+        .slice(0, 10)}.zip`;
+
+      // 遍历下载所有文件并添加到 zip
+      for (let i = 0; i < profile.timeline.length; i++) {
+        const item = profile.timeline[i];
+        const fileName = extractFileName(item.url, i, item.type);
+        const finalUrl = getProxiedUrl(item.url, item.type);
+
+        setStatusMsg(`下载中 (${i + 1}/${profile.timeline.length})...`);
+
+        try {
+          const response = await fetch(finalUrl, {
+            cache: "force-cache",
+            referrerPolicy: "no-referrer",
+          });
+
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          const blob = await response.blob();
+          // 将文件添加到压缩包
+          zip.file(fileName, blob, { binary: true });
+        } catch (err) {
+          console.error(`文件 ${fileName} 下载失败:`, err);
+          zip.file(
+            `ERROR_${fileName}.txt`,
+            `URL: ${finalUrl}\nError: ${err.message}`
+          );
+        }
+      }
+
+      setStatusMsg("正在打包压缩...");
+      // 生成 ZIP Blob
+      const content = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 }, // 压缩等级 1-9
+      });
+
+      setStatusMsg("开始下载...");
+      // 触发浏览器下载
+      saveAs(content, zipFilename);
+
+      setDownloadStatus("success");
+      setStatusMsg("下载完成！");
+      setTimeout(() => {
+        setStatusMsg("");
+        setDownloadStatus("");
+      }, 3000);
+    } catch (error) {
+      console.error("JSZip下载错误:", error);
+      setStatusMsg("出错: " + error.message);
+      setDownloadStatus("error");
+    }
+  };
+
   if (!(profile?.timeline?.length > 0))
     return <HelpPage onClick={handleSetProfile} />;
 
@@ -515,73 +583,104 @@ const Main = ({ profile, handleSetProfile }) => {
         )} */}
 
         {/* 第二行：打包下载 + 修改标签 */}
+        {/* 第二行：下载按钮组 + 修改标签 */}
         <div className="flex space-x-2">
-          {/* 下载按钮 (修改: 添加 flex-1 占据主要宽度) */}
-          <button
-            onClick={handleBatchDownload}
-            disabled={downloadStatus === "loading"}
-            className={`
-            flex-1 py-2 px-4 flex items-center justify-center rounded-md transition-colors duration-200
-            ${
-              downloadStatus === "loading"
-                ? "bg-gray-300 cursor-not-allowed text-gray-600"
-                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
-            }
-          `}
-          >
-            {/* SVG 和 文字保持原样 */}
-            {downloadStatus === "loading" ? (
-              <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-current"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-            )}
-            {statusMsg || `打包下载全部 (${profile?.total_urls || 0})`}
-          </button>
+          {/* 按钮容器：两个下载按钮平分空间 */}
+          <div className="flex-1 flex space-x-1">
+            {/* 原有的流式下载按钮 (主要针对 Chrome/大文件) */}
+            <button
+              onClick={handleBatchDownload}
+              disabled={downloadStatus === "loading"}
+              className={`
+        flex-1 py-2 px-2 text-xs flex items-center justify-center rounded-md transition-colors duration-200
+        ${
+          downloadStatus === "loading"
+            ? "bg-gray-300 cursor-not-allowed text-gray-600"
+            : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
+        }
+      `}
+              title="使用流式传输下载，适合超大文件 (Chrome首选)"
+            >
+              {downloadStatus === "loading" ? (
+                "..."
+              ) : (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  {`下载 ${profile?.total_urls || 0} 个文件`}
+                </span>
+              )}
+            </button>
 
-          {/* 新增：标签修改按钮 */}
+            {/* 新增：兼容模式下载按钮 (针对 Firefox/Safari) */}
+            <button
+              onClick={handleCompatibleDownload}
+              disabled={downloadStatus === "loading"}
+              className={`
+        flex-1 py-2 px-2 text-xs flex items-center justify-center rounded-md transition-colors duration-200
+        ${
+          downloadStatus === "loading"
+            ? "bg-gray-300 cursor-not-allowed text-gray-600"
+            : "bg-green-100 text-green-700 hover:bg-green-500 hover:text-white"
+        }
+      `}
+              title="使用兼容模式下载，解决Firefox报错 (推荐兼容模式)"
+            >
+              {downloadStatus === "loading" ? (
+                "..."
+              ) : (
+                <span className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 mr-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                    />
+                  </svg>
+                  兼容下载
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* 状态文字显示 (如果正在运行，覆盖在按钮上方或单独显示) */}
+          {statusMsg && (
+            <div className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-50">
+              {statusMsg}
+            </div>
+          )}
+
+          {/* 原有的标签修改按钮 */}
           <button
             onClick={handleModifyTagsClick}
             disabled={loadingTags || downloadStatus === "loading"}
             className={`
-              px-4 py-2 flex items-center justify-center rounded-md border border-gray-300 transition-colors duration-200
-              ${
-                loadingTags
-                  ? "bg-gray-100 cursor-wait text-gray-400"
-                  : "bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
-              }
-            `}
+      px-4 py-2 flex items-center justify-center rounded-md border border-gray-300 transition-colors duration-200
+      ${
+        loadingTags
+          ? "bg-gray-100 cursor-wait text-gray-400"
+          : "bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+      }
+    `}
             title="修改标签"
           >
             {loadingTags ? (
