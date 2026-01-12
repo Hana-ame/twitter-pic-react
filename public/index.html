@@ -1,24 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="https://twimg.moonchan.xyz/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="推图 - 推特看图纯享版"
+      content="推图 - 推特看图纯享版，免年龄验证，免翻墙"
+    />
 
-<head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="https://twimg.moonchan.xyz/favicon.ico" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
-  <meta name="推图 - 推特看图纯享版" content="推图 - 推特看图纯享版，免年龄验证，免翻墙" />
-
-  <!-- iOS 支持 -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="推图">
-  <link rel="apple-touch-icon" href="https://twimg.moonchan.xyz/favicon.ico" />
-  <!--
+    <!-- iOS 支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="推图" />
+    <link
+      rel="apple-touch-icon"
+      href="https://twimg.moonchan.xyz/favicon.ico"
+    />
+    <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-  <!--
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <script>
+      // 2. Register Service Worker after page loads
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js");
+        });
+      }
+      // Note: We removed the "preventDefault()" line so the prompt CAN show
+    </script>
+
+    <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
       Only files inside the `public` folder can be referenced from the HTML.
@@ -27,17 +42,16 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-  <title>推图 - 推特看图纯享版</title>
+    <title>推图 - 推特看图纯享版</title>
 
-  <link rel="preconnect" href="https://twimg.moonchan.xyz" crossorigin="">
-  <!-- <link rel="preconnect" href="https://video.twimg.com" crossorigin=""> -->
+    <link rel="preconnect" href="https://twimg.moonchan.xyz" crossorigin="" />
+    <!-- <link rel="preconnect" href="https://video.twimg.com" crossorigin=""> -->
+  </head>
 
-</head>
-
-<body>
-  <noscript>啥游览器啊不支持JS，换一个吧</noscript>
-  <div id="root"></div>
-  <!--
+  <body>
+    <noscript>啥游览器啊不支持JS，换一个吧</noscript>
+    <div id="root"></div>
+    <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
 
@@ -47,7 +61,6 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
-  <script src="https://inline-chat.moonchan.xyz/loader.js"></script>
-</body>
-
+    <script src="https://inline-chat.moonchan.xyz/loader.js"></script>
+  </body>
 </html>
