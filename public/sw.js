@@ -1,4 +1,4 @@
-const VERSION = 'V1'; // Increment this to force an update
+const VERSION = 'V2'; // Increment this to force an update
 const CACHE_NAME = `site-assets-${VERSION}`;
 const OFFLINE_URL = '/failed.html';
 
