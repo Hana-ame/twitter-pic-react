@@ -34,6 +34,12 @@ const INITIAL_FIXED_TAGS = [
   "白虎",
   "大奶",
   "贫乳",
+  "广告",
+  "阳痿",
+  "盗图",
+  "多人运动",
+  "裸舞",
+  "有人乱打TAG（通过投票举报）",
 ];
 const LOCAL_STORAGE_KEY = "user_custom_tags";
 
