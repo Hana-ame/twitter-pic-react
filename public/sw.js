@@ -1,6 +1,6 @@
-const VERSION = 'V2'; // Increment this to force an update
+const VERSION = 'V3'; // Increment this to force an update
 const CACHE_NAME = `site-assets-${VERSION}`;
-const OFFLINE_URL = '/failed.html';
+const OFFLINE_URL = '/failed';
 
 // 1. Install: Pre-cache the fallback page
 self.addEventListener('install', (event) => {
