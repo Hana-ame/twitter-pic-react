@@ -49,6 +49,16 @@ const HelpPage = ({ onClick }) => {
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
         <Block
+          title="提示"
+          closed={isClosedMap["notice260116"]}
+          onClick={() => handleOnClickBlock("notice260116")}
+        >
+          <p className="text-gray-500">
+            打错tag请自行down vote。否则看到会直接ban。
+          </p>
+        </Block>
+        
+        <Block
           title="迁移手滑了，只好回档了。我的锅"
           closed={isClosedMap["notice26"]}
           onClick={() => handleOnClickBlock("notice26")}
