@@ -50,6 +50,18 @@ const HelpPage = ({ onClick }) => {
 
         <Block
           title="提示"
+          closed={isClosedMap["notice260117"]}
+          onClick={() => handleOnClickBlock("notice260117")}
+        >
+          <p className="text-gray-500">
+            男同性恋群体指令遵从性过于糟糕，即日起无条件直接ban
+          </p>
+          <p className="text-gray-500">
+            （人话：给你们写tag功能不好好用，学不会就别用了）
+          </p>
+        </Block>
+        <Block
+          title="提示"
           closed={isClosedMap["notice260116"]}
           onClick={() => handleOnClickBlock("notice260116")}
         >
