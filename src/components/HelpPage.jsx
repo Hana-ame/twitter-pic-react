@@ -47,7 +47,6 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
-
         <Block
           title="Ban男同性恋决议"
           closed={isClosedMap["notice260117"]}
@@ -59,6 +58,10 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">
             （人话：给你们写tag功能不好好用，学不会那就别用了）
           </p>
+          <p className="text-gray-500">
+            先搞明白男娘两个字是什么意思吧
+            <img src="https://upload.moonchan.xyz/api/01LLWEUU6JF65XQD3F6NEJHVFXPSNE66SL/image.webp" />
+          </p>
         </Block>
         <Block
           title="提示"
@@ -69,7 +72,7 @@ const HelpPage = ({ onClick }) => {
             打错tag请自行down vote。否则看到会直接ban。
           </p>
         </Block>
-        
+
         <Block
           title="迁移手滑了，只好回档了。我的锅"
           closed={isClosedMap["notice26"]}
