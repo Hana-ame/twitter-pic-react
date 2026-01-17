@@ -62,6 +62,10 @@ const HelpPage = ({ onClick }) => {
             先搞明白男娘两个字是什么意思吧
             <img src="https://upload.moonchan.xyz/api/01LLWEUU6JF65XQD3F6NEJHVFXPSNE66SL/image.webp" />
           </p>
+          <p className="text-gray-500">
+            性交呢，我请问了
+            <img src="https://upload.moonchan.xyz/api/01LLWEUU32WYONYFXNRBBZTN6PHJKGX6UH/image.webp" />
+          </p>
         </Block>
         <Block
           title="提示"
