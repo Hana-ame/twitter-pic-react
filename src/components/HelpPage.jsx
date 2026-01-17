@@ -49,7 +49,7 @@ const HelpPage = ({ onClick }) => {
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
         <Block
-          title="提示"
+          title="Ban男同性恋决议"
           closed={isClosedMap["notice260117"]}
           onClick={() => handleOnClickBlock("notice260117")}
         >
@@ -57,7 +57,7 @@ const HelpPage = ({ onClick }) => {
             男同性恋群体指令遵从性过于糟糕，即日起无条件直接ban
           </p>
           <p className="text-gray-500">
-            （人话：给你们写tag功能不好好用，学不会就别用了）
+            （人话：给你们写tag功能不好好用，学不会那就别用了）
           </p>
         </Block>
         <Block
