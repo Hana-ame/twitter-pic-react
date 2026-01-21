@@ -7,7 +7,15 @@ interface TagSettings {
   highlight: string[];
   block: string[];
 }
-const DEFAULT_BLOCK = ["无关内容", "男性", "男娘", "人妖", "露屌", "阳痿"];
+const DEFAULT_BLOCK = [
+  "无关内容",
+  "男性",
+  "男娘",
+  "人妖",
+  "露屌",
+  "阳痿",
+  "男同",
+];
 
 const TagController = () => {
   const [inputValue, setInputValue] = useState("");
@@ -46,7 +54,7 @@ const TagController = () => {
 
       // 如果有交集：返回原本存储的 block
       // 如果你依然想保留“如果为空则设为默认”的逻辑，可以加个兜底
-      return parsedBlock.length === 0 ?  ["无关内容"] : parsedBlock;
+      return parsedBlock.length === 0 ? ["无关内容"] : parsedBlock;
     } catch (e) {
       console.error("Failed to parse tag settings", e);
       return DEFAULT_BLOCK;
