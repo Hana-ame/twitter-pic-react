@@ -16,8 +16,8 @@ const PRESET_CATEGORIES = [
       "AI",
       "欧美",
       "黑人",
-      "SM",
-      "",
+      "虐待",
+      "男同",
     ],
   },
   { title: "露出度", tags: ["不露", "露逼", "露屌", "露奶", "露脸"] },
@@ -39,6 +39,10 @@ const INITIAL_FIXED_TAGS = [
   "盗图",
   "多人运动",
   "裸舞",
+  "口交",
+  "玩具",
+  "足控",
+  "内容混乱",
 ];
 const LOCAL_STORAGE_KEY = "user_custom_tags";
 

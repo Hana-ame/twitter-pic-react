@@ -5,11 +5,6 @@ export const PRESET_CATEGORIES = [
     key: "subject",
     tags: ["男性", "女性", "男女性交", "二次元", "其他", "无关内容"],
   },
-  {
-    title: "类别",
-    key: "nature",
-    tags: ["商业AV", "自拍", "原创", "合集收集", "AI"],
-  },
   { title: "审查", key: "censorship", tags: ["有马", "AI去马", "无马"] },
 ];
 
