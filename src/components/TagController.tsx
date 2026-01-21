@@ -11,7 +11,18 @@ const DEFAULT_BLOCK = ["无关内容", "男性", "男娘", "人妖", "露屌", "
 
 const TagController = () => {
   const [inputValue, setInputValue] = useState("");
-  const [highlight, setHighlight] = useState<string[]>([]);
+  const [highlight, setHighlight] = useState<string[]>(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (!savedData) return []; // 默认高亮为空
+
+    try {
+      const parsed: TagSettings = JSON.parse(savedData);
+      return Array.isArray(parsed.highlight) ? parsed.highlight : [];
+    } catch (e) {
+      console.error("Failed to parse highlight settings", e);
+      return [];
+    }
+  });
   const [block, setBlock] = useState<string[]>(() => {
     // 1. 尝试从 LocalStorage 读取
     const savedData = localStorage.getItem(STORAGE_KEY);
@@ -19,17 +30,28 @@ const TagController = () => {
 
     try {
       const parsed: TagSettings = JSON.parse(savedData);
-      const savedBlock = parsed.block || [];
+      const parsedBlock = parsed.block || [];
+      const parsedHighlight = parsed.highlight || [];
 
-      // 2. 这里的逻辑对应你原代码中的“如果为空则设为‘无关内容’”
-      // 如果你希望用户清空后依然保留默认项，可以用这个逻辑
-      return savedBlock.length === 0 ? DEFAULT_BLOCK : savedBlock;
+      // 2. 检查 highlight 里面是否包含 DEFAULT_BLOCK 中的任何一个元素
+      const hasIntersection = DEFAULT_BLOCK.some((item) =>
+        parsedHighlight.includes(item),
+      );
+
+      if (!hasIntersection) {
+        // 如果没有交集：返回 DEFAULT_BLOCK 和 parsedBlock 的并集
+        // 使用 Set 自动处理重复项
+        return Array.from(new Set([...DEFAULT_BLOCK, ...parsedBlock]));
+      }
+
+      // 如果有交集：返回原本存储的 block
+      // 如果你依然想保留“如果为空则设为默认”的逻辑，可以加个兜底
+      return parsedBlock.length === 0 ?  ["无关内容"] : parsedBlock;
     } catch (e) {
       console.error("Failed to parse tag settings", e);
       return DEFAULT_BLOCK;
     }
   });
-
   // // 1. 初始化：从 LocalStorage 读取
   // useEffect(() => {
   //   const savedData = localStorage.getItem(STORAGE_KEY);
