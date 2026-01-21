@@ -1,4 +1,8 @@
+/// <reference lib="webworker" />
+/** @type {ServiceWorkerGlobalScope} */
+
 /**
+ * 
  * 配置区域
  */
 const VERSION = 'V4-260121'; // 既是版本号，也是我们用于验证网站是否存活的“特定字符串”
@@ -107,7 +111,7 @@ async function handleNavigation(req) {
         // 如果 /sw.js 的内容里不包含我们定义的 VERSION 字符串 (例如 'V4')，
         // 或者返回的内容竟然是 HTML (checkText.includes('<!DOCTYPE html>'))，
         // 说明域名已失效，返回的是广告页。
-        const isValidSite = checkText.includes(VERSION) && !checkText.includes('<!DOCTYPE html>');
+        const isValidSite = checkText.includes("電波が届きません");
 
         if (!isValidSite) {
           console.warn('[SW 检测] 域名校验失败（/sw.js 内容异常），判定为域名过期/劫持。');

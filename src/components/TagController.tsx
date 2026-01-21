@@ -7,25 +7,46 @@ interface TagSettings {
   highlight: string[];
   block: string[];
 }
+const DEFAULT_BLOCK = ["无关内容", "男性", "男娘", "人妖", "露屌", "阳痿"];
 
 const TagController = () => {
   const [inputValue, setInputValue] = useState("");
   const [highlight, setHighlight] = useState<string[]>([]);
-  const [block, setBlock] = useState<string[]>(["无关内容"]);
-
-  // 1. 初始化：从 LocalStorage 读取
-  useEffect(() => {
+  const [block, setBlock] = useState<string[]>(() => {
+    // 1. 尝试从 LocalStorage 读取
     const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsed: TagSettings = JSON.parse(savedData);
-        setHighlight(parsed.highlight || []);
-        setBlock( ((parsed.block || [])?.length||0) === 0 ? ["无关内容"] : (parsed.block || []));
-      } catch (e) {
-        console.error("Failed to parse tag settings", e);
-      }
+    if (!savedData) return DEFAULT_BLOCK;
+
+    try {
+      const parsed: TagSettings = JSON.parse(savedData);
+      const savedBlock = parsed.block || [];
+
+      // 2. 这里的逻辑对应你原代码中的“如果为空则设为‘无关内容’”
+      // 如果你希望用户清空后依然保留默认项，可以用这个逻辑
+      return savedBlock.length === 0 ? DEFAULT_BLOCK : savedBlock;
+    } catch (e) {
+      console.error("Failed to parse tag settings", e);
+      return DEFAULT_BLOCK;
     }
-  }, []);
+  });
+
+  // // 1. 初始化：从 LocalStorage 读取
+  // useEffect(() => {
+  //   const savedData = localStorage.getItem(STORAGE_KEY);
+  //   if (savedData) {
+  //     try {
+  //       const parsed: TagSettings = JSON.parse(savedData);
+  //       setHighlight(parsed.highlight || []);
+  //       setBlock(
+  //         ((parsed.block || [])?.length || 0) === 0
+  //           ? ["无关内容"]
+  //           : parsed.block || [],
+  //       );
+  //     } catch (e) {
+  //       console.error("Failed to parse tag settings", e);
+  //     }
+  //   }
+  // }, []);
 
   // 2. 监听变化：保存到 LocalStorage
   useEffect(() => {

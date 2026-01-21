@@ -28,7 +28,8 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "serviceworker": true
   },
   "browserslist": {
     "production": [
