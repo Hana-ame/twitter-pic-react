@@ -29,7 +29,11 @@
       "react-app",
       "react-app/jest"
     ],
-    "serviceworker": true
+    "env": {
+      "browser": true,
+      "node": true,
+      "serviceworker": true
+    }
   },
   "browserslist": {
     "production": [
