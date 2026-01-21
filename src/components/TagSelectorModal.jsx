@@ -16,7 +16,7 @@ const PRESET_CATEGORIES = [
       "AI",
       "欧美",
       "黑人",
-      "虐待",
+      "SM",
       "男同",
     ],
   },
