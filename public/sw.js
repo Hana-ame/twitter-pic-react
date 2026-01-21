@@ -1,32 +1,28 @@
 /**
  * 配置区域
  */
-const VERSION = 'V4'; // 既是版本号，也是我们用于验证网站是否存活的“特定字符串”
+const VERSION = 'V4-260121'; // 既是版本号，也是我们用于验证网站是否存活的“特定字符串”
 const CACHE_NAME = `site-assets-${VERSION}`;
 
 // 核心策略：将失败页面的 HTML 直接内嵌在 JS 变量中
 // 优点：无需发起网络请求，不会因为域名过期导致 fail.html 也变成广告页，且无重定向问题
 const OFFLINE_HTML_CONTENT = `
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>站点暂时不可用</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 50px; background: #f0f0f0; }
-    h1 { color: #d9534f; }
-    p { color: #555; }
-    .retry-btn { margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=, initial-scale=1.0">
+    <title>電波が届きません</title>
 </head>
 <body>
-  <h1>无法访问站点</h1>
-  <p>检测到当前域名可能已过期、被劫持或网络连接中断。</p>
-  <p>我们正在努力恢复服务。</p>
-  <button class="retry-btn" onclick="window.location.reload()">重试</button>
+    网噶了，去<a href="https://x.810114.xyz">https://x.810114.xyz</a>看看吧
+
+    
+    <a href="https://reminder.810114.xyz">https://reminder.810114.xyz</a>
+    <a href="https://reminder.nmbyd3.top">https://reminder.nmbyd3.top</a>
 </body>
 </html>
+
 `;
 
 // --------------------------------------------------------------------------
