@@ -593,7 +593,7 @@ const Main = ({ profile, handleSetProfile }) => {
 
           {/* 更新按钮 */}
           <button
-            onClick={() => { if (lastUsername === username) return; console.log(username, lastUsername); setLastUsername(username); createMetaData(username); }}
+            onClick={() => { console.log(username, lastUsername, lastUsername === username); if (lastUsername === username) return; setLastUsername(username); createMetaData(username); }}
             className="flex-1 py-2 px-2 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
             aria-label="更新"
           >
