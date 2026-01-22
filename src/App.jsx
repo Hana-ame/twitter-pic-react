@@ -115,6 +115,8 @@ const Main = ({ profile, handleSetProfile }) => {
   const [userTags, setUserTags] = useState({});
   const [loadingTags, setLoadingTags] = useState(false);
 
+  const [lastUsername, setLastUsername] = useState("");
+  
   const username = profile?.account_info?.name;
 
   useEffect(() => {
@@ -591,7 +593,7 @@ const Main = ({ profile, handleSetProfile }) => {
 
           {/* 更新按钮 */}
           <button
-            onClick={() => createMetaData(username)}
+            onClick={() => { if (lastUsername === username) return ; createMetaData(username) }}
             className="flex-1 py-2 px-2 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
             aria-label="更新"
           >
