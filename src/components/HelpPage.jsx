@@ -56,7 +56,7 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">傻逼印度人开的机房被勒索病毒黑了😅。</p>
           <p className="text-gray-500">数据按照回不来做打算，上次备份还是去年的。还没有tag的那部分。</p>
           
-          <p className="text-gray-500"><a href="https://moonchan.xyz/?bid=893">导出收藏夹，在这里发送，择日进行批量添加。</a></p>
+          <p className="text-gray-500"><a href="https://810114.xyz/?bid=893">导出收藏夹，在这里发送，择日进行批量添加。</a></p>
         </Block>
 
         <Block
