@@ -48,9 +48,16 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
-<p className="text-gray-500">傻逼印度人开的机房被勒索病毒黑了😅。</p>
-<p className="text-gray-500">数据按照回不来做打算，上次备份还是去年的。还没有tag的那部分。</p>
-<p className="text-gray-500">可以聊天里面提一下意见看是等两天能不能恢复还是直接从头建站。</p>
+        <Block
+          title="恢复"
+          closed={isClosedMap["恢复"]}
+          onClick={() => handleOnClickBlock("恢复")}
+        >
+          <p className="text-gray-500">傻逼印度人开的机房被勒索病毒黑了😅。</p>
+          <p className="text-gray-500">数据按照回不来做打算，上次备份还是去年的。还没有tag的那部分。</p>
+          
+          <p className="text-gray-500"><a href="https://moonchan.xyz/?bid=893">导出收藏夹，在这里发送，择日进行批量添加。</a></p>
+        </Block>
 
         <Block
           title="Ban男同性恋决议"
