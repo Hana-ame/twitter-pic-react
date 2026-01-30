@@ -47,16 +47,24 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
-
         <Block
           title="恢复"
           closed={isClosedMap["恢复"]}
           onClick={() => handleOnClickBlock("恢复")}
         >
           <p className="text-gray-500">傻逼印度人开的机房被勒索病毒黑了😅。</p>
-          <p className="text-gray-500">数据按照回不来做打算，上次备份还是去年的。还没有tag的那部分。</p>
-          
-          <p className="text-gray-500"><a href="https://810114.xyz/?bid=893">导出收藏夹，在这里发送，择日进行批量添加。</a></p>
+          <p className="text-gray-500">
+            数据按照回不来做打算，上次备份还是去年的。还没有tag的那部分。
+          </p>
+
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://810114.xyz/?bid=893"
+            >
+              导出收藏夹，在这里发送，择日进行批量添加。
+            </a>
+          </p>
         </Block>
 
         <Block
