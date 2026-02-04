@@ -47,6 +47,18 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
+
+        <Block
+          title="每月1T"
+          closed={isClosedMap["翻墙"]}
+          onClick={() => handleOnClickBlock("翻墙")}
+        >
+          <a
+            className="text-blue-500 cursor-pointer border-blue-700"
+            href="https://c.810114.xyz/sub/a7r03an0fbqsmmbn"
+          >https://c.810114.xyz/sub/a7r03an0fbqsmmbn</a>
+        </Block>
+        
         <Block
           title="恢复"
           closed={isClosedMap["恢复"]}
