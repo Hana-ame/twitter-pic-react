@@ -67,6 +67,8 @@ const HelpPage = ({ onClick }) => {
             </a>上传你的操作流程。
           </p>
           <p className="text-gray-500">nmbyd3.top域名有效期至6月为止</p>
+          <p className="text-gray-500">另外，收藏夹中尚未恢复的项目请自行手动添加</p>
+          <p className="text-gray-500">更新后被发现的tag错误与添加时被发现的tag错误，封禁措施是相同的</p>
         </Block>
         <Block
           title="每月1T"
