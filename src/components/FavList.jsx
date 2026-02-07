@@ -7,7 +7,7 @@ const FavList = ({ onClick }) => {
     const [showImport, setShowImport] = useState(false);
     const [importText, setImportText] = useState("");
     const textareaRef = useRef(null);
-
+    
     // 自动调整文本域高度
     useEffect(() => {
         if (textareaRef.current) {
@@ -15,6 +15,24 @@ const FavList = ({ onClick }) => {
             textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
         }
     }, [importText, showImport]);
+    
+    // 1. Initialize the limit state
+    const [limit, setLimit] = useState(10);
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const allUsernames = Object.keys(favMap).reverse();
+    // 2. Slice the list to only show the current limit
+    const visibleUsernames = allUsernames.slice(0, limit);
+
+    const handleShowMore = () => {
+        // setIsLoading(true);
+        // Simulate a short delay so the user sees the "loading" state (optional)
+        // setTimeout(() => {
+            setLimit(prevLimit => prevLimit + 20);
+            // setIsLoading(false);
+        // }, 400);
+    };
+    
 
     // 导出功能：复制URL列表到剪贴板 (保持不变)
     const handleExport = () => {
@@ -71,9 +89,40 @@ const FavList = ({ onClick }) => {
             
             {/* 收藏列表 - 增加 reverse() 以显示最新的在前面 */}
             <div className="space-y-2">
-                {Object.keys(favMap).reverse().map(username => (
+                {/* Render only the limited list */}
+                {visibleUsernames.map(username => (
                     <Header key={username} username={username} onClick={onClick} />
                 ))}
+        
+                {/* 3. Show button only if there are more items to load */}
+                {limit < allUsernames.length && (
+                    <button
+                        className={`
+                            bg-gradient-to-r from-blue-500 to-indigo-600
+                            hover:from-blue-600 hover:to-indigo-700
+                            text-white font-semibold
+                            py-2 px-4 rounded shadow-md
+                            hover:shadow-lg transition duration-300 ease-in-out
+                            focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50
+                            disabled:opacity-75 disabled:cursor-not-allowed
+                            flex items-center justify-center w-full h-24 mt-4
+                        `}
+                        onClick={handleShowMore}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>loading...</span>
+                            </>
+                        ) : (
+                            '加载更多'
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* 导出导入按钮组 */}
