@@ -47,7 +47,27 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
-
+        <Block
+          title="迁移"
+          closed={isClosedMap["迁移"]}
+          onClick={() => handleOnClickBlock("迁移")}
+        >
+          <p className="text-gray-500">请迁移至<a
+            className="text-blue-500 cursor-pointer border-blue-700"
+            href="https://x.810114.xyz/"
+          >https://x.810114.xyz/</a>域名</p>
+          <p className="text-gray-500">如遇问题，请允许使用剪贴板</p>
+          <p className="text-gray-500">如允许后依然不能解决，请至</p>
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://810114.xyz/?bid=893"
+            >
+              这里
+            </a>上传你的操作流程。
+          </p>
+          <p className="text-gray-500">nmbyd3.top域名有效期至6月为止</p>
+        </Block>
         <Block
           title="每月1T"
           closed={isClosedMap["翻墙"]}
