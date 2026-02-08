@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
 import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
+import PhotoV2 from "./PhotoV2.tsx";
 
 type MediaProps = {
   url: string;
@@ -26,7 +27,7 @@ const Media = ({ url, type }: MediaProps) => {
     return url;
   };
 
-  if (type === "photo") return <Photo url={imageProxyOverride(url)} />;
+  if (type === "photo") return <PhotoV2 url={imageProxyOverride(url)} />;
   if (type === "video" || type === "animated_gif")
     return <Video url={videoProxyOverride(url)} />;
 };
