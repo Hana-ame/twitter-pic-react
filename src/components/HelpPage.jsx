@@ -47,6 +47,16 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
+
+        <Block
+          title="收藏导出位置"
+          closed={isclosedMap["收藏导出位置"]}
+          onclick={handleOnClickBlock}
+        >
+          <p className="text-gray-500>在收藏夹的底部</p>
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU3QKVHBNYDZYJDZCOFH6YB2DASZ/image.webp" />
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU2YV5EZICJGBRGLXIQJETFIQ7DQ/image.webp" />
+        </Block>
         <Block
           title="迁移"
           closed={isClosedMap["迁移"]}
