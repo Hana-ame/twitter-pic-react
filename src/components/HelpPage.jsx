@@ -16,6 +16,7 @@ const Block = ({ title, children, closed, onClick }) => {
       </div>
     );
 
+  // console.log(title, onClick)
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 text-center border border-gray-100 relative">
       {onClick && (
@@ -50,12 +51,12 @@ const HelpPage = ({ onClick }) => {
 
         <Block
           title="收藏导出位置"
-          closed={isclosedMap["收藏导出位置"]}
-          onclick={handleOnClickBlock}
+          closed={isClosedMap["收藏导出位置"]}
+          onClick={() => handleOnClickBlock("收藏导出位置")}
         >
-          <p className="text-gray-500>在收藏夹的底部</p>
-          <img src="https://upload.moonchan.xyz/api/01LLWEUU3QKVHBNYDZYJDZCOFH6YB2DASZ/image.webp" />
-          <img src="https://upload.moonchan.xyz/api/01LLWEUU2YV5EZICJGBRGLXIQJETFIQ7DQ/image.webp" />
+          <p className="text-gray-500">在收藏夹的底部</p>
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU3QKVHBNYDZYJDZCOFH6YB2DASZ/image.webp" alt="" />
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU2YV5EZICJGBRGLXIQJETFIQ7DQ/image.webp" alt="" />
         </Block>
         <Block
           title="迁移"

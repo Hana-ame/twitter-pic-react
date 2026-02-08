@@ -88,11 +88,11 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
     return (
       <div className="flex justify-center items-start max-h-screen">
         <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
-            <img
-              src={url}
-              alt={alt || url}
-              className="mx-auto max-h-screen object-contain transition-opacity duration-200"
-            />
+          <img
+            src={url}
+            alt={alt || url}
+            className="mx-auto max-h-screen object-contain transition-opacity duration-200"
+          />
         </div>
       </div>
     );
