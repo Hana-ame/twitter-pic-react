@@ -4,7 +4,7 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [displayUrl, setDisplayUrl] = useState<string>("");
   const currentObjectURL = useRef<string | null>(null);
-  
+
   // 记录已下载的数据量，用于控制更新频率
   const loadedBytes = useRef<number>(0);
 
@@ -28,11 +28,12 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
 
         const reader = response.body.getReader();
         const chunks: BlobPart[] = [];
-        const contentType = response.headers.get("content-type") || "image/jpeg";
+        const contentType =
+          response.headers.get("content-type") || "image/jpeg";
 
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (value) {
             chunks.push(value);
             loadedBytes.current += value.length;
@@ -43,14 +44,14 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
             if (done || loadedBytes.current > 50 * 1024) {
               const partialBlob = new Blob(chunks, { type: contentType });
               const newUrl = URL.createObjectURL(partialBlob);
-              
+
               const oldUrl = currentObjectURL.current;
-              
+
               // 直接更新显示。虽然 img 标签在 src 变化时会重新渲染，
               // 但由于是本地 Blob，解码速度非常快。
               setDisplayUrl(newUrl);
               currentObjectURL.current = newUrl;
-              
+
               // 延迟释放旧 URL，确保浏览器已经切换到新图，防止白闪
               setTimeout(() => revokeUrl(oldUrl), 100);
 
@@ -67,7 +68,7 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
         if (err.name === "AbortError") {
           console.log("Abort successful: Socket closed.");
         } else {
-          // 降级：如果 fetch 被跨域策略(CORS)拦截，直接赋值 URL 
+          // 降级：如果 fetch 被跨域策略(CORS)拦截，直接赋值 URL
           // 此时虽然不能硬中止，但能保证图片能看
           setDisplayUrl(url);
           setIsLoading(false);
@@ -83,6 +84,19 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
     };
   }, [url]);
 
+  if (url.endsWith(".webp"))
+    return (
+      <div className="flex justify-center items-start max-h-screen">
+        <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
+            <img
+              src={url}
+              alt={alt || url}
+              className="mx-auto max-h-screen object-contain transition-opacity duration-200"
+            />
+        </div>
+      </div>
+    );
+
   return (
     <div className="flex justify-center items-start max-h-screen">
       <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
@@ -94,7 +108,7 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
         {displayUrl && (
           <img
             src={displayUrl}
-            alt={alt || "Image"}
+            alt={alt || url}
             className="mx-auto max-h-screen object-contain transition-opacity duration-200"
             style={{ opacity: isLoading ? 0.8 : 1 }} // 加载中给一点透明度，视觉暗示还在渐进中
           />
