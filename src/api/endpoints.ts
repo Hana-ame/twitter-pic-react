@@ -1,4 +1,6 @@
 export const ENDPOINT = "https://x.moonchan.xyz/api/twitter"
+// export const ENDPOINT = "http://172.29.89.192:8888/api/twitter"
+
 // export const ENDPOINT = window.location.origin + "/api/twitter";
 // export const ENDPOINT = "/api/twitter"
 
