@@ -991,6 +991,7 @@ const ResponsiveLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profile, setProfile] = useState(null);
 
+  const [ranking, setRanking] = useState(false); // 正在投票的 emoji，用于禁用按钮
   // 首次加载时
   useEffect(() => {
     // 得到path，split by "/"，得到第一个非空字符串，然后console.log（如果为空直接return）
@@ -1020,6 +1021,13 @@ const ResponsiveLayout = () => {
   const onClickHome = () => {
     window.history.pushState({}, null, "/");
     setProfile(null);
+    setRanking(false);
+  };
+
+  const onClickRanking = () => {
+    window.history.pushState({}, null, "/");
+    setProfile(null);
+    setRanking(true);
   };
 
   return (
@@ -1030,14 +1038,13 @@ const ResponsiveLayout = () => {
       >
         <Advertisement />
 
-        {/* 添加的返回主页按钮 */}
-        <div className="mb-4">
-          {" "}
-          {/* 添加一些底部外边距 */}
+        {/* 修改后的按钮区域：使用 flex 布局并排显示 */}
+        {/* 按钮区域：flex布局并排，风格统一，朴素灰色调 */}
+        <div className="mb-4 flex space-x-2">
+          {/* 左侧：返回主页 */}
           <button
             onClick={onClickHome}
-            className="w-full py-2 px-4 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
-            aria-label="返回主页"
+            className="flex-1 py-2 px-4 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1053,11 +1060,39 @@ const ResponsiveLayout = () => {
                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
               />
             </svg>
-            返回主页
+            <span className="ml-2">返回主页</span>
+          </button>
+
+          {/* 右侧：排行榜 */}
+          <button
+            onClick={onClickRanking}
+            // 样式同上，仅 Hover 颜色改为紫色以示区分
+            className="flex-1 py-2 px-4 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-purple-500 hover:text-white transition-colors duration-200"
+          >
+            {/* 柱状图图标 */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            <span className="ml-2">排行榜</span>
           </button>
         </div>
 
-        <Main profile={profile} handleSetProfile={handleSetProfile} />
+        {ranking && profile === null ? (
+          <Ranking onUserClick={handleSetProfile}  />
+        ) : (
+          <Main profile={profile} handleSetProfile={handleSetProfile} />
+        )}
       </div>
 
       {/* 桌面模式下的用户列表 */}

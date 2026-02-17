@@ -17,6 +17,20 @@ export function getEmojis(username: string) {
     });
 }
 
+export function getRanking() {
+    return getEmojis("")
+    // 尼玛，后端写挂了，先凑合一个
+    return new Promise((resolve, reject) => {
+        fetch(`${ENDPOINT}/emojis.json.gz`, {
+            method: 'GET'
+        }).then(res => res.json()).then(data => {
+            resolve(data);
+        }).catch(err => {
+            reject(err);
+        });
+    });
+}
+
 // 为指定用户的某个 Emoji 投票 (+1)
 // 对应后端: POST /emojis?username=xxx&emoji=xxx
 export function voteUpEmoji(username: string, emoji: string) {

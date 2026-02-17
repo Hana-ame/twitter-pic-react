@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getEmojis } from "../api/emojis.ts";
+import { getRanking } from "../api/emojis.ts";
 
 import Header from "./Header.jsx";
 
@@ -21,9 +21,8 @@ const Ranking = ({ onUserClick }) => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 假设接口地址
-        // const response = await getEmojis("");
-        const json = await getEmojis("");
+
+        const json = await getRanking();
         setData(json || {});
 
         // 默认选中第一个 Emoji

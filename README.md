@@ -1,5 +1,7 @@
 # twitter pic react
 
-推特看图前端。
+## 26.02.16
 
-这东西还要迁移 API 了操我日。
+存在stash里面
+
+请使用 git stash pop 然后commit之后push。
