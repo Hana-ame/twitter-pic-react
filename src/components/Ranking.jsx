@@ -11,7 +11,7 @@ import Header from "./Header.jsx";
  * 4. 保持朴素统一的 UI 风格。
  */
 
-const Ranking = ({ onUserClick }) => {
+const Ranking = ({ handleSetProfile }) => {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeEmoji, setActiveEmoji] = useState(null); // 当前选中的表情
@@ -39,13 +39,6 @@ const Ranking = ({ onUserClick }) => {
     fetchData();
   }, []);
 
-  // 处理点击用户事件
-  const handleUserClick = (username) => {
-    if (onUserClick) {
-      onUserClick({ account_info: { name: username } });
-    }
-  };
-
   // 渲染单个榜单列表
   const renderList = (title, listData) => {
     return (
@@ -64,10 +57,9 @@ const Ranking = ({ onUserClick }) => {
             listData.map((item, index) => (
               <div
                 key={item.username}
-                onClick={() => handleUserClick(item.username)}
                 className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 transition-colors cursor-pointer group"
               >
-                <div className="flex items-center">
+                <div className="flex items-center w-full">
                   {/* 排名徽章 */}
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-3 ${
@@ -82,9 +74,9 @@ const Ranking = ({ onUserClick }) => {
                   >
                     {index + 1}
                   </div>
-                  <span className="text-gray-800 group-hover:text-blue-600 transition-colors font-medium">
+                  <span className="text-gray-800 group-hover:text-blue-600 transition-colors font-medium w-full">
                     {/* @{item.username} */}
-                    <Header key={item.username} username={item.username} onClick={onUserClick} />
+                    <Header key={item.username} username={item.username} onClick={handleSetProfile} />
                   </span>
                 </div>
                 {/* 票数 */}

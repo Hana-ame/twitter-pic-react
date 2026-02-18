@@ -1089,7 +1089,7 @@ const ResponsiveLayout = () => {
         </div>
 
         {ranking && profile === null ? (
-          <Ranking onUserClick={handleSetProfile}  />
+          <Ranking handleSetProfile={handleSetProfile}  />
         ) : (
           <Main profile={profile} handleSetProfile={handleSetProfile} />
         )}
