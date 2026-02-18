@@ -25,11 +25,12 @@ const Ranking = ({ handleSetProfile }) => {
         const json = await getRanking();
         setData(json || {});
 
+        // 26.02.18 观感太差
         // 默认选中第一个 Emoji
-        const keys = Object.keys(json || {});
-        if (keys.length > 0) {
-          setActiveEmoji(keys[0]);
-        }
+        // const keys = Object.keys(json || {});
+        // if (keys.length > 0) {
+        //   setActiveEmoji(keys[0]);
+        // }
       } catch (error) {
         console.error("获取排行榜数据失败:", error);
       } finally {
