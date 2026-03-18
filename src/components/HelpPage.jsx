@@ -48,7 +48,22 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
-
+        <Block
+          title="没嘎"
+          closed={isClosedMap["服务器给压力爆了"]}
+          onClick={() => handleOnClickBlock("服务器给压力爆了")}
+        >
+          <p className="text-gray-500">但是考虑迁出一部分人</p>
+          <p className="text-gray-500">比如男同，重口什么的</p>
+          <p className="text-gray-500">提供代码和技术指导，人柱力（twitter号）和服务器自己解决，不包维护。
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://810114.xyz/?bid=103"
+            >
+              这里讨论
+            </a>，不免费。
+          </p>
+        </Block>
         <Block
           title="收藏导出位置"
           closed={isClosedMap["收藏导出位置"]}
