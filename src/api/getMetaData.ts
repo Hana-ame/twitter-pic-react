@@ -11,6 +11,8 @@ export default async function getMetaData(username: string, t: string = "") {
   // 3. 如果有 t，添加查询参数
   if (t !== "") {
     url.searchParams.append("t", t);
+  } else {
+    url.searchParams.append("t", "null");
   }
 
   const res = await fetch(url.toString());
