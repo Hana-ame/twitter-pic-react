@@ -2,7 +2,8 @@ import { ENDPOINT } from "./endpoints.ts";
 
 export default async function getMetaData(username: string, t: string = "") {
   // 1. 根据是否有 t，决定是否添加 .json.gz 后缀
-  const path = t ? `${username}.json.gz` : username;
+  // const path = t ? `${username}.json.gz` : username;
+  const path = `${username}.json.gz`;
 
   // 2. 构造基础 URL
   const url = new URL(`${ENDPOINT}/${path}`);
