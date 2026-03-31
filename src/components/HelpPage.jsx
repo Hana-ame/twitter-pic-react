@@ -103,8 +103,8 @@ const HelpPage = ({ onClick }) => {
         >
           <a
             className="text-blue-500 cursor-pointer border-blue-700"
-            href="https://c.810114.xyz/sub/a7r03an0fbqsmmbn"
-          >https://c.810114.xyz/sub/a7r03an0fbqsmmbn</a>
+            href="https://810114.xyz/?bid=810514"
+          >点我看</a>
         </Block>
         
         <Block
