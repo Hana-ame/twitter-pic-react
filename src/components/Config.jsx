@@ -148,7 +148,7 @@ const ImageConfig = () => {
     "https://pbs-t-3.twimg.com",
     "https://pbs-t-4.twimg.com",
   ];
-  const otherOptions = ["https://twimg.nmbyd2.top"];
+  const otherOptions = ["https://twimg.moonchan.xyz"];
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-1">
@@ -218,7 +218,7 @@ const VideoConfig = () => {
     "https://video-t-3.twimg.com",
     "https://video-t-4.twimg.com",
   ];
-  const otherOptions = ["https://twimg.nmbyd2.top"];
+  const otherOptions = ["https://twimg.moonchan.xyz"];
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md space-y-1">
