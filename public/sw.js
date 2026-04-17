@@ -79,9 +79,6 @@ async function performCheck() {
       // 发现异常，立 flag
       CHECK_CONFIG.isBlocking = true;
       console.log('[SW] 立 flag: isBlocking = true');
-      // 强制刷新所有已打开页面，让它们经过导航拦截
-      // 26.02.16 不要这样用，其实可以是打开在后台缓存了看的。
-      // await hardRefreshAllClients();
     } else if (isValid && CHECK_CONFIG.isBlocking) {
       // 恢复正常，撤 flag
       CHECK_CONFIG.isBlocking = false;
@@ -92,8 +89,6 @@ async function performCheck() {
     console.error('[SW] 检查失败:', err);
     if (!CHECK_CONFIG.isBlocking) {
       CHECK_CONFIG.isBlocking = true;
-      // 26.02.16 不要这样用，其实可以是打开在后台缓存了看的。
-      // await hardRefreshAllClients();
     }
   }
 }
@@ -116,8 +111,6 @@ async function validateDomain() {
   }
 }
 
-// 强制刷新所有客户端（让它们走导航拦截）
-// 26.02.16 不要这样用，其实可以是打开在后台缓存了看的。
 async function hardRefreshAllClients() {
   const clients = await self.clients.matchAll({
     type: 'window',
@@ -130,7 +123,6 @@ async function hardRefreshAllClients() {
     const now = Date.now();
     const lastRefresh = CHECK_CONFIG.refreshedClients.get(client.id) || 0;
     
-    // 5秒内不重复刷新同一个客户端
     if (now - lastRefresh < 5000) continue;
     
     try {
@@ -143,6 +135,76 @@ async function hardRefreshAllClients() {
   }
 }
 
+// ==================== 域名迁移提示辅助函数 ====================
+
+// 支持任意前缀 "x"，例如 reminder.nmbyd3.top -> reminder.810114.xyz
+function getMigrationTarget(hostname) {
+  if (hostname.endsWith('.nmbyd3.top')) {
+    return hostname.replace('.nmbyd3.top', '.810114.xyz');
+  } else if (hostname === 'nmbyd3.top') {
+    return '810114.xyz';
+  }
+  return null;
+}
+
+// 在返回的 HTML 头部动态注入弹窗逻辑
+async function injectPromptToResponse(res, targetHost) {
+  // 仅处理成功的、未重定向的 HTML 响应
+  if (res.ok && !res.redirected && res.headers.get('content-type')?.includes('text/html')) {
+    const clonedRes = res.clone();
+    try {
+      const text = await clonedRes.text();
+      const newHeaders = new Headers(res.headers);
+      newHeaders.delete('content-length');
+      newHeaders.delete('content-encoding');
+      
+      // 植入每天仅执行一次的独立检测脚本
+      const PROMPT_SCRIPT = `
+        <script>
+          (function() {
+            try {
+              var today = new Date().toDateString();
+              if (localStorage.getItem('nmbyd3_migration_prompt') !== today) {
+                localStorage.setItem('nmbyd3_migration_prompt', today);
+                alert('请迁移☞ ${targetHost}');
+              }
+            } catch(e) {}
+          })();
+        </script>
+      `;
+      
+      let injectedHtml = text;
+      if (/(<head[^>]*>)/i.test(text)) {
+        injectedHtml = text.replace(/(<head[^>]*>)/i, match => match + PROMPT_SCRIPT);
+      } else if (/(<html[^>]*>)/i.test(text)) {
+        injectedHtml = text.replace(/(<html[^>]*>)/i, match => match + PROMPT_SCRIPT);
+      } else {
+        injectedHtml = PROMPT_SCRIPT + text;
+      }
+      
+      return new Response(injectedHtml, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: newHeaders
+      });
+    } catch (e) {
+      // 解析或注入异常，回退原生未消费的响应，确保页面不白屏
+      return res;
+    }
+  }
+  return res;
+}
+
+// 封装带检测注入的 Fetch（模拟放行）
+async function fetchWithPrompt(req, targetHost) {
+  try {
+    const res = await fetch(req);
+    return await injectPromptToResponse(res, targetHost);
+  } catch (e) {
+    throw e; // 如果断网，抛出由浏览器接管显示系统断网页
+  }
+}
+
 // ==================== Fetch 拦截（关键逻辑）====================
 
 self.addEventListener('fetch', (event) => {
@@ -150,27 +212,30 @@ self.addEventListener('fetch', (event) => {
   
   if (!req.url.startsWith('http')) return;
   
+  const url = new URL(req.url);
+  const targetHost = getMigrationTarget(url.hostname);
+  
+  // 判断：5月1日之后（当前基于2026年5月1日计算）
+  const isAfterMay1st = Date.now() >= new Date('2026-05-01T00:00:00+08:00').getTime();
+  const needPrompt = !!targetHost && isAfterMay1st;
+  
   // A. 导航请求：只有立了 flag 才拦截，否则直接放行
   if (req.mode === 'navigate') {
-    // 没有 flag，直接放行，不做任何检查
+    // 没有 flag，直接放行
     if (!CHECK_CONFIG.isBlocking) {
+      // 若满足迁移提示条件，进行拦截注入，否则保持原生直接返回交由浏览器处理
+      if (needPrompt) {
+        event.respondWith(fetchWithPrompt(req, targetHost));
+      }
       return;
     }
     
     // 有 flag，进行验证
-    event.respondWith(handleBlockedNavigation(req));
+    event.respondWith(handleBlockedNavigation(req, needPrompt, targetHost));
     return;
   }
   
-  // 26.02.16 不要这个
-  // B. 阻断模式下拦截子资源（可选，加速失败）
-  // if (CHECK_CONFIG.isBlocking && req.destination !== 'document') {
-  //   event.respondWith(new Response('', {status: 503}));
-  //   return;
-  // }
-  
   // C. 静态资源缓存
-  // 26.02.16 改掉了image
   if (['script', 'style', 'font'].includes(req.destination) || 
       req.url.match(/\.(js|css|woff2?)$/)) {
     event.respondWith(handleAsset(req));
@@ -180,7 +245,7 @@ self.addEventListener('fetch', (event) => {
 /**
  * 处理被阻断的导航：实时验证，通过则放行，不通过则拦截
  */
-async function handleBlockedNavigation(req) {
+async function handleBlockedNavigation(req, needPrompt, targetHost) {
   console.log('[SW] flag 已立，验证导航:', req.url);
   
   try {
@@ -191,7 +256,10 @@ async function handleBlockedNavigation(req) {
       console.log('[SW] 验证通过，撤 flag 并放行');
       CHECK_CONFIG.isBlocking = false;
       CHECK_CONFIG.refreshedClients.clear();
-      return fetch(req);
+      
+      const res = await fetch(req);
+      // 如果触发了迁移逻辑则注入响应，否则直接给原响应
+      return needPrompt ? await injectPromptToResponse(res, targetHost) : res;
     } else {
       // 验证失败，保持 flag 并拦截
       console.log('[SW] 验证失败，拦截');
