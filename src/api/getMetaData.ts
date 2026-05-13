@@ -12,7 +12,7 @@ export default async function getMetaData(username: string, t: string = "") {
   if (t !== "") {
     url.searchParams.append("t", t);
   } else {
-    url.searchParams.append("t", "null");
+    url.searchParams.append("t", new Date().toISOString().split('T')[0]);
   }
 
   const res = await fetch(url.toString());
