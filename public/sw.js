@@ -166,7 +166,7 @@ async function injectPromptToResponse(res, targetHost) {
               var today = new Date().toDateString();
               if (localStorage.getItem('nmbyd3_migration_prompt') !== today) {
                 localStorage.setItem('nmbyd3_migration_prompt', today);
-                alert('请迁移☞ ${targetHost}');
+                alert('请迁移☞ ${targetHost}\n！再不迁移收藏夹就要消失了！');
               }
             } catch(e) {}
           })();
