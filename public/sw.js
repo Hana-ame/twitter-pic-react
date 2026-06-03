@@ -166,7 +166,7 @@ async function injectPromptToResponse(res, targetHost) {
               var today = new Date().toDateString();
               if (localStorage.getItem('nmbyd3_migration_prompt') !== today || true) {
                 localStorage.setItem('nmbyd3_migration_prompt', today);
-                alert('请迁移☞ ${targetHost}\n！两个站点收藏夹不互通，再不手动迁移收藏夹就要消失了！');
+                alert('请迁移☞ ${targetHost}！两个站点收藏夹不互通，再不手动迁移收藏夹就要消失了！');
               }
             } catch(e) {}
           })();
