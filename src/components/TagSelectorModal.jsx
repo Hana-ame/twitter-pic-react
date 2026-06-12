@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+giimport React, { useEffect, useState } from "react";
 
 // --- 配置常量 ---
 const PRESET_CATEGORIES = [
   {
     title: "主体",
-    tags: ["男性", "女性", "男女性交", "二次元", "其他", "无关内容"],
+    tags: ["男性", "女性", "男女性交", "二次元","脚", "其他", "无关内容"],
   },
   {
     title: "类别性质",
