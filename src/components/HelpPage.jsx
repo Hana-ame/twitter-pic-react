@@ -53,8 +53,16 @@ const HelpPage = ({ onClick }) => {
           closed={isClosedMap["感觉有点被墙了"]}
           onClick={() => handleOnClickBlock("感觉有点被墙了")}
         >
-        <p className="text-gray-500">感觉有点被墙了.</p>
-        <p className="text-gray-500">老用户往下拉有个设置,切换到twimg.moonchan.xyz和video.twimg.com试试.</p>
+          <p className="text-gray-500">感觉原版的节点都有点被墙了.</p>
+          <p className="text-gray-500">老用户往下拉有个设置,都切换到最后一个选项试试,这个选项是自建的.</p>
+        </Block>
+        
+        <Block
+          title="另外悄悄鉴证一下"
+          closed={!isClosedMap["另外悄悄鉴证一下"]}
+          onClick={() => handleOnClickBlock("另外悄悄鉴证一下")}
+        >
+          <p className="text-gray-500">s+可能有内鬼爬到管理员位置在乱删帖子,我之后就不上s+了.感觉贴吧时代就在搞这种斗争,希望是错觉吧.当然这是我个人意见,有前坛友在用的话不要去水区说这事.</p>
         </Block>
 
         <Block
