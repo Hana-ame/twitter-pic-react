@@ -48,8 +48,10 @@ const AutoConfig = () => {
     // 说明本地存储中之前没有数据（这是第一次访问），触发初始化配置。
     if (ts === now) {
       console.log("检测到首次访问或配置丢失，正在初始化随机代理...");
-      setImage(getRandomProxy(IMAGE_PROXIES));
-      setVideo(getRandomProxy(VIDEO_PROXIES));
+      // setImage(getRandomProxy(IMAGE_PROXIES));
+      // setVideo(getRandomProxy(VIDEO_PROXIES));
+      setImage("https://twimg.moonchan.xyz");
+      setVideo("https://video.twimg.com");
 
       // 注意：useLocalStorage 通常在初始化默认值时就会自动写入 localStorage，
       // 所以这里不需要显式调用 setTS(now)，除非你的 hook 行为不同。
