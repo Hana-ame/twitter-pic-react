@@ -49,6 +49,15 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
         <Block
+          title="感觉有点被墙了"
+          closed={isClosedMap["感觉有点被墙了"]}
+          onClick={() => handleOnClickBlock("感觉有点被墙了")}
+        >
+        <p className="text-gray-500">感觉有点被墙了.</p>
+        <p className="text-gray-500">老用户往下拉有个设置,切换到twimg.moonchan.xyz和video.twimg.com试试.</p>
+        </Block>
+
+        <Block
           title="没嘎"
           closed={isClosedMap["服务器给压力爆了"]}
           onClick={() => handleOnClickBlock("服务器给压力爆了")}
