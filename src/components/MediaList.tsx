@@ -44,8 +44,22 @@ const MediaList = ({ timeline, showAll }: { timeline: any[], showAll: boolean })
 
     useEffect(() => {
         setLoading(true);
-        if (showAll) setLimit(999999999);
-        else setLimit(10);
+        setLimit(10);
+        if (!showAll) {
+            return;
+        }
+        const interval = setInterval(() => {
+            setLimit(prev => {
+                  if (prev >= uniqueTimeline.length) {
+                        clearInterval(interval);  // 停止定时器
+                        return prev;
+                  }
+                  return prev + 10;
+            });
+        }, 2000);
+        
+        return () => clearInterval(interval); // 清理函数
+        
     }, [timeline, showAll]);
 
     useEffect(() => {
