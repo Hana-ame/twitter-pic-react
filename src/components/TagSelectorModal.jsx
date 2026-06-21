@@ -1,4 +1,4 @@
-giimport React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // --- 配置常量 ---
 const PRESET_CATEGORIES = [
