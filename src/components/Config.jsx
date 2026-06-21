@@ -51,7 +51,7 @@ const AutoConfig = () => {
       // setImage(getRandomProxy(IMAGE_PROXIES));
       // setVideo(getRandomProxy(VIDEO_PROXIES));
       setImage("https://twimg.moonchan.xyz");
-      setVideo("https://video.twimg.com");
+      setVideo("https://twimg.moonchan.xyz");
 
       // 注意：useLocalStorage 通常在初始化默认值时就会自动写入 localStorage，
       // 所以这里不需要显式调用 setTS(now)，除非你的 hook 行为不同。
