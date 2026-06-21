@@ -54,7 +54,11 @@ const HelpPage = ({ onClick }) => {
           onClick={() => handleOnClickBlock("感觉有点被墙了")}
         >
           <p className="text-gray-500">感觉原版的节点都有点被墙了.</p>
-          <p className="text-gray-500">老用户往下拉有个设置,都切换到最后一个选项试试,这个选项是自建的.</p>
+          <p className="text-gray-500"><s>老用户往下拉有个设置,都切换到最后一个选项试试,这个选项是自建的.</s></p>
+          <p className="text-gray-500">感觉这么薅扛不住,</p>
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU36JDUDKXO2INBJ7RPLRRT7OGTB/image.webp" alt="" />
+          <p className="text-gray-500">你可以往下拉一点,找到这个代码,注册一下cloudflare,用这个代码贴到worker里建自己反代</p>
+          <p className="text-gray-500"><s>不是那你们之前咋看的啊,怎么突然流量能薅这么多的.1.不看见vpn拼车2.之前看不了这站怎么能看到通知的,难不成我被打了?好心人能不能右下角聊天解惑</s></p>          
         </Block>
         
         <Block
