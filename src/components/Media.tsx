@@ -14,16 +14,27 @@ const Media = ({ url, type }: MediaProps) => {
 
   const imageProxyOverride = (url: string) => {
     // console.log(url, imageProxy)
+    const country = localStorage.getItem("country")
+    if (!(country === "CN" || country === "" || typeof country !== "string")) {
+      return url;
+    }
+
     return url.replace("https://pbs.twimg.com", imageProxy);
   };
 
   const videoProxyOverride = (url: string) => {
+    const country = localStorage.getItem("country")
+    if (!(country === "CN" || country === "" || typeof country !== "string")) {
+      return url;
+    }
+
     url = url.replace("https://video.twimg.com", videoProxy);
     if (videoProxy === "https://proxy.moonchan.xyz") {
       const newUrl = new URL(url);
       newUrl.searchParams.set("proxy_host", "video.twimg.com");
       return newUrl.toString();
     }
+    
     return url;
   };
 
@@ -33,46 +44,46 @@ const Media = ({ url, type }: MediaProps) => {
 };
 
 // 图片组件
-const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
-  const ref = useRef<HTMLImageElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+// const Photo: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
+//   const ref = useRef<HTMLImageElement>(null);
+//   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const current = ref.current;
-    return () => {
-      if (current) {
-        current.src = "";
-        current.srcset = "";
-      }
-    };
-  }, [ref]);
+//   useEffect(() => {
+//     const current = ref.current;
+//     return () => {
+//       if (current) {
+//         current.src = "";
+//         current.srcset = "";
+//       }
+//     };
+//   }, [ref]);
 
-  return (
-    <div className="flex justify-center items-start max-h-screen">
-      {" "}
-      {/* 实现水平居中，容器高度为屏幕高度 */}
-      <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden">
-        {" "}
-        {/* 修改：限制最大宽度，高度继承 */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        )}
-        {/* <PhotoView key={url} src={url}> */}
-        <img
-          ref={ref}
-          src={url}
-          alt={alt || "Image"}
-          className="mx-auto max-h-screen object-contain transition-opacity duration-300"
-          onLoad={() => setIsLoading(false)}
-          loading="lazy"
-        />
-        {/* </PhotoView> 修改：添加 mx-auto 实现水平居中，max-h-screen 限制最大高度 */}
-      </div>
-    </div>
-  );
-};
+//   return (
+//     <div className="flex justify-center items-start max-h-screen">
+//       {" "}
+//       {/* 实现水平居中，容器高度为屏幕高度 */}
+//       <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden">
+//         {" "}
+//         {/* 修改：限制最大宽度，高度继承 */}
+//         {isLoading && (
+//           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50">
+//             <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+//           </div>
+//         )}
+//         {/* <PhotoView key={url} src={url}> */}
+//         <img
+//           ref={ref}
+//           src={url}
+//           alt={alt || "Image"}
+//           className="mx-auto max-h-screen object-contain transition-opacity duration-300"
+//           onLoad={() => setIsLoading(false)}
+//           loading="lazy"
+//         />
+//         {/* </PhotoView> 修改：添加 mx-auto 实现水平居中，max-h-screen 限制最大高度 */}
+//       </div>
+//     </div>
+//   );
+// };
 
 const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
   // 构造 iframe 内部的 HTML

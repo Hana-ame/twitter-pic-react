@@ -132,6 +132,35 @@ const Main = ({ profile, handleSetProfile }) => {
 
   const username = profile?.account_info?.name;
 
+
+  useEffect(() => {
+    // 如果已有缓存，可以选择跳过请求（视需求而定）
+    // 这里为了演示始终请求，也可以加上 if (localStorage.getItem('country')) return;
+
+    const fetchCountry = async () => {
+      try {
+        const response = await fetch('https://ipinfo.io/json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        // 假设 data 包含 country 字段（如 "CN"）
+        const countryCode = data.country || '';
+        // 存储到 localStorage
+        localStorage.setItem('country', countryCode);
+        // 更新状态
+      } catch (err) {
+        console.error('Failed to fetch country:', err);
+      } finally {
+      }
+    };
+
+    fetchCountry();
+
+    // 清理函数（此例无订阅，不需要）
+  }, []); // 空依赖 => 只在组件挂载时执行一次
+
+
   useEffect(() => {
     setShowAll(false);
     setDownloadStatus("");
@@ -238,6 +267,11 @@ const Main = ({ profile, handleSetProfile }) => {
 
   // --- 新增：核心 URL 替换逻辑 ---
   const getProxiedUrl = (originalUrl, type) => {
+    const country = localStorage.getItem("country")
+    if (!(country === "CN" || country === "" || typeof country !== "string")) {
+      return originalUrl;
+    }
+
     try {
       const targetProxy = type === "video" ? videoProxy : imageProxy;
 
