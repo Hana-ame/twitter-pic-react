@@ -48,6 +48,30 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
+
+
+        
+        <Block
+          title="预防违反cloudflare政策"
+          closed={isClosedMap["cf"]}
+          onClick={() => handleOnClickBlock("cf")}
+        >
+          <p className="text-gray-500">好像流量比想象中的多,薅太狠可能会被cloudflare把整个网站扬掉</p>
+          <p className="text-gray-500">
+            请用
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://page.moonchan.xyz/?url=https%3A%2F%2Fupload.moonchan.xyz%2Fapi%2F01LLWEUU7LWSX2IOGCZJDKAJLFKDHNOEJM%2Froot.txt#markdown-parser"
+            >
+              这个方法(doh)
+            </a>
+            试试
+          </p>
+          <p className="text-gray-500">之后关闭twimg.moonchan.xyz服务的时候不再另行通知</p>
+
+        </Block>
+
+
         <Block
           title="感觉有点被墙了"
           closed={isClosedMap["感觉有点被墙了"]}
