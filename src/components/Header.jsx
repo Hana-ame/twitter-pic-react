@@ -91,7 +91,7 @@ const Header = ({ username, onClick }) => {
         <img
           src={userData.account_info?.profile_image?.replace(
             "https://pbs.twimg.com",
-            DEFAULT_IMAGE_PROXY
+            "https://pbs.moonchan.xyz"
           )}
           alt={userData.account_info?.nick}
           className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
