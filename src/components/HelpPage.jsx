@@ -65,7 +65,7 @@ const HelpPage = ({ onClick }) => {
             >
               这个方法(doh)
             </a>
-            试试
+            试试.或者用下面提供的vmess节点.
           </p>
           <p className="text-gray-500">之后关闭twimg.moonchan.xyz服务的时候不再另行通知</p>
 
