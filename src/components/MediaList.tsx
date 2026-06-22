@@ -54,9 +54,9 @@ const MediaList = ({ timeline, showAll }: { timeline: any[], showAll: boolean })
                         clearInterval(interval);  // 停止定时器
                         return prev;
                   }
-                  return prev + 10;
+                  return prev + 1;
             });
-        }, 2000);
+        }, 1500);
         
         return () => clearInterval(interval); // 清理函数
         
