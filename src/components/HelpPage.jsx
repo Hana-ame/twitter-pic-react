@@ -52,9 +52,9 @@ const HelpPage = ({ onClick }) => {
 
         
         <Block
-          title="预防违反cloudflare政策"
-          closed={isClosedMap["cf"]}
-          onClick={() => handleOnClickBlock("cf")}
+          title="给你们写了个本地代理"
+          closed={isClosedMap["ech"]}
+          onClick={() => handleOnClickBlock("ech")}
         >
           <p className="text-gray-500">给你们写了个本地代理,windows下跑的</p>
           <p className="text-gray-500">
