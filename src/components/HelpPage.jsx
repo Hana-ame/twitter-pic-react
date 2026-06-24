@@ -57,30 +57,45 @@ const HelpPage = ({ onClick }) => {
           onClick={() => handleOnClickBlock("ech")}
         >
           <p className="text-gray-500">给你们写了个本地代理,windows下跑的</p>
+          
           <p className="text-gray-500">
-            请用
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
               href="https://upload.moonchan.xyz/api/01LLWEUU7VKNU3DSWQYFEKKD7D7QWGKNR6/ech-proxy.exe"
             >
               下载了打开就行
             </a>
-            <br />
+          </p>
+          
+          <p>
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
               href="https://pastebin.com/raw/bVDxpi4D"
             >
               代码点这里看,如果想自己编译的话.
             </a>
+          </p>
+          
+          <p>
             运行之后看到这个
-          <img src="https://upload.moonchan.xyz/api/01LLWEUU36JDUDKXO2INBJ7RPLRRT7OGTB/image.webp" alt="" />
+          </p>
+            
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU2O5GC7P6H4VNFIUEBFCTXFAFCA/image.webp" alt="" />
+          
+          <p>
             然后把滚动条往下拉.填这个
+          </p>
+          
           <img src="https://upload.moonchan.xyz/api/01LLWEUU6T3LI4RG67EBHKWBBJJ7IGX2QK/image.webp" alt="" />
-            <br />
-            https://l.moonchan.xyz:8443
-            <br />
+          
+          <p>
+            https://twimg.l.moonchan.xyz:8443
+          </p>
+          
+          <p>
             有什么不会的自己问ai去.
           </p>
+          
           <p className="text-gray-500">之后关闭twimg.moonchan.xyz服务的时候不再另行通知</p>
 
         </Block>
