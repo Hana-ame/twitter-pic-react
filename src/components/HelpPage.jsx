@@ -61,7 +61,7 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://upload.moonchan.xyz/api/01LLWEUU7VKNU3DSWQYFEKKD7D7QWGKNR6/ech-proxy.exe"
+              href="https://upload.moonchan.xyz/api/01LLWEUU5K2FBYBJBN35C3RUAWJ2R66KJK/ech-proxy-windows-amd64.exe"
             >
               下载了打开就行
             </a>
