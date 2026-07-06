@@ -21,7 +21,7 @@ const Media = ({ url, type }: MediaProps) => {
     }
 
     
-    if (imageProxy === "https://twimg.810114.xyz") {
+    if (imageProxy === "https://twimg.moonchan.xyz") {
       const newUrl = new URL(url);
       newUrl.hostname = "proxy.moonchan.xyz"
       newUrl.searchParams.set("proxy_host", "pbs.twimg.com");
