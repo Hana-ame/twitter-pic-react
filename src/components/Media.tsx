@@ -14,12 +14,22 @@ const Media = ({ url, type }: MediaProps) => {
 
   const imageProxyOverride = (url: string) => {
     // console.log(url, imageProxy)
+    // 明确的海外用户, 不进行替换.
     const country = localStorage.getItem("country")
     if (!(country === "CN" || country === "" || typeof country !== "string")) {
       return url;
     }
 
-    return url.replace("https://pbs.twimg.com", imageProxy);
+    
+    if (imageProxy === "https://twimg.810114.xyz") {
+      const newUrl = new URL(url);
+      newUrl.hostname = "proxy.moonchan.xyz"
+      newUrl.searchParams.set("proxy_host", "pbs.twimg.com");
+      return newUrl.toString();
+    } else {
+      url = url.replace("https://pbs.twimg.com", imageProxy);
+      return url
+    }
   };
 
   const videoProxyOverride = (url: string) => {
@@ -34,7 +44,7 @@ const Media = ({ url, type }: MediaProps) => {
       newUrl.searchParams.set("proxy_host", "video.twimg.com");
       return newUrl.toString();
     }
-    
+
     return url;
   };
 
