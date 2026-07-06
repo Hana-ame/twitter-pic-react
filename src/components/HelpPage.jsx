@@ -48,25 +48,79 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
-
+        <Block
+          title="给你们写了个akp"
+          closed={isClosedMap["apk"]}
+          onclick={()=>handleOnClickBlock("apk")}
+        >
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://upload.moonchan.xyz/api/01LLWEUU3G3ZF4A3KBD5HZ7M3S44P3X626/app-release.apk"
+            >
+              给你们写了个Andorid应用
+            </a>
+          </p>
+          
+          <p className="text-gray-500">免翻的,没梯子的用用</p>
+          <p className="text-gray-500">但是没梯子为什么不挂下面的公共1T呢,下次不写了</p>
+          <p className="text-gray-500">半成品,不打算更新,不过你还是可以
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://810114.xyz/?bid=103&tid=195456&pn=0"
+            >
+            提意见
+            </a>
+          </p>
+          
+        </Block>
 
         
         <Block
-          title="预防违反cloudflare政策"
-          closed={isClosedMap["cf"]}
-          onClick={() => handleOnClickBlock("cf")}
+          title="给你们写了个本地代理"
+          closed={isClosedMap["ech"]}
+          onClick={() => handleOnClickBlock("ech")}
         >
-          <p className="text-gray-500">好像流量比想象中的多,薅太狠可能会被cloudflare把整个网站扬掉</p>
+          <p className="text-gray-500">给你们写了个本地代理,windows下跑的</p>
+          
           <p className="text-gray-500">
-            请用
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://page.moonchan.xyz/?url=https%3A%2F%2Fupload.moonchan.xyz%2Fapi%2F01LLWEUU7LWSX2IOGCZJDKAJLFKDHNOEJM%2Froot.txt#markdown-parser"
+              href="https://upload.moonchan.xyz/api/01LLWEUU5K2FBYBJBN35C3RUAWJ2R66KJK/ech-proxy-windows-amd64.exe"
             >
-              这个方法(doh)
+              下载了打开就行
             </a>
-            试试.或者用下面提供的vmess节点.
           </p>
+          
+          <p>
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://pastebin.com/raw/bVDxpi4D"
+            >
+              代码点这里看,如果想自己编译的话.
+            </a>
+          </p>
+          
+          <p>
+            运行之后看到这个
+          </p>
+            
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU2O5GC7P6H4VNFIUEBFCTXFAFCA/image.webp" alt="" />
+          
+          <p>
+            然后把滚动条往下拉.填这个
+          </p>
+          
+          <img src="https://upload.moonchan.xyz/api/01LLWEUU6T3LI4RG67EBHKWBBJJ7IGX2QK/image.webp" alt="" />
+          
+          <p>
+            https://twimg.l.moonchan.xyz:8443
+          </p>
+          
+          <p>
+            有什么不会的自己问ai去.
+          </p>
+          
           <p className="text-gray-500">之后关闭twimg.moonchan.xyz服务的时候不再另行通知</p>
 
         </Block>
