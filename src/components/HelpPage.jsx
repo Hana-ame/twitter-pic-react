@@ -72,6 +72,27 @@ const HelpPage = ({ onClick }) => {
             提意见
             </a>
           </p>
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://upload.moonchan.xyz/api/01LLWEUU3WQUKIUH6E45F3LS7IBM5EO3ZP/app-release%20(1).apk"
+            >
+              android
+            </a>
+          </p>
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://upload.moonchan.xyz/api/01LLWEUU7UJ7RTVNRMTZAJPWTNAARQYHUD/twitter_pic_flutter_windows_amd64%20(1).zip"
+            >
+              win
+            </a>
+          </p>
+          <p className="text-gray-500">
+                    请测试反馈
+          </p>
+                      
+          
           
         </Block>
 
