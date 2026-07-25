@@ -23,8 +23,8 @@ const Media = ({ url, type }: MediaProps) => {
     
     if (imageProxy === "https://twimg.moonchan.xyz") {
       const newUrl = new URL(url);
-      newUrl.hostname = "proxy.moonchan.xyz"
-      newUrl.searchParams.set("proxy_host", "pbs.twimg.com");
+      newUrl.hostname = "pbs.moonchan.xyz"
+      // newUrl.searchParams.set("proxy_host", "pbs.twimg.com"); // proxy没cache.
       return newUrl.toString();
     } else {
       url = url.replace("https://pbs.twimg.com", imageProxy);
