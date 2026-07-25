@@ -48,18 +48,28 @@ const HelpPage = ({ onClick }) => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
+
+        <Block
+          title="每次挂了都没人提醒我😅"
+          closed={isClosedMap["😅"]}
+          onclick={()=>handleOnClickBlock("😅")}
+        >
+          <p className="text-gray-500">
+            反正修好了，修了什么自己猜😅😅
+          </p>
+          <p className="text-gray-500">
+            响应式用起来有点大病，回头让deepseek再改一个。
+          </p>
+          
+        </Block>
+
         <Block
           title="给你们写了个akp"
           closed={isClosedMap["apk"]}
           onclick={()=>handleOnClickBlock("apk")}
         >
           <p className="text-gray-500">
-            <a
-              className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://upload.moonchan.xyz/api/01LLWEUU3G3ZF4A3KBD5HZ7M3S44P3X626/app-release.apk"
-            >
               给你们写了个Andorid应用
-            </a>
           </p>
           
           <p className="text-gray-500">免翻的,没梯子的用用</p>
