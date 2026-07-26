@@ -85,17 +85,17 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://upload.moonchan.xyz/api/01LLWEUU3WQUKIUH6E45F3LS7IBM5EO3ZP/app-release%20(1).apk"
+              href="https://github.com/Hana-ame/twitter-pic-flutter/releases/tag/v0.2.8"
             >
-              android
+              https://github.com/Hana-ame/twitter-pic-flutter/releases/tag/v0.2.8
             </a>
           </p>
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://upload.moonchan.xyz/api/01LLWEUU7UJ7RTVNRMTZAJPWTNAARQYHUD/twitter_pic_flutter_windows_amd64%20(1).zip"
+              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk"
             >
-              win
+              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk
             </a>
           </p>
           <p className="text-gray-500">
