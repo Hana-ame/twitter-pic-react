@@ -50,6 +50,42 @@ const HelpPage = ({ onClick }) => {
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
         <Block
+          title="新开聊天室"
+          closed={isClosedMap["新开聊天室"]}
+          onClick={() => handleOnClickBlock("新开聊天室")}
+        >
+          <p className="text-gray-500">
+            <button
+              onClick={() => window.open("https://chatto.moonchan.xyz", "_blank")}
+              style={{
+                display: "inline-block",
+                padding: "8px 20px",
+                background: "linear-gradient(135deg, #a04ab8, #8041a6)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "18px",
+                fontWeight: "bold",
+                fontSize: "16px",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+                cursor: "pointer",
+              }}
+            >
+              点击添加聊天群
+            </button>
+          </p>
+          <p className="text-gray-500">
+            注册不了可以在
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://chatto.810114.xyz"
+            >
+              https://chatto.810114.xyz
+            </a>
+            提交申请
+          </p>
+        </Block>
+
+        <Block
           title="每次挂了都没人提醒我😅"
           closed={isClosedMap["😅"]}
           onclick={()=>handleOnClickBlock("😅")}
