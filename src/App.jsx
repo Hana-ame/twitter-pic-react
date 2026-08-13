@@ -170,26 +170,50 @@ const Main = ({ profile, handleSetProfile }) => {
 
   // --- 新增 useEffect: 初始加载 Tags ---
   useEffect(() => {
-    if (username) {
-      // 默默加载 Tags 用于展示，不需要 loading 状态阻断 UI
-      getTags(username)
-        .then((data) => setUserTags(data.tags || {}))
-        .catch((err) => console.error("Auto fetch tags failed:", err));
-    } else {
+    if (!username) {
       setUserTags({});
+      return;
     }
+    // 25-08-14: 竞态防护。快速点击多个 profile 时, 旧 username 的在途请求
+    // 可能晚于新请求 resolve; 若不取消/丢弃, 旧数据会覆盖新 profile 的展示,
+    // 同时占用浏览器对同一 host 的连接池(HTTP/1.1 并发有限), 导致新请求排队。
+    // 方案: AbortController 主动断开旧连接 + stale 标记丢弃过期响应。
+    const controller = new AbortController();
+    let stale = false;
+    // 默默加载 Tags 用于展示，不需要 loading 状态阻断 UI
+    getTags(username, controller.signal)
+      .then((data) => {
+        if (!stale) setUserTags(data.tags || {});
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return; // 旧请求被取消, 静默忽略
+        if (!stale) console.error("Auto fetch tags failed:", err);
+      });
+    return () => {
+      stale = true;
+      controller.abort();
+    };
   }, [username]);
 
   // 4. 获取初始数据的 Effect (当 username 变化时获取)
   useEffect(() => {
-    if (username) {
-      setEmojiCounts({});
-      getEmojis(username)
-        .then((data) => {
-          setEmojiCounts(data || {});
-        })
-        .catch((err) => console.error("获取表情失败:", err));
-    }
+    if (!username) return;
+    setEmojiCounts({});
+    // 25-08-14: 竞态防护, 原因同上方 getTags effect。
+    const controller = new AbortController();
+    let stale = false;
+    getEmojis(username, controller.signal)
+      .then((data) => {
+        if (!stale) setEmojiCounts(data || {});
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        if (!stale) console.error("获取表情失败:", err);
+      });
+    return () => {
+      stale = true;
+      controller.abort();
+    };
   }, [username]);
 
   // useEffect 插入位置

@@ -5,10 +5,12 @@ import { ENDPOINT } from "./endpoints.ts";
 
 // 获取指定用户的所有 Emoji 计数
 // 对应后端: GET /emojis?username=xxx
-export function getEmojis(username: string) {
+// 25-08-14: 支持 AbortSignal, 原因同 getTags (快速切 profile 时旧请求占用连接池)。
+export function getEmojis(username: string, signal?: AbortSignal) {
     return new Promise((resolve, reject) => {
         fetch(`${ENDPOINT}/emojis?username=${username}`, {
-            method: 'GET'
+            method: 'GET',
+            signal,
         }).then(res => res.json()).then(data => {
             resolve(data);
         }).catch(err => {
