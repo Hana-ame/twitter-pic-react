@@ -28,6 +28,7 @@ import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints";
 import TagDisplayArea from "./components/TagDisplayArea";
 
 import { getEmojis, voteUpEmoji } from "./api/emojis";
+import { isMoonchanProxy, isNonCN } from "./components/Media"; // 26-08-14: 下载侧复用 Media.tsx 的代理弹回判断
 
 import Ranking from "./components/Ranking";
 
@@ -291,14 +292,15 @@ const Main = ({ profile, handleSetProfile }) => {
 
   // --- 新增：核心 URL 替换逻辑 ---
   const getProxiedUrl = (originalUrl, type) => {
-    const country = localStorage.getItem("country")
-    if (!(country === "CN" || country === "" || typeof country !== "string")) {
+    const targetProxy = type === "video" ? videoProxy : imageProxy;
+
+    // 26-08-14: 与 Media.tsx 展示逻辑保持一致 —— 非CN时 moonchan 系代理
+    // ({twimg,proxy,pbs}.moonchan.xyz) 弹回原站; 自定义第三方代理不弹, 照常替换
+    if (isNonCN() && isMoonchanProxy(targetProxy)) {
       return originalUrl;
     }
 
     try {
-      const targetProxy = type === "video" ? videoProxy : imageProxy;
-
       // 如果没有设置代理，或者代理为空，返回原链接
       if (!targetProxy || targetProxy.trim() === "") {
         return originalUrl;

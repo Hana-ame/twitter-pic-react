@@ -8,19 +8,44 @@ type MediaProps = {
   type: string;
 };
 
+// 26-08-14: moonchan 系代理只在 CN 有效。
+// 非CN用户若配置的是 {twimg,proxy,pbs}.moonchan.xyz, 直接弹回原站
+// (pbs.twimg.com / video.twimg.com); 自己输入的第三方代理不弹, 照常替换。
+// 用 hostname 判断而不比较完整 URL, 兼容用户输入带路径/斜杠等变体。
+export const isMoonchanProxy = (proxy?: string | null): boolean => {
+  try {
+    const host = new URL(proxy || "").hostname;
+    return (
+      host === "twimg.moonchan.xyz" ||
+      host === "proxy.moonchan.xyz" ||
+      host === "pbs.moonchan.xyz"
+    );
+  } catch {
+    return false;
+  }
+};
+
+// 非CN判断: CN / 空 / 脏值(非字符串)都按 CN 处理(走代理), 只有明确非CN才弹回
+export const isNonCN = (): boolean => {
+  const country = localStorage.getItem("country");
+  return !(country === "CN" || country === "" || typeof country !== "string");
+};
+
 const Media = ({ url, type }: MediaProps) => {
   const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
   const [videoProxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY);
 
   const imageProxyOverride = (url: string) => {
-    // console.log(url, imageProxy)
-    // 明确的海外用户, 不进行替换.
-    const country = localStorage.getItem("country")
-    if (!(country === "CN" || country === "" || typeof country !== "string")) {
+    // 26-08-14: 非CN时 moonchan 系代理弹回原站 pbs.twimg.com;
+    // 自定义第三方代理不弹, 继续走下面的替换逻辑。
+    if (isNonCN() && isMoonchanProxy(imageProxy)) {
+      return url;
+    }
+    // 防御: 代理为空/脏值时拼出的 URL 是坏的, 直接用原站 (原逻辑会 replace 出坏 URL)
+    if (typeof imageProxy !== "string" || imageProxy === "") {
       return url;
     }
 
-    
     if (imageProxy === "https://twimg.moonchan.xyz") {
       const newUrl = new URL(url);
       newUrl.hostname = "pbs.moonchan.xyz"
@@ -33,8 +58,12 @@ const Media = ({ url, type }: MediaProps) => {
   };
 
   const videoProxyOverride = (url: string) => {
-    const country = localStorage.getItem("country")
-    if (!(country === "CN" || country === "" || typeof country !== "string")) {
+    // 26-08-14: 同图片, 非CN时 moonchan 系代理弹回原站 video.twimg.com
+    if (isNonCN() && isMoonchanProxy(videoProxy)) {
+      return url;
+    }
+    // 防御: 空代理直接用原站, 避免拼出坏 URL
+    if (typeof videoProxy !== "string" || videoProxy === "") {
       return url;
     }
 
