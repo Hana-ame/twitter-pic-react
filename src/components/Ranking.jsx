@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { getRanking } from "../api/emojis.ts";
+import { getRanking } from "../api/emojis";
 
-import Header from "./Header.jsx";
+import Header from "./Header";
 
 /**
  * Ranking 组件重构思路：

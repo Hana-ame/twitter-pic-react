@@ -1,7 +1,7 @@
 // 26.02.15
 // GLM5
 
-import { ENDPOINT } from "./endpoints.ts";
+import { ENDPOINT } from "./endpoints";
 
 // 获取指定用户的所有 Emoji 计数
 // 对应后端: GET /emojis?username=xxx

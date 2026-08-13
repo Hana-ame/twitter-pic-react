@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import createMetaData from "../api/createMetaData.ts";
+import createMetaData from "../api/createMetaData";
 import TagSelectorModal from "./TagSelectorModal"; // 引入公共组件
 
 const AddUser = ({ username }) => {

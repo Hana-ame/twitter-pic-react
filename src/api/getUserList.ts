@@ -1,4 +1,4 @@
-import { ENDPOINT } from "./endpoints.ts";
+import { ENDPOINT } from "./endpoints";
 
 type ListType = "users";
 type SearchMethod = "username" | "nick"

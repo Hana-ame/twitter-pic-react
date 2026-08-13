@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import getMetaData from "../api/getMetaData.ts";
-import { DEFAULT_IMAGE_PROXY } from "../api/endpoints.ts";
+import getMetaData from "../api/getMetaData";
+import { DEFAULT_IMAGE_PROXY } from "../api/endpoints";
 // import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
 const Header = ({ username, onClick }) => {

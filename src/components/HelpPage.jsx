@@ -1,7 +1,7 @@
-import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
+import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 import Config from "./Config";
-import FavList from "./FavList.jsx";
-import TagController from "./TagController.tsx";
+import FavList from "./FavList";
+import TagController from "./TagController";
 
 const Block = ({ title, children, closed, onClick }) => {
   if (closed)

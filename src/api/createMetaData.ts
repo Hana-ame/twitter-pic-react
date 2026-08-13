@@ -1,4 +1,4 @@
-import { ENDPOINT } from "./endpoints.ts";
+import { ENDPOINT } from "./endpoints";
 
 export default async function createMetaData(
   username: string,

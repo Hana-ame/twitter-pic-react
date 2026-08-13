@@ -1,7 +1,7 @@
 // 25-10-14：timeline去重 
 import { useEffect, useState, useMemo } from 'react';
 import { PhotoProvider } from 'react-photo-view';
-import Media from './Media.tsx';
+import Media from './Media';
 
 const MediaList = ({ timeline, showAll }: { timeline: any[], showAll: boolean }) => {
     const [limit, setLimit] = useState(10);

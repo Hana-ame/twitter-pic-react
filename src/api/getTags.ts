@@ -1,4 +1,4 @@
-import { ENDPOINT } from "./endpoints.ts";
+import { ENDPOINT } from "./endpoints";
 
 // 25-08-14: 支持 AbortSignal。
 // 坑: 快速切换 profile 时旧请求若不取消, 会一直占用浏览器对该 host 的连接池,

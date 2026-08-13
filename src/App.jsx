@@ -7,29 +7,29 @@ import { saveAs } from "file-saver";
 // ... 其他原本的 import ...
 // 假设这些是你项目中原本存在的 import
 import useScreenMode from "./Tools/hooks/useScreenMode";
-import MediaList from "./components/MediaList.tsx";
-import HeaderList from "./components/HeaderListV2.jsx";
-import { getUserList } from "./api/getUserList.ts";
-import SearchBar from "./components/SearchBar.jsx";
-import HelpPage from "./components/HelpPage.jsx";
-import SearchList from "./components/SearchListV2.jsx";
-import LoadMoreButton from "./components/LoadMoreButton.jsx";
-import AddUser from "./components/AddUser.jsx";
-import getMetaData from "./api/getMetaData.ts";
-import useLocalStorage from "./Tools/localstorage/useLocalStorageStatus.tsx";
-import createMetaData from "./api/createMetaData.ts";
-import Advertisement from "./components/Advertisement.jsx";
-import FavList from "./components/FavList.jsx";
+import MediaList from "./components/MediaList";
+import HeaderList from "./components/HeaderListV2";
+import { getUserList } from "./api/getUserList";
+import SearchBar from "./components/SearchBar";
+import HelpPage from "./components/HelpPage";
+import SearchList from "./components/SearchListV2";
+import LoadMoreButton from "./components/LoadMoreButton";
+import AddUser from "./components/AddUser";
+import getMetaData from "./api/getMetaData";
+import useLocalStorage from "./Tools/localstorage/useLocalStorageStatus";
+import createMetaData from "./api/createMetaData";
+import Advertisement from "./components/Advertisement";
+import FavList from "./components/FavList";
 // ... 原有的 imports ...
-import getTags from "./api/getTags.ts"; // 确保有这个 API
-import TagSelectorModal from "./components/TagSelectorModal.jsx"; // 引入公共组件
+import getTags from "./api/getTags"; // 确保有这个 API
+import TagSelectorModal from "./components/TagSelectorModal"; // 引入公共组件
 // 如果这些常量在其他文件定义了，请改为 import
-import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints.ts";
-import TagDisplayArea from "./components/TagDisplayArea.jsx";
+import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints";
+import TagDisplayArea from "./components/TagDisplayArea";
 
-import { getEmojis, voteUpEmoji } from "./api/emojis.ts";
+import { getEmojis, voteUpEmoji } from "./api/emojis";
 
-import Ranking from "./components/Ranking.jsx";
+import Ranking from "./components/Ranking";
 
 // --- 关键配置 ---
 // 指定你刚才放在 public 目录下的 mitm.html 的路径

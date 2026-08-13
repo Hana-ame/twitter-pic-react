@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
+import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 import Header from './Header';
 
 const FavList = ({ onClick }) => {

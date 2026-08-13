@@ -1,4 +1,4 @@
-import Header from './HeaderV2.jsx';
+import Header from './HeaderV2';
 
 const HeaderListV2 = ({ userList, onClick }) => {
     // 一种兼容性更好的检查方式是组合两种方法

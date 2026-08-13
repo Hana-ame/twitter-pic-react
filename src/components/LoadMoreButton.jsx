@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { getUserList } from '../api/getUserList.ts';
+import { getUserList } from '../api/getUserList';
 
 export default function LoadMoreButton({ after, setUserList }) {
     const [noMore, setNoMore] = useState(false);

@@ -1,4 +1,4 @@
-import { ENDPOINT } from "./endpoints.ts";
+import { ENDPOINT } from "./endpoints";
 
 export default async function getMetaData(username: string, t: string = "") {
   // 1. 根据是否有 t，决定是否添加 .json.gz 后缀

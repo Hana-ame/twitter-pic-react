@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus.tsx";
-import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints.ts";
-import PhotoV2 from "./PhotoV2.tsx";
+import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
+import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints";
+import PhotoV2 from "./PhotoV2";
 
 type MediaProps = {
   url: string;
@@ -51,6 +51,9 @@ const Media = ({ url, type }: MediaProps) => {
   if (type === "photo") return <PhotoV2 url={imageProxyOverride(url)} />;
   if (type === "video" || type === "animated_gif")
     return <Video url={videoProxyOverride(url)} />;
+
+  // LSP 提示返回值包含 undefined: 未知/文本类型(如 text, quote)时显式不渲染
+  return null;
 };
 
 // 图片组件

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { searchUserList } from "../api/getUserList.ts";
-import HeaderList from "./HeaderListV2.jsx";
+import { searchUserList } from "../api/getUserList";
+import HeaderList from "./HeaderListV2";
 
 const SearchListV2 = ({ by, search, onClick, setResults }) => {
   const [userList, setUserList] = useState(null);
