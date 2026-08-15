@@ -88,7 +88,7 @@ const HelpPage = ({ onClick }) => {
         <Block
           title="abuse"
           closed={isClosedMap["abuse"]}
-          onclick={()=>handleOnClickBlock("abuse")}
+          onClick={()=>handleOnClickBlock("abuse")}
         >
           <p className="text-gray-500">
             <img src="https://r2.moonchan.xyz/1786762840/image.webp">
@@ -102,7 +102,7 @@ const HelpPage = ({ onClick }) => {
         <Block
           title="每次挂了都没人提醒我😅"
           closed={isClosedMap["😅"]}
-          onclick={()=>handleOnClickBlock("😅")}
+          onClick={()=>handleOnClickBlock("😅")}
         >
           <p className="text-gray-500">
             反正修好了，修了什么自己猜😅😅
@@ -116,7 +116,7 @@ const HelpPage = ({ onClick }) => {
         <Block
           title="给你们写了个akp"
           closed={isClosedMap["apk"]}
-          onclick={()=>handleOnClickBlock("apk")}
+          onClick={()=>handleOnClickBlock("apk")}
         >
           <p className="text-gray-500">
               给你们写了个Andorid应用
