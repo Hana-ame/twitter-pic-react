@@ -91,7 +91,7 @@ const HelpPage = ({ onClick }) => {
           onClick={()=>handleOnClickBlock("abuse")}
         >
           <p className="text-gray-500">
-            <img src="https://r2.moonchan.xyz/1786762840/image.webp">
+<img src="https://r2.moonchan.xyz/1786762840/image.webp" alt="" />
           </p>
           <p className="text-gray-500">
             过两天挂了说明流量没了，22号恢复。
