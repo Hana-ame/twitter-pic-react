@@ -57,6 +57,17 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">
             流量太大被强制关机了😅
           </p>
+          <p className="text-gray-500">
+            apk不走转发，暂时可以下载apk用
+          </p>
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk"
+            >
+              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk
+            </a>
+          </p>
         </Block>
 
         <Block
