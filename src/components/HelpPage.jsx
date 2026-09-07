@@ -143,6 +143,7 @@ const HelpPage = ({ onClick }) => {
               给你们写了个Andorid应用
           </p>
           
+          <p className="text-gray-500">apk不走转发，暂时可以下载apk用</p>
           <p className="text-gray-500">免翻的,没梯子的用用</p>
           <p className="text-gray-500">但是没梯子为什么不挂下面的公共1T呢,下次不写了</p>
           <p className="text-gray-500">半成品,不打算更新,不过你还是可以
