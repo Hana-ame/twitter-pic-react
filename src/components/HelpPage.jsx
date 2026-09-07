@@ -50,6 +50,16 @@ const HelpPage = ({ onClick }) => {
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
         <Block
+          title="流量太大被强制关机了😅"
+          closed={isClosedMap["notice260908"]}
+          onClick={() => handleOnClickBlock("notice260908")}
+        >
+          <p className="text-gray-500">
+            流量太大被强制关机了😅
+          </p>
+        </Block>
+
+        <Block
           title="新开聊天室"
           closed={isClosedMap["新开聊天室"]}
           onClick={() => handleOnClickBlock("新开聊天室")}
