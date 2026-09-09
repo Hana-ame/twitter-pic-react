@@ -505,10 +505,7 @@ const HelpPage = ({ onClick }) => {
         >
           <div className="text-center space-y-2">
             <p className="text-2xl">🚧</p>
-            <p className="text-gray-500 font-medium">敬请期待更多功能</p>
-            <p className="text-xs text-gray-400">
-              如果您有好的建议或发现 Bug，欢迎反馈
-            </p>
+            <p className="text-gray-500 font-medium">工事中</p>
           </div>
         </Block>
       </div>
