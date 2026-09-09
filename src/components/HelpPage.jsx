@@ -49,6 +49,18 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
+        {/* 豆腐块4 - 工事中 */}
+        <Block
+          title="施工中"
+          closed={isClosedMap["施工中"]}
+          onClick={handleOnClickBlock}
+        >
+          <div className="text-center space-y-2">
+            <p className="text-2xl">🚧</p>
+            <p className="text-gray-500 font-medium">工事中</p>
+          </div>
+        </Block>
+
         {/* 豆腐块5 - 设置 */}
         <Block
           title="设置"
@@ -60,18 +72,6 @@ const HelpPage = ({ onClick }) => {
           <br />
           <Config.PeerJSConfig />
           {/* <Config.AutoConfig /> 26-09-08: 旧初始化逻辑, 已被 auto/manual 模式取代 */}
-        </Block>
-
-        {/* 豆腐块4 */}
-        <Block
-          title="施工中"
-          closed={isClosedMap["施工中"]}
-          onClick={handleOnClickBlock}
-        >
-          <div className="text-center space-y-2">
-            <p className="text-2xl">🚧</p>
-            <p className="text-gray-500 font-medium">工事中</p>
-          </div>
         </Block>
 
         <Block
