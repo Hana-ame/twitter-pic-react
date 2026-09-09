@@ -49,6 +49,19 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
+        {/* 豆腐块5 - 设置 */}
+        <Block
+          title="设置"
+          closed={isClosedMap["设置"]}
+          onClick={handleOnClickBlock}
+        >
+          {/* <Config.ImageConfig /> 26-09-08: 图片源固定 pbs.moonchan.xyz, 无需配置 */}
+          <Config.VideoConfig />
+          <br />
+          <Config.PeerJSConfig />
+          {/* <Config.AutoConfig /> 26-09-08: 旧初始化逻辑, 已被 auto/manual 模式取代 */}
+        </Block>
+
         <Block
           title="流量太大被强制关机了😅"
           closed={isClosedMap["notice260908"]}
@@ -442,19 +455,6 @@ const HelpPage = ({ onClick }) => {
         >
           <FavList onClick={onClick}></FavList>
         </Block>
-        {/* 豆腐块5 */}
-        <Block
-          title="设置"
-          closed={isClosedMap["设置"]}
-          onClick={handleOnClickBlock}
-        >
-          {/* <Config.ImageConfig /> 26-09-08: 图片源固定 pbs.moonchan.xyz, 无需配置 */}
-          <Config.VideoConfig />
-          <br />
-          <Config.PeerJSConfig />
-          {/* <Config.AutoConfig /> 26-09-08: 旧初始化逻辑, 已被 auto/manual 模式取代 */}
-        </Block>
-
         {/* 豆腐块1 */}
         <Block
           title="开始游览"
