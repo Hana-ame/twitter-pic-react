@@ -6,13 +6,12 @@ import { testLatency } from "../Tools/network/testLatency";
 import useMoonchanProbe from "../hooks/useMoonchanProbe";
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "../api/peerMedia";
 
-// 定义常量，避免在组件内部重复创建数组
-// 26-09-08: 移除 pbs-t-*/video-t-* 备源, 只保留 pbs.twimg.com 主源
+// 26-09-08: 配置模式 — 自动档 (预设选项) / 手动档 (自定义输入)
+const MODE_KEY = "config-mode-v5";
+const MODE_AUTO = "auto";
+const MODE_MANUAL = "manual";
 
 const AutoConfig = () => {
-  // 1. 生成时间戳
-  // 使用 useRef 确保在组件的整个生命周期内 'now' 的值保持不变
-  // 如果直接用 Date.now()，组件每次重渲染时间都会变，会导致下方判断逻辑失效
   const { current: now } = useRef(Date.now());
 
   const [image, setImage] = useLocalStorage(
@@ -24,38 +23,48 @@ const AutoConfig = () => {
     DEFAULT_VIDEO_PROXY
   );
 
-  // 26-09-08: 探测 moonchan 备份 CDN 是否健康; 若是, 把图片/视频源切过去。
-  // 与 App.jsx Main 里的 hook 重复调用没问题 —— probe.ts 内部有 5 分钟节流。
   useMoonchanProbe();
 
-  // 如果本地存储中没有 'first-visit-at'，useLocalStorage 会使用默认值 'now'
-  // 如果本地存储中有值，ts 就会等于旧的时间戳
   const [ts, setTS] = useLocalStorage("first-visit-at", now);
-  
-  useEffect(() => {
-    const getRandomProxy = (arr) => {
-      return arr[Math.floor(Math.random() * arr.length)];
-    };
 
-    // 修改初始化条件
-    // 逻辑：如果从存储中取出的 ts 等于我们本次初始化的 now，
-    // 说明本地存储中之前没有数据（这是第一次访问），触发初始化配置。
+  useEffect(() => {
     if (ts === now) {
-      console.log("检测到首次访问或配置丢失，正在初始化随机代理...");
-      // setImage(getRandomProxy(IMAGE_PROXIES));
-      // setVideo(getRandomProxy(VIDEO_PROXIES));
-      // 26-09-08: 首次访问初始化, 与 DEFAULT_*_PROXY 保持一致
       setImage("https://pbs.moonchan.xyz");
       setVideo("https://pbs.moonchan.xyz");
-
-      // 注意：useLocalStorage 通常在初始化默认值时就会自动写入 localStorage，
-      // 所以这里不需要显式调用 setTS(now)，除非你的 hook 行为不同。
       setTS(now);
     }
-  }, []); // 补全依赖数组
+  }, []);
 
   return null;
 };
+
+// ====== 模式切换按钮 ======
+function ModeToggle({ mode, onModeChange }) {
+  return (
+    <div className="flex items-center gap-1 mb-3 p-1 bg-gray-100 rounded-lg w-fit">
+      <button
+        onClick={() => onModeChange(MODE_AUTO)}
+        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+          mode === MODE_AUTO
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-gray-500 hover:text-gray-700"
+        }`}
+      >
+        自动档
+      </button>
+      <button
+        onClick={() => onModeChange(MODE_MANUAL)}
+        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+          mode === MODE_MANUAL
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-gray-500 hover:text-gray-700"
+        }`}
+      >
+        手动档
+      </button>
+    </div>
+  );
+}
 
 const ConfigItem = ({ value, url, onClick, noTest }) => {
   const [latency, setLatency] = useState(-1);
@@ -66,22 +75,18 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
       setColor(["text-gray-600 invisible", "bg-gray-400"]);
       return;
     }
-
     const f = async () => {
-      const [delay, isFailed] = await testLatency(url + "/favicon.ico", {
+      const [d, isFailed] = await testLatency(url + "/favicon.ico", {
         mode: "cors",
       });
-      setLatency(delay);
-      if (isFailed || delay < 100 || delay > 2250) {
+      setLatency(d);
+      if (isFailed || d < 100 || d > 2250) {
         setColor(["text-red-600", "bg-red-600"]);
       } else {
         setColor(["text-green-600", "bg-green-600"]);
       }
     };
-
     f();
-
-    return;
   }, []);
 
   const isActive = value === url;
@@ -93,7 +98,6 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
       }`}
       onClick={() => onClick(url)}
     >
-      {/* 左边URL显示 */}
       <div className="flex items-center">
         <span
           className={`text-sm text-gray-500 truncate max-w-[200px] ${
@@ -103,8 +107,6 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
           {url}
         </span>
       </div>
-
-      {/* 右边延迟显示 */}
       <div className={`flex items-center space-x-2 ${color[0]}`}>
         <span
           className={`text-sm font-mono ${
@@ -113,7 +115,6 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
         >
           {latency === -1 ? "测试中..." : `${Math.floor(latency)}ms`}
         </span>
-        {/* 状态指示点 */}
         <div className={`w-2 h-2 rounded-full ${color[1]}`} />
       </div>
     </div>
@@ -125,124 +126,107 @@ const ImageConfig = () => {
     "image-proxy-v5",
     DEFAULT_IMAGE_PROXY
   );
+  const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
 
-  // 处理输入框变化
-  const handleInputChange = (event) => {
-    setImgProxy(event.target.value);
-  };
-
-  // 处理按钮点击，设置对应的默认值
-  const handleButtonClick = (value) => {
-    setImgProxy(value);
-  };
-
-  // 三个默认选项
-  const officialOptions = [
-    "https://pbs.twimg.com",
-  ];
+  const officialOptions = ["https://pbs.twimg.com"];
   const otherOptions = ["https://pbs.moonchan.xyz", "peerjs"];
 
   return (
-    <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-1">
-      {/* 输入框 */}
-      <div className="space-y-2">
-        <label
-          htmlFor="override-input"
-          className="block text-sm font-medium text-gray-700"
-        >
-          设置图源，可以输入自己的代理
-        </label>
-        <input
-          id="override-input"
-          type="text"
-          value={imgProxy || ""}
-          onChange={handleInputChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-          placeholder="请输入覆盖值"
-        />
-      </div>
+    <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
+      <h3 className="text-sm font-semibold text-gray-700">图片源</h3>
 
-      {officialOptions.map((url) => (
-        <ConfigItem
-          key={url}
-          value={imgProxy}
-          url={url}
-          onClick={handleButtonClick}
-        />
-      ))}
-      {otherOptions.map((url) => (
-        <ConfigItem
-          key={url}
-          value={imgProxy}
-          url={url}
-          onClick={handleButtonClick}
-          noTest={true}
-        />
-      ))}
+      <ModeToggle mode={mode} onModeChange={setMode} />
+
+      {mode === MODE_AUTO ? (
+        // ====== 自动档: 预设选项 + 延迟测试 ======
+        <div className="space-y-1">
+          {officialOptions.map((url) => (
+            <ConfigItem
+              key={url}
+              value={imgProxy}
+              url={url}
+              onClick={setImgProxy}
+            />
+          ))}
+          {otherOptions.map((url) => (
+            <ConfigItem
+              key={url}
+              value={imgProxy}
+              url={url}
+              onClick={setImgProxy}
+              noTest={true}
+            />
+          ))}
+        </div>
+      ) : (
+        // ====== 手动档: 自定义输入 ======
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={imgProxy || ""}
+            onChange={(e) => setImgProxy(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            placeholder="https://your-proxy.com"
+          />
+          <p className="text-xs text-gray-400">
+            输入自定义代理地址，替换 pbs.twimg.com 部分
+          </p>
+        </div>
+      )}
     </div>
   );
 };
 
 const VideoConfig = () => {
-  const [vidProxy, setVidPorxy] = useLocalStorage(
+  const [vidProxy, setVidProxy] = useLocalStorage(
     "video-proxy-v5",
     DEFAULT_VIDEO_PROXY
   );
+  const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
 
-  // 处理输入框变化
-  const handleInputChange = (event) => {
-    setVidPorxy(event.target.value);
-  };
-
-  // 处理按钮点击，设置对应的默认值
-  const handleButtonClick = (value) => {
-    setVidPorxy(value);
-  };
-
-  // 三个默认选项
-  // 三个默认选项
-  const officialOptions = [
-    "https://video.twimg.com",
-  ];
+  const officialOptions = ["https://video.twimg.com"];
   const otherOptions = ["https://pbs.moonchan.xyz", "peerjs"];
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md space-y-1">
-      {/* 输入框 */}
-      <div className="space-y-2">
-        <label
-          htmlFor="override-input"
-          className="block text-sm font-medium text-gray-700"
-        >
-          设置视频源，可以输入自己的代理
-        </label>
-        <input
-          id="override-input"
-          type="text"
-          value={vidProxy || ""}
-          onChange={handleInputChange}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-          placeholder="请输入覆盖值"
-        />
-      </div>
+    <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
+      <h3 className="text-sm font-semibold text-gray-700">视频源</h3>
 
-      {officialOptions.map((url) => (
-        <ConfigItem
-          key={url}
-          value={vidProxy}
-          url={url}
-          onClick={handleButtonClick}
-        />
-      ))}
-      {otherOptions.map((url) => (
-        <ConfigItem
-          key={url}
-          value={vidProxy}
-          url={url}
-          onClick={handleButtonClick}
-          noTest={true}
-        />
-      ))}
+      <ModeToggle mode={mode} onModeChange={setMode} />
+
+      {mode === MODE_AUTO ? (
+        <div className="space-y-1">
+          {officialOptions.map((url) => (
+            <ConfigItem
+              key={url}
+              value={vidProxy}
+              url={url}
+              onClick={setVidProxy}
+            />
+          ))}
+          {otherOptions.map((url) => (
+            <ConfigItem
+              key={url}
+              value={vidProxy}
+              url={url}
+              onClick={setVidProxy}
+              noTest={true}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={vidProxy || ""}
+            onChange={(e) => setVidProxy(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+            placeholder="https://your-proxy.com"
+          />
+          <p className="text-xs text-gray-400">
+            输入自定义代理地址，替换 video.twimg.com 部分
+          </p>
+        </div>
+      )}
     </div>
   );
 };
@@ -253,10 +237,7 @@ const PeerJSConfig = () => {
   const [signalingPort, setSignalingPort] = useLocalStorage("peerjs-signaling-port", "443");
   const [signalingKey, setSignalingKey] = useLocalStorage("peerjs-signaling-key", "peerjs");
 
-  // 26-09-08: 连接测试状态
   const [testState, setTestState] = useState({ status: "idle", latency: null, error: null });
-
-  // 26-09-08: 连接统计 + 缓存统计
   const [connStats, setConnStats] = useState(null);
   const [cacheStats, setCacheStats] = useState(null);
   const [showStats, setShowStats] = useState(false);
@@ -269,7 +250,6 @@ const PeerJSConfig = () => {
     path: "/",
   });
 
-  // 26-09-08: 定时刷新连接统计
   useEffect(() => {
     if (!peerId) return;
     const interval = setInterval(() => {
@@ -365,7 +345,6 @@ const PeerJSConfig = () => {
         />
       </div>
 
-      {/* 26-09-08: 连接测试 */}
       <div className="flex items-center gap-2 pt-2">
         <button
           onClick={handleTestConnection}
@@ -379,7 +358,6 @@ const PeerJSConfig = () => {
         </span>
       </div>
 
-      {/* 26-09-08: 连接统计 + 缓存统计 */}
       {peerId && (
         <div className="pt-2 border-t border-gray-100">
           <button
@@ -390,7 +368,6 @@ const PeerJSConfig = () => {
           </button>
           {showStats && (
             <div className="space-y-3 text-xs">
-              {/* 连接统计 */}
               {connStats && (
                 <div className="bg-gray-50 rounded-lg p-3 space-y-1">
                   <div className="font-medium text-gray-700 mb-1">连接状态</div>
@@ -427,7 +404,6 @@ const PeerJSConfig = () => {
                 </div>
               )}
 
-              {/* 缓存统计 */}
               {cacheStats && (
                 <div className="bg-gray-50 rounded-lg p-3 space-y-1">
                   <div className="flex justify-between items-center mb-1">
@@ -464,5 +440,5 @@ const PeerJSConfig = () => {
   );
 };
 
-const Config = { ImageConfig, VideoConfig, AutoConfig, ConfigItem, PeerJSConfig };
+const Config = { ImageConfig, VideoConfig, AutoConfig, ConfigItem, ModeToggle, PeerJSConfig };
 export default Config;
