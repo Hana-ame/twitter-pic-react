@@ -161,6 +161,8 @@ const VideoConfig = () => {
     DEFAULT_VIDEO_PROXY
   );
   const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customUrlInput, setCustomUrlInput] = useState("");
 
   // ech-proxy 开启检测: 探测 twimg.l.moonchan.xyz:8443/favicon.ico
   // 能通 → "已开启" (绿), 不通 → "需下载 APK/EXE" (黄)
@@ -182,6 +184,19 @@ const VideoConfig = () => {
     };
   }, []);
 
+  // 初始化自定义输入框的值
+  useEffect(() => {
+    const isCustomUrl = vidProxy && ![
+      "https://video.twimg.com",
+      "https://twimg.l.moonchan.xyz:8443",
+      "peerjs"
+    ].includes(vidProxy);
+    if (isCustomUrl) {
+      setCustomUrlInput(vidProxy);
+      setShowCustomInput(true);
+    }
+  }, []);
+
   const echNote =
     echStatus === "checking"
       ? "检测中..."
@@ -199,12 +214,21 @@ const VideoConfig = () => {
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
   ];
 
-  // 自定义 URL 激活时, 追加到列表末尾 (高亮显示)
-  const isCustomUrl = vidProxy && !predefinedOptions.some((opt) => opt.url === vidProxy);
-  const allOptions = [
-    ...predefinedOptions,
-    ...(isCustomUrl ? [{ url: vidProxy, label: "自定义", note: "当前使用中" }] : []),
-  ];
+  const handleCustomClick = () => {
+    setShowCustomInput(true);
+    setCustomUrlInput(vidProxy || "");
+  };
+
+  const handleCustomSubmit = () => {
+    if (customUrlInput.trim()) {
+      setVidProxy(customUrlInput.trim());
+    }
+  };
+
+  const handleCustomCancel = () => {
+    setShowCustomInput(false);
+    setCustomUrlInput("");
+  };
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
@@ -215,7 +239,7 @@ const VideoConfig = () => {
       {mode === MODE_AUTO ? (
         // 自动档: 显示所有选项 (灰色不可点), 当前选中的高亮
         <div className="space-y-1">
-          {allOptions.map((opt) => (
+          {predefinedOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
@@ -229,10 +253,10 @@ const VideoConfig = () => {
             />
           ))}
         </div>
-      ) : (
-        // 手动档: 所有选项可点 + 自定义输入
+      ) : showCustomInput ? (
+        // 手动档 - 自定义输入模式
         <div className="space-y-2">
-          {allOptions.map((opt) => (
+          {predefinedOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
@@ -242,21 +266,55 @@ const VideoConfig = () => {
               noteColor={opt.noteColor}
               onClick={setVidProxy}
               noTest={opt.noTest || false}
-              disabled={isCustomUrl && opt.url === vidProxy}
             />
           ))}
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2 border-t border-gray-100 space-y-2">
             <input
               type="text"
-              value={vidProxy || ""}
-              onChange={(e) => setVidProxy(e.target.value)}
+              value={customUrlInput}
+              onChange={(e) => setCustomUrlInput(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
               placeholder="https://your-proxy.com"
+              autoFocus
             />
-            <p className="text-xs text-gray-400 mt-1">
-              输入自定义代理地址，替换 video.twimg.com 部分
-            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCustomSubmit}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+              >
+                确认
+              </button>
+              <button
+                onClick={handleCustomCancel}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+              >
+                取消
+              </button>
+            </div>
           </div>
+        </div>
+      ) : (
+        // 手动档 - 普通模式
+        <div className="space-y-2">
+          {predefinedOptions.map((opt) => (
+            <ConfigItem
+              key={opt.url}
+              value={vidProxy}
+              url={opt.url}
+              label={opt.label}
+              note={opt.note}
+              noteColor={opt.noteColor}
+              onClick={setVidProxy}
+              noTest={opt.noTest || false}
+            />
+          ))}
+          <ConfigItem
+            value={vidProxy}
+            url="custom"
+            label="自定义"
+            onClick={handleCustomClick}
+            noTest
+          />
         </div>
       )}
     </div>
