@@ -66,7 +66,7 @@ function ModeToggle({ mode, onModeChange }) {
   );
 }
 
-const ConfigItem = ({ value, url, label, note, activeNote, onClick, noTest }) => {
+const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest }) => {
   const [latency, setLatency] = useState(-1);
   const [color, setColor] = useState(["text-gray-400", "bg-gray-400"]);
 
@@ -91,8 +91,7 @@ const ConfigItem = ({ value, url, label, note, activeNote, onClick, noTest }) =>
 
   const isActive = value === url;
   const displayLabel = label || url;
-  const displayNote = isActive && activeNote ? activeNote : note;
-  const noteColor = isActive && activeNote ? "text-green-600" : "text-amber-600";
+  const finalNoteColor = noteColor || "text-amber-600";
 
   return (
     <div
@@ -109,8 +108,8 @@ const ConfigItem = ({ value, url, label, note, activeNote, onClick, noTest }) =>
         >
           {displayLabel}
         </span>
-        {displayNote && (
-          <span className={`text-xs mt-0.5 ${noteColor}`}>{displayNote}</span>
+        {note && (
+          <span className={`text-xs mt-0.5 ${finalNoteColor}`}>{note}</span>
         )}
       </div>
       <div className={`flex items-center space-x-2 ${color[0]}`}>
@@ -150,9 +149,38 @@ const VideoConfig = () => {
   );
   const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
 
+  // ech-proxy 开启检测: 探测 twimg.l.moonchan.xyz:8443/favicon.ico
+  // 能通 → "已开启" (绿), 不通 → "需下载 APK/EXE" (黄)
+  const [echStatus, setEchStatus] = useState("checking"); // checking | enabled | disabled
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    fetch("https://twimg.l.moonchan.xyz:8443/favicon.ico", {
+      signal: controller.signal,
+      mode: "no-cors", // 不需要读响应, 只要能通就算开启
+    })
+      .then((res) => setEchStatus("enabled"))
+      .catch(() => setEchStatus("disabled"))
+      .finally(() => clearTimeout(timer));
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const echNote =
+    echStatus === "checking"
+      ? "检测中..."
+      : echStatus === "enabled"
+      ? "已开启"
+      : "需下载 APK/EXE";
+  const echNoteColor =
+    echStatus === "enabled" ? "text-green-600" : "text-amber-600";
+
   const allOptions = [
     { url: "https://video.twimg.com", label: "原站" },
-    { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: "需下载 APK/EXE", activeNote: "已开启", noTest: true },
+    { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
   ];
 
@@ -171,7 +199,7 @@ const VideoConfig = () => {
               url={opt.url}
               label={opt.label}
               note={opt.note}
-              activeNote={opt.activeNote}
+              noteColor={opt.noteColor}
               onClick={setVidProxy}
               noTest={opt.noTest || false}
             />
