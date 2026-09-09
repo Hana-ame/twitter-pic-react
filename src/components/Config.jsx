@@ -152,7 +152,7 @@ const VideoConfig = () => {
     { url: "https://video.twimg.com", label: "原站" },
   ];
   const otherOptions = [
-    { url: "https://twimg.l.moonchan.xyz", label: "ech-proxy", note: "需下载 APK/EXE" },
+    { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: "需下载 APK/EXE" },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID" },
   ];
 

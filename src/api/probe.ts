@@ -1,14 +1,14 @@
 // 26-09-08: moonchan 备份 CDN 探测。
-// 探测目标 https://twimg.l.moonchan.xyz/favicon.ico 返回 200 时,
-// 把 image-proxy-v5 和 video-proxy-v5 都切到 https://twimg.l.moonchan.xyz,
+// 探测目标 https://twimg.l.moonchan.xyz:8443/favicon.ico 返回 200 时,
+// 把 image-proxy-v5 和 video-proxy-v5 都切到 https://twimg.l.moonchan.xyz:8443,
 // 让所有图片源和视频源统一走这个健康节点。
 // 探测不到 (超时 / 非 2xx / 抛错) 就什么都不改, 保持用户当前配置。
 // 26-09-08: 非CN 一律不探测(moonchan 只在 CN 有效, 探测本身也走外网被墙)。
 
 import { isNonCN } from "./proxyOverride";
 
-export const MOONCHAN_PROBE_URL = "https://twimg.l.moonchan.xyz/favicon.ico";
-export const MOONCHAN_PROBE_TARGET = "https://twimg.l.moonchan.xyz";
+export const MOONCHAN_PROBE_URL = "https://twimg.l.moonchan.xyz:8443/favicon.ico";
+export const MOONCHAN_PROBE_TARGET = "https://twimg.l.moonchan.xyz:8443";
 
 export const IMAGE_PROXY_KEY = "image-proxy-v5";
 export const VIDEO_PROXY_KEY = "video-proxy-v5";
