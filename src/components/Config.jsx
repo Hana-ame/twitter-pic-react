@@ -178,7 +178,12 @@ const VideoConfig = () => {
   const echNoteColor =
     echStatus === "enabled" ? "text-green-600" : "text-amber-600";
 
-  const allOptions = [
+  // 自动档: 只有不需额外配置的选项 (原站)
+  const autoOptions = [
+    { url: "https://video.twimg.com", label: "原站" },
+  ];
+  // 手动档: 所有选项 + 自定义输入
+  const manualOptions = [
     { url: "https://video.twimg.com", label: "原站" },
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
@@ -191,8 +196,9 @@ const VideoConfig = () => {
       <ModeToggle mode={mode} onModeChange={setMode} />
 
       {mode === MODE_AUTO ? (
+        // 自动档: 只有不需额外配置的选项
         <div className="space-y-1">
-          {allOptions.map((opt) => (
+          {autoOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
@@ -204,19 +210,37 @@ const VideoConfig = () => {
               noTest={opt.noTest || false}
             />
           ))}
+          <p className="text-xs text-gray-400 mt-2 px-1">
+            自动档仅显示免配置选项。如需 ech-proxy / PeerJS，请切换到手动档。
+          </p>
         </div>
       ) : (
+        // 手动档: 所有选项 + 自定义输入
         <div className="space-y-2">
-          <input
-            type="text"
-            value={vidProxy || ""}
-            onChange={(e) => setVidProxy(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-            placeholder="https://your-proxy.com"
-          />
-          <p className="text-xs text-gray-400">
-            输入自定义代理地址，替换 video.twimg.com 部分
-          </p>
+          {manualOptions.map((opt) => (
+            <ConfigItem
+              key={opt.url}
+              value={vidProxy}
+              url={opt.url}
+              label={opt.label}
+              note={opt.note}
+              noteColor={opt.noteColor}
+              onClick={setVidProxy}
+              noTest={opt.noTest || false}
+            />
+          ))}
+          <div className="pt-2 border-t border-gray-100">
+            <input
+              type="text"
+              value={vidProxy || ""}
+              onChange={(e) => setVidProxy(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              placeholder="https://your-proxy.com"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              输入自定义代理地址，替换 video.twimg.com 部分
+            </p>
+          </div>
         </div>
       )}
     </div>
