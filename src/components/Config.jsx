@@ -188,10 +188,17 @@ const VideoConfig = () => {
 
   // 手动档: 所有选项 + 自定义输入
   // 自动档: 同一列表, 但灰色不可点, 仅显示当前选中状态
-  const manualOptions = [
+  const predefinedOptions = [
     { url: "https://video.twimg.com", label: "原站" },
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
+  ];
+
+  // 自定义 URL 激活时, 追加到列表末尾 (高亮显示)
+  const isCustomUrl = vidProxy && !predefinedOptions.some((opt) => opt.url === vidProxy);
+  const allOptions = [
+    ...predefinedOptions,
+    ...(isCustomUrl ? [{ url: vidProxy, label: "自定义", note: "当前使用中" }] : []),
   ];
 
   return (
@@ -203,7 +210,7 @@ const VideoConfig = () => {
       {mode === MODE_AUTO ? (
         // 自动档: 显示所有选项 (灰色不可点), 当前选中的高亮
         <div className="space-y-1">
-          {manualOptions.map((opt) => (
+          {allOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
@@ -218,9 +225,9 @@ const VideoConfig = () => {
           ))}
         </div>
       ) : (
-        // 手动档: 所有选项 + 自定义输入
+        // 手动档: 所有选项可点 + 自定义输入
         <div className="space-y-2">
-          {manualOptions.map((opt) => (
+          {allOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
@@ -230,6 +237,7 @@ const VideoConfig = () => {
               noteColor={opt.noteColor}
               onClick={setVidProxy}
               noTest={opt.noTest || false}
+              disabled={isCustomUrl && opt.url === vidProxy}
             />
           ))}
           <div className="pt-2 border-t border-gray-100">
