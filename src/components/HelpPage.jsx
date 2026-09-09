@@ -49,16 +49,36 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
-        {/* 豆腐块4 - 工事中 */}
+        {/* 豆腐块4 - ech-proxy 本地代理 */}
         <Block
-          title="施工中"
-          closed={isClosedMap["施工中"]}
+          title="本地代理 ech-proxy"
+          closed={isClosedMap["本地代理 ech-proxy"]}
           onClick={handleOnClickBlock}
         >
-          <div className="text-center space-y-2">
-            <p className="text-2xl">🚧</p>
-            <p className="text-gray-500 font-medium">工事中</p>
-          </div>
+          <p className="text-gray-500">
+            一个手机一个电脑，打开之后重新打开网页就能使用本地代理了，并且自带 iwara / dlsite / sukebei 镜像
+          </p>
+          <p className="text-gray-500">
+            电脑 (Windows):
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://gh-proxy.org/https://github.com/Hana-ame/ech-proxy/releases/download/v1.0.0/ech-proxy-windows-amd64.exe"
+            >
+              ech-proxy-windows-amd64.exe
+            </a>
+          </p>
+          <p className="text-gray-500">
+            手机 (Android):
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://gh-proxy.org/https://github.com/Hana-ame/ech-proxy/releases/download/v1.0.0/app-release.apk"
+            >
+              app-release.apk
+            </a>
+          </p>
+          <p className="text-gray-500">
+            操作说明：手机打开后是一片白，请稍微等待加载完成。完成后会跳转到 index 页面。如果出现打不开情况请考虑设置后台常驻
+          </p>
         </Block>
 
         {/* 豆腐块5 - 设置 */}
