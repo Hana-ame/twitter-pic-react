@@ -66,7 +66,7 @@ function ModeToggle({ mode, onModeChange }) {
   );
 }
 
-const ConfigItem = ({ value, url, onClick, noTest }) => {
+const ConfigItem = ({ value, url, label, note, onClick, noTest }) => {
   const [latency, setLatency] = useState(-1);
   const [color, setColor] = useState(["text-gray-400", "bg-gray-400"]);
 
@@ -90,6 +90,7 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
   }, []);
 
   const isActive = value === url;
+  const displayLabel = label || url;
 
   return (
     <div
@@ -98,14 +99,17 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
       }`}
       onClick={() => onClick(url)}
     >
-      <div className="flex items-center">
+      <div className="flex items-center flex-col">
         <span
-          className={`text-sm text-gray-500 truncate max-w-[200px] ${
-            isActive ? "text-blue-600" : ""
+          className={`text-sm font-medium truncate max-w-[220px] ${
+            isActive ? "text-blue-600" : "text-gray-700"
           }`}
         >
-          {url}
+          {displayLabel}
         </span>
+        {note && (
+          <span className="text-xs text-amber-600 mt-0.5">{note}</span>
+        )}
       </div>
       <div className={`flex items-center space-x-2 ${color[0]}`}>
         <span
@@ -144,8 +148,13 @@ const VideoConfig = () => {
   );
   const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
 
-  const officialOptions = ["https://video.twimg.com"];
-  const otherOptions = ["https://twimg.l.moonchan.xyz", "peerjs"];
+  const officialOptions = [
+    { url: "https://video.twimg.com", label: "原站" },
+  ];
+  const otherOptions = [
+    { url: "https://twimg.l.moonchan.xyz", label: "ech-proxy", note: "需下载 APK/EXE" },
+    { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID" },
+  ];
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
@@ -155,19 +164,22 @@ const VideoConfig = () => {
 
       {mode === MODE_AUTO ? (
         <div className="space-y-1">
-          {officialOptions.map((url) => (
+          {officialOptions.map((opt) => (
             <ConfigItem
-              key={url}
+              key={opt.url}
               value={vidProxy}
-              url={url}
+              url={opt.url}
+              label={opt.label}
               onClick={setVidProxy}
             />
           ))}
-          {otherOptions.map((url) => (
+          {otherOptions.map((opt) => (
             <ConfigItem
-              key={url}
+              key={opt.url}
               value={vidProxy}
-              url={url}
+              url={opt.url}
+              label={opt.label}
+              note={opt.note}
               onClick={setVidProxy}
               noTest={true}
             />
