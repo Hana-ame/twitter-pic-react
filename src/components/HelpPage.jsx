@@ -448,8 +448,7 @@ const HelpPage = ({ onClick }) => {
           closed={isClosedMap["设置"]}
           onClick={handleOnClickBlock}
         >
-          <Config.ImageConfig />
-          <br />
+          {/* <Config.ImageConfig /> 26-09-08: 图片源固定 pbs.moonchan.xyz, 无需配置 */}
           <Config.VideoConfig />
           <br />
           <Config.PeerJSConfig />

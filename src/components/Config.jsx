@@ -121,58 +121,18 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
   );
 };
 
+// 26-09-08: 图片源固定 pbs.moonchan.xyz, 无需配置。保留组件供兼容, HelpPage 已注释掉。
 const ImageConfig = () => {
-  const [imgProxy, setImgProxy] = useLocalStorage(
-    "image-proxy-v5",
-    DEFAULT_IMAGE_PROXY
-  );
-  const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
-
-  const officialOptions = ["https://pbs.twimg.com"];
-  const otherOptions = ["https://pbs.moonchan.xyz", "peerjs"];
+  const [imgProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
       <h3 className="text-sm font-semibold text-gray-700">图片源</h3>
-
-      <ModeToggle mode={mode} onModeChange={setMode} />
-
-      {mode === MODE_AUTO ? (
-        // ====== 自动档: 预设选项 + 延迟测试 ======
-        <div className="space-y-1">
-          {officialOptions.map((url) => (
-            <ConfigItem
-              key={url}
-              value={imgProxy}
-              url={url}
-              onClick={setImgProxy}
-            />
-          ))}
-          {otherOptions.map((url) => (
-            <ConfigItem
-              key={url}
-              value={imgProxy}
-              url={url}
-              onClick={setImgProxy}
-              noTest={true}
-            />
-          ))}
-        </div>
-      ) : (
-        // ====== 手动档: 自定义输入 ======
-        <div className="space-y-2">
-          <input
-            type="text"
-            value={imgProxy || ""}
-            onChange={(e) => setImgProxy(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-            placeholder="https://your-proxy.com"
-          />
-          <p className="text-xs text-gray-400">
-            输入自定义代理地址，替换 pbs.twimg.com 部分
-          </p>
-        </div>
-      )}
+      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <span className="text-sm text-gray-600">pbs.moonchan.xyz</span>
+        <span className="text-xs text-green-500">● 固定</span>
+      </div>
+      <p className="text-xs text-gray-400">图片源固定使用 pbs.moonchan.xyz，无需配置。</p>
     </div>
   );
 };
