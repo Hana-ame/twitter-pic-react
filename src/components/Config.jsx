@@ -150,12 +150,10 @@ const VideoConfig = () => {
   );
   const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
 
-  const officialOptions = [
+  const allOptions = [
     { url: "https://video.twimg.com", label: "原站" },
-  ];
-  const otherOptions = [
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: "需下载 APK/EXE", activeNote: "运作中" },
-    { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID" },
+    { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
   ];
 
   return (
@@ -166,24 +164,16 @@ const VideoConfig = () => {
 
       {mode === MODE_AUTO ? (
         <div className="space-y-1">
-          {officialOptions.map((opt) => (
-            <ConfigItem
-              key={opt.url}
-              value={vidProxy}
-              url={opt.url}
-              label={opt.label}
-              onClick={setVidProxy}
-            />
-          ))}
-          {otherOptions.map((opt) => (
+          {allOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
               url={opt.url}
               label={opt.label}
               note={opt.note}
+              activeNote={opt.activeNote}
               onClick={setVidProxy}
-              noTest={true}
+              noTest={opt.noTest || false}
             />
           ))}
         </div>
