@@ -66,7 +66,7 @@ function ModeToggle({ mode, onModeChange }) {
   );
 }
 
-const ConfigItem = ({ value, url, label, note, onClick, noTest }) => {
+const ConfigItem = ({ value, url, label, note, activeNote, onClick, noTest }) => {
   const [latency, setLatency] = useState(-1);
   const [color, setColor] = useState(["text-gray-400", "bg-gray-400"]);
 
@@ -91,6 +91,8 @@ const ConfigItem = ({ value, url, label, note, onClick, noTest }) => {
 
   const isActive = value === url;
   const displayLabel = label || url;
+  const displayNote = isActive && activeNote ? activeNote : note;
+  const noteColor = isActive && activeNote ? "text-green-600" : "text-amber-600";
 
   return (
     <div
@@ -107,8 +109,8 @@ const ConfigItem = ({ value, url, label, note, onClick, noTest }) => {
         >
           {displayLabel}
         </span>
-        {note && (
-          <span className="text-xs text-amber-600 mt-0.5">{note}</span>
+        {displayNote && (
+          <span className={`text-xs mt-0.5 ${noteColor}`}>{displayNote}</span>
         )}
       </div>
       <div className={`flex items-center space-x-2 ${color[0]}`}>
@@ -152,7 +154,7 @@ const VideoConfig = () => {
     { url: "https://video.twimg.com", label: "原站" },
   ];
   const otherOptions = [
-    { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: "需下载 APK/EXE" },
+    { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: "需下载 APK/EXE", activeNote: "运作中" },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID" },
   ];
 

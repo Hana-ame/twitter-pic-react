@@ -62,6 +62,18 @@ const HelpPage = ({ onClick }) => {
           {/* <Config.AutoConfig /> 26-09-08: 旧初始化逻辑, 已被 auto/manual 模式取代 */}
         </Block>
 
+        {/* 豆腐块4 */}
+        <Block
+          title="施工中"
+          closed={isClosedMap["施工中"]}
+          onClick={handleOnClickBlock}
+        >
+          <div className="text-center space-y-2">
+            <p className="text-2xl">🚧</p>
+            <p className="text-gray-500 font-medium">工事中</p>
+          </div>
+        </Block>
+
         <Block
           title="流量太大被强制关机了😅"
           closed={isClosedMap["notice260908"]}
@@ -495,18 +507,6 @@ const HelpPage = ({ onClick }) => {
               exhentai镜像，点我访问
             </p>
           </a>
-        </Block>
-
-        {/* 豆腐块4 */}
-        <Block
-          title="施工中"
-          closed={isClosedMap["施工中"]}
-          onClick={handleOnClickBlock}
-        >
-          <div className="text-center space-y-2">
-            <p className="text-2xl">🚧</p>
-            <p className="text-gray-500 font-medium">工事中</p>
-          </div>
         </Block>
       </div>
 
