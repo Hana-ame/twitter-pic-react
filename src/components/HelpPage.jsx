@@ -56,7 +56,7 @@ const HelpPage = ({ onClick }) => {
           onClick={handleOnClickBlock}
         >
           <p className="text-gray-500">
-            一个手机一个电脑，打开之后重新打开网页就能使用本地代理了，并且自带 iwara / dlsite / sukebei 镜像
+            一个手机一个电脑，打开之后重新打开网页就能使用本地代理了，并且自带 iwara / dlsite / sukebei 反向代理
           </p>
           <p className="text-gray-500">
             电脑 (Windows):
@@ -78,6 +78,9 @@ const HelpPage = ({ onClick }) => {
           </p>
           <p className="text-gray-500">
             操作说明：手机打开后是一片白，请稍微等待加载完成。完成后会跳转到 index 页面。如果出现打不开情况请考虑设置后台常驻
+          </p>
+          <p className="text-gray-500">
+            如有问题请加chatto聊天群反馈，没有设置除此之外的反馈渠道。
           </p>
         </Block>
 

@@ -41,10 +41,10 @@ const AutoConfig = () => {
 // ====== 模式切换按钮 ======
 function ModeToggle({ mode, onModeChange }) {
   return (
-    <div className="flex items-center gap-1 mb-3 p-1 bg-gray-100 rounded-lg w-fit">
+    <div className="flex items-center gap-1 mb-3 p-1 bg-gray-100 rounded-lg">
       <button
         onClick={() => onModeChange(MODE_AUTO)}
-        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+        className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
           mode === MODE_AUTO
             ? "bg-white text-blue-600 shadow-sm"
             : "text-gray-500 hover:text-gray-700"
@@ -54,7 +54,7 @@ function ModeToggle({ mode, onModeChange }) {
       </button>
       <button
         onClick={() => onModeChange(MODE_MANUAL)}
-        className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+        className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
           mode === MODE_MANUAL
             ? "bg-white text-blue-600 shadow-sm"
             : "text-gray-500 hover:text-gray-700"
