@@ -453,7 +453,7 @@ const HelpPage = ({ onClick }) => {
           <Config.VideoConfig />
           <br />
           <Config.PeerJSConfig />
-          <Config.AutoConfig />
+          {/* <Config.AutoConfig /> 26-09-08: 旧初始化逻辑, 已被 auto/manual 模式取代 */}
         </Block>
 
         {/* 豆腐块1 */}

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
-import { delay } from "../Tools/utils";
+// import { delay } from "../Tools/utils"; // 26-09-08: 旧版已不需要
 import { testLatency } from "../Tools/network/testLatency";
 import useMoonchanProbe from "../hooks/useMoonchanProbe";
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "../api/peerMedia";
