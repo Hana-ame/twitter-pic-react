@@ -56,7 +56,7 @@ const HelpPage = ({ onClick }) => {
           onClick={handleOnClickBlock}
         >
           <p className="text-gray-500">
-            一个手机一个电脑，打开之后重新打开网页就能使用本地代理了，并且同时附带 iwara / dlsite / sukebei 反向代理。所有数据不经过第三方服务器。
+            一个手机一个电脑，打开之后重新打开网页就能使用本地代理看twitter视频了，并且同时附带 iwara / dlsite / sukebei 反向代理。所有数据不经过第三方服务器，流量直接从源站到你终端（这次不用担心用的人多把宽带挤爆炸了）。
           </p>
           <p className="text-gray-500">
             电脑 (Windows):
