@@ -7,19 +7,7 @@ import useMoonchanProbe from "../hooks/useMoonchanProbe";
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "../api/peerMedia";
 
 // 定义常量，避免在组件内部重复创建数组
-const IMAGE_PROXIES = [
-  "https://pbs-t-1.twimg.com",
-  "https://pbs-t-2.twimg.com",
-  "https://pbs-t-3.twimg.com",
-  "https://pbs-t-4.twimg.com",
-];
-
-const VIDEO_PROXIES = [
-  "https://video-t-1.twimg.com",
-  "https://video-t-2.twimg.com",
-  "https://video-t-3.twimg.com",
-  "https://video-t-4.twimg.com",
-];
+// 26-09-08: 移除 pbs-t-*/video-t-* 备源, 只保留 pbs.twimg.com 主源
 
 const AutoConfig = () => {
   // 1. 生成时间戳
@@ -151,11 +139,6 @@ const ImageConfig = () => {
   // 三个默认选项
   const officialOptions = [
     "https://pbs.twimg.com",
-    // "https://p.twimg.com",
-    "https://pbs-t-1.twimg.com",
-    "https://pbs-t-2.twimg.com",
-    "https://pbs-t-3.twimg.com",
-    "https://pbs-t-4.twimg.com",
   ];
   const otherOptions = ["https://pbs.moonchan.xyz", "peerjs"];
 
@@ -220,12 +203,6 @@ const VideoConfig = () => {
   // 三个默认选项
   const officialOptions = [
     "https://video.twimg.com",
-    // "https://video-s.twimg.com",
-    // "https://video-cf.twimg.com",
-    "https://video-t-1.twimg.com",
-    "https://video-t-2.twimg.com",
-    "https://video-t-3.twimg.com",
-    "https://video-t-4.twimg.com",
   ];
   const otherOptions = ["https://pbs.moonchan.xyz", "peerjs"];
 
