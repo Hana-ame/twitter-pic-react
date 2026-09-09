@@ -4,5 +4,5 @@ export const ENDPOINT = "https://x.moonchan.xyz/api/twitter"
 // export const ENDPOINT = window.location.origin + "/api/twitter";
 // export const ENDPOINT = "/api/twitter"
 
-export const DEFAULT_IMAGE_PROXY = "https://twimg.moonchan.xyz";
-export const DEFAULT_VIDEO_PROXY = "https://twimg.moonchan.xyz";
+export const DEFAULT_IMAGE_PROXY = "https://pbs.moonchan.xyz";
+export const DEFAULT_VIDEO_PROXY = "https://pbs.moonchan.xyz";

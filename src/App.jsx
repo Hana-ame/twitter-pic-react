@@ -28,7 +28,12 @@ import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints";
 import TagDisplayArea from "./components/TagDisplayArea";
 
 import { getEmojis, voteUpEmoji } from "./api/emojis";
-import { isMoonchanProxy, isNonCN } from "./components/Media"; // 26-08-14: 下载侧复用 Media.tsx 的代理弹回判断
+import {
+  overrideImageProxy,
+  overrideVideoProxy,
+} from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
+import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
+import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时探测 moonchan 备份 CDN
 
 import Ranking from "./components/Ranking";
 
@@ -102,6 +107,18 @@ const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
+
+  // 26-09-08: 挂载时探测 https://twimg.l.moonchan.xyz/favicon.ico,
+  // 若 200 就把图片源和视频源都切到 https://twimg.l.moonchan.xyz。
+  // HelpPage (Config.AutoConfig) 里也有一份, 节流靠 probe.ts 内部时间戳共享。
+  useMoonchanProbe();
+
+  // 26-09-08: 页面卸载时释放所有 PeerJS 连接和 Blob URL (防内存泄漏)
+  useEffect(() => {
+    return () => {
+      peerMediaClient.disposeAll();
+    };
+  }, []);
 
   // Proxy 设置
   const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
@@ -290,35 +307,38 @@ const Main = ({ profile, handleSetProfile }) => {
     });
   };
 
-  // --- 新增：核心 URL 替换逻辑 ---
-  const getProxiedUrl = (originalUrl, type) => {
-    const targetProxy = type === "video" ? videoProxy : imageProxy;
+  // 26-09-08: 与 Media.tsx 展示共用 src/api/proxyOverride.ts 的同一份替换逻辑。
+  // 之前这里用 URL 对象改 host/port, 展示侧用字符串 replace, 两边会拼出不同的 URL;
+  // 现在都委托给同一个函数, 下载和展示的 URL 保证一致。
+  // 26-09-08: 支持 peerjs — 图源/视频源选 "peerjs" 时通过 WebRTC DataChannel 拉取, 返回 blob URL。
+  const getProxiedUrl = async (originalUrl, type) => {
+    const targetProxy = type === "video" || type === "animated_gif" ? videoProxy : imageProxy;
 
-    // 26-08-14: 与 Media.tsx 展示逻辑保持一致 —— 非CN时 moonchan 系代理
-    // ({twimg,proxy,pbs}.moonchan.xyz) 弹回原站; 自定义第三方代理不弹, 照常替换
-    if (isNonCN() && isMoonchanProxy(targetProxy)) {
-      return originalUrl;
-    }
-
-    try {
-      // 如果没有设置代理，或者代理为空，返回原链接
-      if (!targetProxy || targetProxy.trim() === "") {
+    // peerjs 分支: 通过 PeerJS 拉取媒体, 返回 blob URL
+    if (targetProxy === "peerjs") {
+      const peer = localStorage.getItem("peerjs-peer-id") || "";
+      if (!peer) return originalUrl; // 未配置 peer id, 回退到原站
+      try {
+        const signaling = {
+          host: localStorage.getItem("peerjs-signaling-host") || DEFAULT_SIGNALING.host,
+          port: Number(localStorage.getItem("peerjs-signaling-port") || DEFAULT_SIGNALING.port),
+          secure: true,
+          key: localStorage.getItem("peerjs-signaling-key") || DEFAULT_SIGNALING.key,
+          path: "/",
+        };
+        const result = await peerMediaClient.load(originalUrl, { peer, signaling });
+        return result.blobUrl;
+      } catch (e) {
+        console.error("PeerJS 拉取失败, 回退到原站:", e);
         return originalUrl;
       }
-
-      const urlObj = new URL(originalUrl);
-      const proxyObj = new URL(targetProxy);
-
-      // 替换协议、主机名和端口
-      urlObj.protocol = proxyObj.protocol;
-      urlObj.host = proxyObj.host;
-      urlObj.port = proxyObj.port;
-
-      return urlObj.toString();
-    } catch (e) {
-      console.error("URL转换失败", e);
-      return originalUrl;
     }
+
+    // 常规分支: HTTP URL 替换
+    if (type === "video" || type === "animated_gif") {
+      return overrideVideoProxy(originalUrl, videoProxy);
+    }
+    return overrideImageProxy(originalUrl, imageProxy);
   };
   // 1. 极其严苛的文件名提取逻辑
   const extractFileName = (urlStr, index, type) => {
@@ -408,7 +428,7 @@ const Main = ({ profile, handleSetProfile }) => {
         for (let i = 0; i < profile.timeline.length; i++) {
           const item = profile.timeline[i];
           const fileName = extractFileName(item.url, i, item.type);
-          const finalUrl = getProxiedUrl(item.url, item.type);
+          const finalUrl = await getProxiedUrl(item.url, item.type);
 
           setStatusMsg(
             `处理 (${i + 1}/${profile.timeline.length}): ${fileName}`,

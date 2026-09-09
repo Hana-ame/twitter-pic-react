@@ -451,6 +451,8 @@ const HelpPage = ({ onClick }) => {
           <Config.ImageConfig />
           <br />
           <Config.VideoConfig />
+          <br />
+          <Config.PeerJSConfig />
           <Config.AutoConfig />
         </Block>
 
