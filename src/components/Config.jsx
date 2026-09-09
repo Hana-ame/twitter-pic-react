@@ -66,7 +66,7 @@ function ModeToggle({ mode, onModeChange }) {
   );
 }
 
-const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest }) => {
+const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disabled }) => {
   const [latency, setLatency] = useState(-1);
   const [color, setColor] = useState(["text-gray-400", "bg-gray-400"]);
 
@@ -93,12 +93,20 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest }) => 
   const displayLabel = label || url;
   const finalNoteColor = noteColor || "text-amber-600";
 
+  const bgClass = disabled
+    ? isActive
+      ? "bg-blue-50 border-blue-300 opacity-70"
+      : "bg-gray-50 opacity-50"
+    : isActive
+    ? "bg-blue-50 border-blue-300 shadow-sm"
+    : "hover:bg-gray-50";
+
+  const cursorClass = disabled ? "cursor-not-allowed" : "cursor-pointer";
+
   return (
     <div
-      className={`flex justify-between items-center w-full p-3 rounded-lg border border-gray-200 transition-all duration-200 cursor-pointer ${
-        isActive ? "bg-blue-50 border-blue-300 shadow-sm" : "hover:bg-gray-50"
-      }`}
-      onClick={() => onClick(url)}
+      className={`flex justify-between items-center w-full p-3 rounded-lg border border-gray-200 transition-all duration-200 ${cursorClass} ${bgClass}`}
+      onClick={() => { if (!disabled) onClick(url); }}
     >
       <div className="flex items-center flex-col">
         <span
@@ -178,11 +186,8 @@ const VideoConfig = () => {
   const echNoteColor =
     echStatus === "enabled" ? "text-green-600" : "text-amber-600";
 
-  // 自动档: 只有不需额外配置的选项 (原站)
-  const autoOptions = [
-    { url: "https://video.twimg.com", label: "原站" },
-  ];
   // 手动档: 所有选项 + 自定义输入
+  // 自动档: 同一列表, 但灰色不可点, 仅显示当前选中状态
   const manualOptions = [
     { url: "https://video.twimg.com", label: "原站" },
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
@@ -196,9 +201,9 @@ const VideoConfig = () => {
       <ModeToggle mode={mode} onModeChange={setMode} />
 
       {mode === MODE_AUTO ? (
-        // 自动档: 只有不需额外配置的选项
+        // 自动档: 显示所有选项 (灰色不可点), 当前选中的高亮
         <div className="space-y-1">
-          {autoOptions.map((opt) => (
+          {manualOptions.map((opt) => (
             <ConfigItem
               key={opt.url}
               value={vidProxy}
@@ -208,11 +213,9 @@ const VideoConfig = () => {
               noteColor={opt.noteColor}
               onClick={setVidProxy}
               noTest={opt.noTest || false}
+              disabled
             />
           ))}
-          <p className="text-xs text-gray-400 mt-2 px-1">
-            自动档仅显示免配置选项。如需 ech-proxy / PeerJS，请切换到手动档。
-          </p>
         </div>
       ) : (
         // 手动档: 所有选项 + 自定义输入
