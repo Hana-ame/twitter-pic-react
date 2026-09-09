@@ -145,7 +145,7 @@ const VideoConfig = () => {
   const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
 
   const officialOptions = ["https://video.twimg.com"];
-  const otherOptions = ["https://pbs.moonchan.xyz", "peerjs"];
+  const otherOptions = ["https://pbs.moonchan.xyz", "https://twimg.l.moonchan.xyz", "peerjs"];
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">

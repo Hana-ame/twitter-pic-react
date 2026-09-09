@@ -16,6 +16,7 @@ export const isMoonchanProxy = (proxy?: string | null): boolean => {
     const host = new URL(proxy || "").hostname;
     return (
       host === "twimg.moonchan.xyz" ||
+      host === "twimg.l.moonchan.xyz" ||
       host === "proxy.moonchan.xyz" ||
       host === "pbs.moonchan.xyz"
     );
