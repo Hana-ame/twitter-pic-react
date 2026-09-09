@@ -108,8 +108,10 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disab
       className={`flex items-center w-full p-3 rounded-lg border border-gray-200 transition-all duration-200 ${cursorClass} ${bgClass}`}
       onClick={() => { if (!disabled) onClick(url); }}
     >
-      <span className={`w-5 flex-shrink-0 text-center text-sm font-bold ${isActive ? "text-blue-600" : "text-transparent"}`}>
-        ✓
+      <span className={`w-5 flex-shrink-0 flex items-center justify-center ${isActive ? "" : "invisible"}`}>
+        <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
       </span>
       <div className="flex-1 min-w-0">
         <span
