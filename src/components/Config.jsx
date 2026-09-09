@@ -105,22 +105,25 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disab
 
   return (
     <div
-      className={`flex justify-between items-center w-full p-3 rounded-lg border border-gray-200 transition-all duration-200 ${cursorClass} ${bgClass}`}
+      className={`flex items-center w-full p-3 rounded-lg border border-gray-200 transition-all duration-200 ${cursorClass} ${bgClass}`}
       onClick={() => { if (!disabled) onClick(url); }}
     >
-      <div className="flex items-center flex-col">
+      <span className={`w-5 flex-shrink-0 text-center text-sm font-bold ${isActive ? "text-blue-600" : "text-transparent"}`}>
+        ✓
+      </span>
+      <div className="flex-1 min-w-0">
         <span
-          className={`text-sm font-medium truncate max-w-[220px] ${
+          className={`block text-sm font-medium truncate ${
             isActive ? "text-blue-600" : "text-gray-700"
           }`}
         >
           {displayLabel}
         </span>
         {note && (
-          <span className={`text-xs mt-0.5 ${finalNoteColor}`}>{note}</span>
+          <span className={`block text-xs mt-0.5 ${finalNoteColor}`}>{note}</span>
         )}
       </div>
-      <div className={`flex items-center space-x-2 ${color[0]}`}>
+      <div className={`flex items-center space-x-2 ml-2 flex-shrink-0 ${color[0]}`}>
         <span
           className={`text-sm font-mono ${
             latency === -1 ? "animate-pulse" : ""
