@@ -56,7 +56,7 @@ const HelpPage = ({ onClick }) => {
           onClick={handleOnClickBlock}
         >
           <p className="text-gray-500">
-            一个手机一个电脑，打开之后重新打开网页就能使用本地代理了，并且自带 iwara / dlsite / sukebei 反向代理
+            一个手机一个电脑，打开之后重新打开网页就能使用本地代理了，并且同时附带 iwara / dlsite / sukebei 反向代理。所有数据不经过第三方服务器。
           </p>
           <p className="text-gray-500">
             电脑 (Windows):
@@ -77,10 +77,10 @@ const HelpPage = ({ onClick }) => {
             </a>
           </p>
           <p className="text-gray-500">
-            操作说明：手机打开后是一片白，请稍微等待加载完成。完成后会跳转到 index 页面。如果出现打不开情况请考虑设置后台常驻
+            操作说明：手机打开后是一片白，请稍微等待加载完成。完成后会跳转到 index 页面。如果出现打不开情况请考虑设置后台常驻。win端未测试，等你们用出问题再说。
           </p>
           <p className="text-gray-500">
-            如有问题请加chatto聊天群反馈，没有设置除此之外的反馈渠道。
+            问题反馈渠道1：请加chatto聊天群反馈（下方新开聊天室，房间「ECH Proxy」）。渠道2：托梦给我。我梦到了就处理。
           </p>
         </Block>
 
