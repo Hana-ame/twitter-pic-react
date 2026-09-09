@@ -28,11 +28,11 @@ const AutoConfig = () => {
   const { current: now } = useRef(Date.now());
 
   const [image, setImage] = useLocalStorage(
-    "image-proxy-v4",
+    "image-proxy-v5",
     DEFAULT_IMAGE_PROXY
   );
   const [video, setVideo] = useLocalStorage(
-    "video-proxy-v4",
+    "video-proxy-v5",
     DEFAULT_VIDEO_PROXY
   );
 
@@ -134,7 +134,7 @@ const ConfigItem = ({ value, url, onClick, noTest }) => {
 
 const ImageConfig = () => {
   const [imgProxy, setImgProxy] = useLocalStorage(
-    "image-proxy-v4",
+    "image-proxy-v5",
     DEFAULT_IMAGE_PROXY
   );
 
@@ -202,7 +202,7 @@ const ImageConfig = () => {
 
 const VideoConfig = () => {
   const [vidProxy, setVidPorxy] = useLocalStorage(
-    "video-proxy-v4",
+    "video-proxy-v5",
     DEFAULT_VIDEO_PROXY
   );
 

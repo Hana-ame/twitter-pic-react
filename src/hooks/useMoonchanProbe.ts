@@ -15,8 +15,8 @@ import { runMoonchanProbe } from "../api/probe";
  * @param oncePerSession 默认 true —— 同一会话(5 分钟内)不重复探测。
  */
 export default function useMoonchanProbe(timeoutMs = 5000): void {
-  const [, setImage] = useLocalStorage("image-proxy-v4", "");
-  const [, setVideo] = useLocalStorage("video-proxy-v4", "");
+  const [, setImage] = useLocalStorage("image-proxy-v5", "");
+  const [, setVideo] = useLocalStorage("video-proxy-v5", "");
 
   useEffect(() => {
     void runMoonchanProbe(setImage, setVideo, timeoutMs);

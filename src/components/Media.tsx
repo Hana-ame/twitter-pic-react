@@ -28,8 +28,8 @@ const getSignaling = () => ({
 });
 
 const Media = ({ url, type }: MediaProps) => {
-  const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
-  const [videoProxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY);
+  const [imageProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
+  const [videoProxy] = useLocalStorage("video-proxy-v5", DEFAULT_VIDEO_PROXY);
 
   // 26-09-08: 展示与下载共用 src/api/proxyOverride.ts 的同一份替换逻辑。
   const imageProxyOverride = (url: string) => overrideImageProxy(url, imageProxy);

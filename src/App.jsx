@@ -121,8 +121,8 @@ const Main = ({ profile, handleSetProfile }) => {
   }, []);
 
   // Proxy 设置
-  const [imageProxy] = useLocalStorage("image-proxy-v4", DEFAULT_IMAGE_PROXY);
-  const [videoProxy] = useLocalStorage("video-proxy-v4", DEFAULT_VIDEO_PROXY);
+  const [imageProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
+  const [videoProxy] = useLocalStorage("video-proxy-v5", DEFAULT_VIDEO_PROXY);
 
   // 下载状态管理
   const [downloadStatus, setDownloadStatus] = useState("");
