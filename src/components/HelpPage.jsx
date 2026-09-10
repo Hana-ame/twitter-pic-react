@@ -49,6 +49,22 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
+        <Block
+          title="DeepSeek V4.1 太牛啦"
+          closed={isClosedMap["dsv4.1f"]}
+          onClick={() => handleOnClickBlock("dsv4.1f")}
+        >
+          <p className="text-gray-500">
+            大改版，非常好用！
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.0/app-release.apk"
+            >
+              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.0/app-release.apk
+            </a>
+          </p>
+        </Block>
+        
         {/* 豆腐块4 - ech-proxy 本地代理 */}
         <Block
           title="本地代理 ech-proxy"
@@ -97,26 +113,7 @@ const HelpPage = ({ onClick }) => {
           {/* <Config.AutoConfig /> 26-09-08: 旧初始化逻辑, 已被 auto/manual 模式取代 */}
         </Block>
 
-        <Block
-          title="流量太大被强制关机了😅"
-          closed={isClosedMap["notice260908"]}
-          onClick={() => handleOnClickBlock("notice260908")}
-        >
-          <p className="text-gray-500">
-            流量太大被强制关机了😅
-          </p>
-          <p className="text-gray-500">
-            apk不走转发，暂时可以下载apk用
-          </p>
-          <p className="text-gray-500">
-            <a
-              className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk"
-            >
-              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk
-            </a>
-          </p>
-        </Block>
+
 
         <Block
           title="新开聊天室"
