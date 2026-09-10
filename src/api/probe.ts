@@ -4,6 +4,7 @@
 // 让所有图片源和视频源统一走这个健康节点。
 // 探测不到 (超时 / 非 2xx / 抛错) 就什么都不改, 保持用户当前配置。
 // 26-09-08: 非CN 一律不探测(moonchan 只在 CN 有效, 探测本身也走外网被墙)。
+// 26-09-08: 手动档一律不探测 / 不改写 (用户在配置页选的源必须原样保留)。
 
 import { isNonCN } from "./proxyOverride";
 
@@ -15,6 +16,20 @@ export const VIDEO_PROXY_KEY = "video-proxy-v5";
 // 用于节流: 同一时间窗内不重复探测, 避免多次挂载时重复发请求。
 const PROBE_TS_KEY = "moonchan-probe-ts";
 const PROBE_TS_TTL_MS = 5 * 60 * 1000; // 5 分钟
+
+// 26-09-08: 配置模式。手动档下禁止自动探测覆盖用户手选的源。
+export const CONFIG_MODE_KEY = "config-mode-v5";
+export const MODE_AUTO = "auto";
+export const MODE_MANUAL = "manual";
+
+/** 用户是否处于手动档 (读不到 / 异常都按自动档处理, 保持旧行为)。 */
+export function isManualMode(): boolean {
+  try {
+    return localStorage.getItem(CONFIG_MODE_KEY) === MODE_MANUAL;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * 探测一个 URL 是否健康 (返回 2xx)。
@@ -44,19 +59,23 @@ export async function isReachable(
 /**
  * 探测 MOONCHAN_PROBE_URL; 若健康 (200), 把图片源和视频源都切到 MOONCHAN_PROBE_TARGET。
  *
+ * - 手动档: 直接跳过 —— 用户在配置页手选的源不许被自动探测覆盖。
  * - 非CN: 直接跳过, 不发请求(moonchan 只在 CN 有效, 非CN 走外网探测本身也会被墙)。
  * - 节流: 距离上次探测小于 PROBE_TS_TTL_MS 直接返回 false, 不发请求。
  * - 幂等: 当前 image/video 已经等于 probe target 时, setImage/setVideo 是 no-op
  *        (值一样, 触发同一份 useLocalStorage 的 setValue, 结果等价于不切)。
  * - 失败静默: 探测不可达不写任何东西, 让用户保持原配置。
  *
- * @returns 本次是否实际执行了探测并做了切换 (节流 / 非CN / 不可达 都返回 false)。
+ * @returns 本次是否实际执行了探测并做了切换 (手动档 / 非CN / 节流 / 不可达 都返回 false)。
  */
 export async function runMoonchanProbe(
   setImage: (v: string) => void,
   setVideo: (v: string) => void,
   timeoutMs = 5000,
 ): Promise<boolean> {
+  // 26-09-08: 手动档不自动改源, 免得把用户自己填的地址冲掉。
+  if (isManualMode()) return false;
+
   // 26-09-08: 非CN 不探测 —— 与 override 侧保持一致的"非CN 不做任何代理切换"策略。
   if (isNonCN()) return false;
 

@@ -5,11 +5,10 @@ import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 import { testLatency } from "../Tools/network/testLatency";
 import useMoonchanProbe from "../hooks/useMoonchanProbe";
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "../api/peerMedia";
+import { CONFIG_MODE_KEY, MODE_AUTO, MODE_MANUAL } from "../api/probe";
 
-// 26-09-08: 配置模式 — 自动档 (预设选项) / 手动档 (自定义输入)
-const MODE_KEY = "config-mode-v5";
-const MODE_AUTO = "auto";
-const MODE_MANUAL = "manual";
+// 26-09-08: 配置模式 — 自动档 (探测自动选源) / 手动档 (自己填, 探测不许覆盖)
+const MODE_KEY = CONFIG_MODE_KEY;
 
 const AutoConfig = () => {
   const { current: now } = useRef(Date.now());
@@ -122,7 +121,9 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disab
           {displayLabel}
         </span>
         {note && (
-          <span className={`block text-xs mt-0.5 ${finalNoteColor}`}>{note}</span>
+          <span className={`block text-xs mt-0.5 truncate ${finalNoteColor}`} title={note}>
+            {note}
+          </span>
         )}
       </div>
       <div className={`flex items-center space-x-2 ml-2 flex-shrink-0 ${color[0]}`}>
@@ -184,19 +185,6 @@ const VideoConfig = () => {
     };
   }, []);
 
-  // 初始化自定义输入框的值
-  useEffect(() => {
-    const isCustomUrl = vidProxy && ![
-      "https://video.twimg.com",
-      "https://twimg.l.moonchan.xyz:8443",
-      "peerjs"
-    ].includes(vidProxy);
-    if (isCustomUrl) {
-      setCustomUrlInput(vidProxy);
-      setShowCustomInput(true);
-    }
-  }, []);
-
   const echNote =
     echStatus === "checking"
       ? "检测中..."
@@ -206,29 +194,57 @@ const VideoConfig = () => {
   const echNoteColor =
     echStatus === "enabled" ? "text-green-600" : "text-amber-600";
 
-  // 手动档: 所有选项 + 自定义输入
-  // 自动档: 同一列表, 但灰色不可点, 仅显示当前选中状态
+  // 预设选项。手动档整列可点; 自动档同列表灰色不可点, 只表示当前源。
   const predefinedOptions = [
     { url: "https://video.twimg.com", label: "原站" },
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
   ];
 
-  const handleCustomClick = () => {
+  // 当前源不在预设里 → 用的是自定义地址
+  const isCustomUrl = !!vidProxy && !predefinedOptions.some((opt) => opt.url === vidProxy);
+  // 自定义条目占位 url: 未启用时它不等于任何源, 所以不会误打勾。
+  const CUSTOM_SENTINEL = "__custom__";
+
+  // 点预设项: 选中并收起自定义编辑器
+  const selectPreset = (url) => {
+    setVidProxy(url);
+    setShowCustomInput(false);
+  };
+
+  // 点"自定义": 只负责展开输入框, 不改动当前源
+  const openCustomEditor = () => {
+    setCustomUrlInput(isCustomUrl ? vidProxy : "");
     setShowCustomInput(true);
-    setCustomUrlInput(vidProxy || "");
   };
 
   const handleCustomSubmit = () => {
-    if (customUrlInput.trim()) {
-      setVidProxy(customUrlInput.trim());
-    }
+    const v = customUrlInput.trim();
+    if (!v) return;
+    setVidProxy(v);
+    // 填回去就等于某个预设 → 收起编辑器, 高亮那一行
+    setShowCustomInput(!predefinedOptions.some((opt) => opt.url === v));
   };
 
   const handleCustomCancel = () => {
     setShowCustomInput(false);
     setCustomUrlInput("");
   };
+
+  const renderPresets = (disabled, onSelect) =>
+    predefinedOptions.map((opt) => (
+      <ConfigItem
+        key={opt.url}
+        value={vidProxy}
+        url={opt.url}
+        label={opt.label}
+        note={opt.note}
+        noteColor={opt.noteColor}
+        onClick={onSelect}
+        noTest={opt.noTest || false}
+        disabled={disabled}
+      />
+    ));
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
@@ -237,84 +253,66 @@ const VideoConfig = () => {
       <ModeToggle mode={mode} onModeChange={setMode} />
 
       {mode === MODE_AUTO ? (
-        // 自动档: 显示所有选项 (灰色不可点), 当前选中的高亮
+        // 自动档: 只读展示, 当前源打勾 (自定义源也列出)
         <div className="space-y-1">
-          {predefinedOptions.map((opt) => (
+          {renderPresets(true, setVidProxy)}
+          {isCustomUrl && (
             <ConfigItem
-              key={opt.url}
               value={vidProxy}
-              url={opt.url}
-              label={opt.label}
-              note={opt.note}
-              noteColor={opt.noteColor}
-              onClick={setVidProxy}
-              noTest={opt.noTest || false}
+              url={vidProxy}
+              label="自定义"
+              note={vidProxy}
+              onClick={() => {}}
+              noTest
               disabled
             />
-          ))}
-        </div>
-      ) : showCustomInput ? (
-        // 手动档 - 自定义输入模式
-        <div className="space-y-2">
-          {predefinedOptions.map((opt) => (
-            <ConfigItem
-              key={opt.url}
-              value={vidProxy}
-              url={opt.url}
-              label={opt.label}
-              note={opt.note}
-              noteColor={opt.noteColor}
-              onClick={setVidProxy}
-              noTest={opt.noTest || false}
-            />
-          ))}
-          <div className="pt-2 border-t border-gray-100 space-y-2">
-            <input
-              type="text"
-              value={customUrlInput}
-              onChange={(e) => setCustomUrlInput(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-              placeholder="https://your-proxy.com"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleCustomSubmit}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
-              >
-                确认
-              </button>
-              <button
-                onClick={handleCustomCancel}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
-              >
-                取消
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       ) : (
-        // 手动档 - 普通模式
+        // 手动档: 列表常驻, 点"自定义"在它下面展开输入框
         <div className="space-y-2">
-          {predefinedOptions.map((opt) => (
-            <ConfigItem
-              key={opt.url}
-              value={vidProxy}
-              url={opt.url}
-              label={opt.label}
-              note={opt.note}
-              noteColor={opt.noteColor}
-              onClick={setVidProxy}
-              noTest={opt.noTest || false}
-            />
-          ))}
+          {renderPresets(false, selectPreset)}
+
           <ConfigItem
             value={vidProxy}
-            url="custom"
+            url={isCustomUrl ? vidProxy : CUSTOM_SENTINEL}
             label="自定义"
-            onClick={handleCustomClick}
+            note={isCustomUrl ? vidProxy : "手动填写代理地址"}
+            onClick={openCustomEditor}
             noTest
           />
+
+          {showCustomInput && (
+            <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <input
+                type="text"
+                value={customUrlInput}
+                onChange={(e) => setCustomUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCustomSubmit();
+                  if (e.key === "Escape") handleCustomCancel();
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                placeholder="https://your-proxy.com"
+                autoFocus
+              />
+              <p className="text-xs text-gray-400">替换 video.twimg.com 部分</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCustomSubmit}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                >
+                  确认
+                </button>
+                <button
+                  onClick={handleCustomCancel}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

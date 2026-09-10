@@ -110,7 +110,7 @@ const Main = ({ profile, handleSetProfile }) => {
 
   // 26-09-08: 挂载时探测 https://twimg.l.moonchan.xyz:8443/favicon.ico,
   // 若 200 就把图片源和视频源都切到 https://twimg.l.moonchan.xyz:8443。
-  // HelpPage (Config.AutoConfig) 里也有一份, 节流靠 probe.ts 内部时间戳共享。
+  // 手动档下 runMoonchanProbe 直接短路, 不会覆盖用户手选的源。
   useMoonchanProbe();
 
   // 26-09-08: 页面卸载时释放所有 PeerJS 连接和 Blob URL (防内存泄漏)
