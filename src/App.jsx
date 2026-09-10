@@ -24,7 +24,7 @@ import FavList from "./components/FavList";
 import getTags from "./api/getTags"; // 确保有这个 API
 import TagSelectorModal from "./components/TagSelectorModal"; // 引入公共组件
 // 如果这些常量在其他文件定义了，请改为 import
-import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "./api/endpoints";
+import { DEFAULT_VIDEO_PROXY } from "./api/endpoints";
 import TagDisplayArea from "./components/TagDisplayArea";
 
 import { getEmojis, voteUpEmoji } from "./api/emojis";
@@ -109,8 +109,9 @@ const Main = ({ profile, handleSetProfile }) => {
   const [showAll, setShowAll] = useState(false);
 
   // 26-09-08: 挂载时探测 https://twimg.l.moonchan.xyz:8443/favicon.ico,
-  // 可达就把图片源和视频源都切过去 (判定用 no-cors, 见 api/probe.ts)。
+  // 可达就把视频源切过去 (判定用 no-cors, 见 api/probe.ts)。
   // 手动档下 runMoonchanProbe 直接短路, 不会覆盖用户手选的源。
+  // 26-09-11: 图片源固定 pbs.moonchan.xyz, 探测只管视频 (hook 内会顺手纠正本地存的图片源脏值)。
   useMoonchanProbe();
 
   // 26-09-08: 页面卸载时释放所有 PeerJS 连接和 Blob URL (防内存泄漏)
@@ -121,7 +122,7 @@ const Main = ({ profile, handleSetProfile }) => {
   }, []);
 
   // Proxy 设置
-  const [imageProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
+  // 26-09-11: 图片源固定 pbs.moonchan.xyz, 由 overrideImageProxy 内部决定, 这里只读视频源。
   const [videoProxy] = useLocalStorage("video-proxy-v5", DEFAULT_VIDEO_PROXY);
 
   // 下载状态管理
@@ -310,12 +311,13 @@ const Main = ({ profile, handleSetProfile }) => {
   // 26-09-08: 与 Media.tsx 展示共用 src/api/proxyOverride.ts 的同一份替换逻辑。
   // 之前这里用 URL 对象改 host/port, 展示侧用字符串 replace, 两边会拼出不同的 URL;
   // 现在都委托给同一个函数, 下载和展示的 URL 保证一致。
-  // 26-09-08: 支持 peerjs — 图源/视频源选 "peerjs" 时通过 WebRTC DataChannel 拉取, 返回 blob URL。
+  // 26-09-08: 支持 peerjs — 视频源选 "peerjs" 时通过 WebRTC DataChannel 拉取, 返回 blob URL。
+  // 26-09-11: 图片固定走 pbs.moonchan.xyz (overrideImageProxy), peerjs 只留给视频源。
   const getProxiedUrl = async (originalUrl, type) => {
-    const targetProxy = type === "video" || type === "animated_gif" ? videoProxy : imageProxy;
+    const isVideo = type === "video" || type === "animated_gif";
 
     // peerjs 分支: 通过 PeerJS 拉取媒体, 返回 blob URL
-    if (targetProxy === "peerjs") {
+    if (isVideo && videoProxy === "peerjs") {
       const peer = localStorage.getItem("peerjs-peer-id") || "";
       if (!peer) return originalUrl; // 未配置 peer id, 回退到原站
       try {
@@ -334,11 +336,11 @@ const Main = ({ profile, handleSetProfile }) => {
       }
     }
 
-    // 常规分支: HTTP URL 替换
-    if (type === "video" || type === "animated_gif") {
+    // 常规分支: HTTP URL 替换 (图片一律 pbs.moonchan.xyz, 视频按所选视频源)
+    if (isVideo) {
       return overrideVideoProxy(originalUrl, videoProxy);
     }
-    return overrideImageProxy(originalUrl, imageProxy);
+    return overrideImageProxy(originalUrl);
   };
   // 1. 极其严苛的文件名提取逻辑
   const extractFileName = (urlStr, index, type) => {

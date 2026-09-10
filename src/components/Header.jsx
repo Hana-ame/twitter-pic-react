@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
-import { DEFAULT_IMAGE_PROXY } from "../api/endpoints";
+import { FIXED_IMAGE_PROXY } from "../api/endpoints";
 // import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
 const Header = ({ username, onClick }) => {
@@ -86,12 +86,12 @@ const Header = ({ username, onClick }) => {
       className="flex items-center m-4 p-4 bg-gray-200 hover:bg-gray-100 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md"
       onClick={() => onClick(userData)}
     >
-      {/* 用户头像 */}
+      {/* 用户头像 (26-09-11: 图片来源统一用 FIXED_IMAGE_PROXY, 与档位无关) */}
       <div className="flex-shrink-0 mr-4">
         <img
           src={userData.account_info?.profile_image?.replace(
             "https://pbs.twimg.com",
-            "https://pbs.moonchan.xyz"
+            FIXED_IMAGE_PROXY
           )}
           alt={userData.account_info?.nick}
           className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"

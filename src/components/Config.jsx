@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { DEFAULT_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints";
+import { FIXED_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 // import { delay } from "../Tools/utils"; // 26-09-08: 旧版已不需要
 import { testLatency } from "../Tools/network/testLatency";
@@ -16,12 +16,14 @@ import {
 // 26-09-08: 配置模式 — 自动档 (探测自动选源) / 手动档 (自己填, 探测不许覆盖)
 const MODE_KEY = CONFIG_MODE_KEY;
 
+// 26-09-08: 旧初始化逻辑, HelpPage 已注释掉 (被 auto/manual 模式取代)。
+// 26-09-11: 图片源这里也只写固定源 pbs.moonchan.xyz, 与档位无关。
 const AutoConfig = () => {
   const { current: now } = useRef(Date.now());
 
   const [image, setImage] = useLocalStorage(
     "image-proxy-v5",
-    DEFAULT_IMAGE_PROXY
+    FIXED_IMAGE_PROXY
   );
   const [video, setVideo] = useLocalStorage(
     "video-proxy-v5",
@@ -34,7 +36,7 @@ const AutoConfig = () => {
 
   useEffect(() => {
     if (ts === now) {
-      setImage("https://pbs.moonchan.xyz");
+      setImage(FIXED_IMAGE_PROXY);
       setVideo("https://pbs.moonchan.xyz");
       setTS(now);
     }
@@ -71,8 +73,8 @@ function ModeToggle({ mode, onModeChange }) {
       </div>
       <p className="text-xs text-gray-400 mb-2">
         {mode === MODE_AUTO
-          ? "自动探测可用源并切换，会覆盖手动填写的地址"
-          : "只用你选的源，自动探测不再改你的设置"}
+          ? "自动探测可用源并切换视频源，会覆盖手动填写的地址（图片固定走 pbs.moonchan.xyz）"
+          : "只用你选的源，自动探测不再改你的设置（图片固定走 pbs.moonchan.xyz）"}
       </p>
     </>
   );
@@ -154,9 +156,8 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disab
 };
 
 // 26-09-08: 图片源固定 pbs.moonchan.xyz, 无需配置。保留组件供兼容, HelpPage 已注释掉。
+// 26-09-11: 显示固定源本身, 不再读 image-proxy-v5 (那个 key 已不参与图片 URL 的生成)。
 const ImageConfig = () => {
-  const [imgProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
-
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
       <h3 className="text-sm font-semibold text-gray-700">图片源</h3>
@@ -164,14 +165,17 @@ const ImageConfig = () => {
         <span className="text-sm text-gray-600">pbs.moonchan.xyz</span>
         <span className="text-xs text-green-500">● 固定</span>
       </div>
-      <p className="text-xs text-gray-400">图片源固定使用 pbs.moonchan.xyz，无需配置。</p>
+      <p className="text-xs text-gray-400">
+        图片源固定使用 pbs.moonchan.xyz（自动档 / 手动档都一样），无需配置。
+      </p>
     </div>
   );
 };
 
 // 26-09-08: 自动档探测结果 → 人话。不切的时候要说清为什么不切，否则用户以为按钮坏了。
+// 26-09-11: 探测只管视频源 (图片固定 pbs.moonchan.xyz)，文案跟着改成"视频源"。
 const PROBE_RESULT_TEXT = {
-  switched: "已切到 ech-proxy",
+  switched: "视频源已切到 ech-proxy",
   manual: "手动档不自动改源",
   "non-cn": "非 CN 网络，不启用 moonchan 源",
   throttled: "刚刚探测过，稍后再试",
@@ -253,14 +257,14 @@ const VideoConfig = () => {
     ));
 
   // 自动档: 手动重跑一次探测 (force 绕过 5 分钟节流), 让选择结果可复查
-  const [, setImageProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
+  // 26-09-11: 探测只改视频源 —— 图片固定 pbs.moonchan.xyz, 不再传给探测。
   const [reprobing, setReprobing] = useState(false);
   const [probeResult, setProbeResult] = useState(null); // null | MoonchanProbeResult
 
   const handleReprobe = async () => {
     setReprobing(true);
     setProbeResult(null);
-    const result = await runMoonchanProbe(setImageProxy, setVidProxy, 5000, {
+    const result = await runMoonchanProbe(setVidProxy, 5000, {
       force: true,
     });
     setProbeResult(result);
@@ -451,8 +455,8 @@ const PeerJSConfig = () => {
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-3">
       <h3 className="text-lg font-semibold text-gray-700">PeerJS 配置</h3>
       <p className="text-xs text-gray-500">
-        选择 "peerjs" 作为图源/视频源时，通过 PeerJS WebRTC DataChannel 从 Node 端 peer 拉取媒体。
-        需要先运行 peerdrive-media Node 端服务。
+        选择 "peerjs" 作为视频源时，通过 PeerJS WebRTC DataChannel 从 Node 端 peer 拉取媒体。
+        需要先运行 peerdrive-media Node 端服务。（图片固定走 pbs.moonchan.xyz，不走 peerjs）
       </p>
 
       <div className="space-y-2">
