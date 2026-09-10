@@ -109,7 +109,7 @@ const Main = ({ profile, handleSetProfile }) => {
   const [showAll, setShowAll] = useState(false);
 
   // 26-09-08: 挂载时探测 https://twimg.l.moonchan.xyz:8443/favicon.ico,
-  // 若 200 就把图片源和视频源都切到 https://twimg.l.moonchan.xyz:8443。
+  // 可达就把图片源和视频源都切过去 (判定用 no-cors, 见 api/probe.ts)。
   // 手动档下 runMoonchanProbe 直接短路, 不会覆盖用户手选的源。
   useMoonchanProbe();
 

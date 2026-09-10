@@ -4,8 +4,14 @@ import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 // import { delay } from "../Tools/utils"; // 26-09-08: 旧版已不需要
 import { testLatency } from "../Tools/network/testLatency";
 import useMoonchanProbe from "../hooks/useMoonchanProbe";
+import useEchProxyStatus from "../hooks/useEchProxyStatus";
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "../api/peerMedia";
-import { CONFIG_MODE_KEY, MODE_AUTO, MODE_MANUAL } from "../api/probe";
+import {
+  CONFIG_MODE_KEY,
+  MODE_AUTO,
+  MODE_MANUAL,
+  runMoonchanProbe,
+} from "../api/probe";
 
 // 26-09-08: 配置模式 — 自动档 (探测自动选源) / 手动档 (自己填, 探测不许覆盖)
 const MODE_KEY = CONFIG_MODE_KEY;
@@ -40,28 +46,35 @@ const AutoConfig = () => {
 // ====== 模式切换按钮 ======
 function ModeToggle({ mode, onModeChange }) {
   return (
-    <div className="flex items-center gap-1 mb-3 p-1 bg-gray-100 rounded-lg">
-      <button
-        onClick={() => onModeChange(MODE_AUTO)}
-        className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-          mode === MODE_AUTO
-            ? "bg-white text-blue-600 shadow-sm"
-            : "text-gray-500 hover:text-gray-700"
-        }`}
-      >
-        自动档
-      </button>
-      <button
-        onClick={() => onModeChange(MODE_MANUAL)}
-        className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-          mode === MODE_MANUAL
-            ? "bg-white text-blue-600 shadow-sm"
-            : "text-gray-500 hover:text-gray-700"
-        }`}
-      >
-        手动档
-      </button>
-    </div>
+    <>
+      <div className="flex items-center gap-1 mb-2 p-1 bg-gray-100 rounded-lg">
+        <button
+          onClick={() => onModeChange(MODE_AUTO)}
+          className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            mode === MODE_AUTO
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          自动档
+        </button>
+        <button
+          onClick={() => onModeChange(MODE_MANUAL)}
+          className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
+            mode === MODE_MANUAL
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          手动档
+        </button>
+      </div>
+      <p className="text-xs text-gray-400 mb-2">
+        {mode === MODE_AUTO
+          ? "自动探测可用源并切换，会覆盖手动填写的地址"
+          : "只用你选的源，自动探测不再改你的设置"}
+      </p>
+    </>
   );
 }
 
@@ -156,6 +169,15 @@ const ImageConfig = () => {
   );
 };
 
+// 26-09-08: 自动档探测结果 → 人话。不切的时候要说清为什么不切，否则用户以为按钮坏了。
+const PROBE_RESULT_TEXT = {
+  switched: "已切到 ech-proxy",
+  manual: "手动档不自动改源",
+  "non-cn": "非 CN 网络，不启用 moonchan 源",
+  throttled: "刚刚探测过，稍后再试",
+  unreachable: "未检测到 ech-proxy，保持当前源",
+};
+
 const VideoConfig = () => {
   const [vidProxy, setVidProxy] = useLocalStorage(
     "video-proxy-v5",
@@ -165,25 +187,9 @@ const VideoConfig = () => {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState("");
 
-  // ech-proxy 开启检测: 探测 twimg.l.moonchan.xyz:8443/favicon.ico
+  // ech-proxy 开启检测: 与自动档探测同一套判定 (isReachable / no-cors)
   // 能通 → "已开启" (绿), 不通 → "需下载 APK/EXE" (黄)
-  const [echStatus, setEchStatus] = useState("checking"); // checking | enabled | disabled
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 5000);
-    fetch("https://twimg.l.moonchan.xyz:8443/favicon.ico", {
-      signal: controller.signal,
-      mode: "no-cors", // 不需要读响应, 只要能通就算开启
-    })
-      .then((res) => setEchStatus("enabled"))
-      .catch(() => setEchStatus("disabled"))
-      .finally(() => clearTimeout(timer));
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, []);
+  const [echStatus, recheckEch] = useEchProxyStatus();
 
   const echNote =
     echStatus === "checking"
@@ -246,11 +252,37 @@ const VideoConfig = () => {
       />
     ));
 
+  // 自动档: 手动重跑一次探测 (force 绕过 5 分钟节流), 让选择结果可复查
+  const [, setImageProxy] = useLocalStorage("image-proxy-v5", DEFAULT_IMAGE_PROXY);
+  const [reprobing, setReprobing] = useState(false);
+  const [probeResult, setProbeResult] = useState(null); // null | MoonchanProbeResult
+
+  const handleReprobe = async () => {
+    setReprobing(true);
+    setProbeResult(null);
+    const result = await runMoonchanProbe(setImageProxy, setVidProxy, 5000, {
+      force: true,
+    });
+    setProbeResult(result);
+    setReprobing(false);
+    // 同步刷新 ech-proxy 那一行的"已开启 / 需下载"标注
+    recheckEch();
+  };
+
+  // 切档时顺带重测一次 ech-proxy，让标注和自动档的决策保持同一份事实
+  const handleModeChange = (next) => {
+    setMode(next);
+    recheckEch();
+  };
+
+  // 手动档专用: 只刷新检测标注, 不改任何源
+  const handleRecheckOnly = () => recheckEch();
+
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
       <h3 className="text-sm font-semibold text-gray-700">视频源</h3>
 
-      <ModeToggle mode={mode} onModeChange={setMode} />
+      <ModeToggle mode={mode} onModeChange={handleModeChange} />
 
       {mode === MODE_AUTO ? (
         // 自动档: 只读展示, 当前源打勾 (自定义源也列出)
@@ -267,6 +299,24 @@ const VideoConfig = () => {
               disabled
             />
           )}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleReprobe}
+              disabled={reprobing}
+              className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-50 transition-colors"
+            >
+              {reprobing ? "探测中..." : "重新探测"}
+            </button>
+            {probeResult !== null && (
+              <span
+                className={`text-xs ${
+                  probeResult.switched ? "text-green-600" : "text-gray-400"
+                }`}
+              >
+                {PROBE_RESULT_TEXT[probeResult.reason]}
+              </span>
+            )}
+          </div>
         </div>
       ) : (
         // 手动档: 列表常驻, 点"自定义"在它下面展开输入框
@@ -282,6 +332,7 @@ const VideoConfig = () => {
             noTest
           />
 
+          {/* 点"自定义"才在它正下方展开输入框; 未展开时不占位 */}
           {showCustomInput && (
             <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
               <input
@@ -313,6 +364,15 @@ const VideoConfig = () => {
               </div>
             </div>
           )}
+
+          {/* 手动档只重测 ech-proxy 标注, 不动用户选的源 */}
+          <button
+            onClick={handleRecheckOnly}
+            disabled={echStatus === "checking"}
+            className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-50 transition-colors"
+          >
+            {echStatus === "checking" ? "检测中..." : "重新检测 ech-proxy"}
+          </button>
         </div>
       )}
     </div>
