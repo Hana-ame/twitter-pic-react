@@ -59,9 +59,9 @@ const HelpPage = ({ onClick }) => {
             <br />
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://gh-proxy.org/https://github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.0/app-release.apk"
+              href="https://gh-proxy.org/https://github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.1/app-release.apk"
             >
-              v0.5.0
+              v0.5.1
             </a>
           </p>
           <p className="text-gray-500">
