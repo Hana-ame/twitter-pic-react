@@ -1,14 +1,12 @@
 import { useEffect, useRef } from "react";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
-import {
-  runMoonchanProbe,
-  normalizeImageProxy,
-  CONFIG_MODE_KEY,
-  MODE_AUTO,
-} from "../api/probe";
+import { runMoonchanProbe, CONFIG_MODE_KEY, MODE_AUTO } from "../api/probe";
 
 /**
  * 26-09-08: 探测 moonchan 备份 CDN, 健康则把视频代理切过去。
+ *
+ * 26-09-11: 这个 hook 只管视频源 —— 图片源固定 pbs.moonchan.xyz, URL 由
+ * overrideImageProxy() 决定, 与档位 / 探测完全无关 (本地值纠正见 useFixedImageProxy)。
  *
  * 26-09-08: 改成跟随配置模式 —— 只有自动档才允许自动改源。
  * - 手动档 (config-mode-v5 === "manual"): 完全不探测, 用户手填的地址不会被冲掉。
@@ -18,13 +16,9 @@ import {
  * - useLocalStorage 在写值时会手动派发 storage 事件, 所以这里读到的 mode
  *   和其它组件里的 ModeToggle 是同步的。
  *
- * 26-09-11: 图片源固定 pbs.moonchan.xyz —— 任何档位 / 任何网络下都先把本地存的
- * 历史值纠正回固定源 (旧版本探测写过 ech-proxy), 探测本身只管视频。
- *
  * @param timeoutMs favicon 请求超时; 默认 5s。
  */
 export default function useMoonchanProbe(timeoutMs = 5000): void {
-  const [, setImage] = useLocalStorage("image-proxy-v5", "");
   const [, setVideo] = useLocalStorage("video-proxy-v5", "");
   const [mode] = useLocalStorage<string>(CONFIG_MODE_KEY, MODE_AUTO);
 
@@ -34,9 +28,6 @@ export default function useMoonchanProbe(timeoutMs = 5000): void {
   useEffect(() => {
     const isFirstRun = !initializedRef.current;
     initializedRef.current = true;
-
-    // 图片固定源: 与档位、网络无关, 先纠正本地存的历史值。
-    normalizeImageProxy(setImage);
 
     // 手动档: 不探测也不改视频源, 保持用户手选的源。
     if (mode !== MODE_AUTO) return;

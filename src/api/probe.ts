@@ -1,20 +1,19 @@
-// 26-09-08: moonchan / ech-proxy 备份源探测。
+// 26-09-08: moonchan / ech-proxy 备份源探测 —— 只管视频源。
 // 探测目标 https://twimg.l.moonchan.xyz:8443/favicon.ico 可达时,
-// 把 video-proxy-v5 切到 https://twimg.l.moonchan.xyz:8443 (ech-proxy),
-// 让视频源走这个节点。
+// 把 video-proxy-v5 切到 https://twimg.l.moonchan.xyz:8443 (ech-proxy)。
 // 探测不到 (超时 / 连不上 / 抛错) 就什么都不改, 保持用户当前配置。
 // 26-09-08: 非CN 一律不探测(moonchan 只在 CN 有效, 探测本身也走外网被墙)。
 // 26-09-08: 手动档一律不探测 / 不改写 (用户在配置页选的源必须原样保留)。
-// 26-09-11: 图片源固定 pbs.moonchan.xyz, 探测不再动 image-proxy-v5 ——
-//           ech-proxy 只承接视频, 图片全部走 pbs.moonchan.xyz (见 proxyOverride.ts)。
+//
+// 26-09-11: 本文件与图片源完全无关 —— 图片固定 pbs.moonchan.xyz, URL 由
+//           proxyOverride.overrideImageProxy() 决定 (不看档位); 本地存的图片源
+//           由 api/imageProxy.ts + hooks/useFixedImageProxy.ts 纠正 (同样不看档位)。
 
 import { isNonCN } from "./proxyOverride";
-import { FIXED_IMAGE_PROXY } from "./endpoints";
 
 export const MOONCHAN_PROBE_URL = "https://twimg.l.moonchan.xyz:8443/favicon.ico";
 export const MOONCHAN_PROBE_TARGET = "https://twimg.l.moonchan.xyz:8443";
 
-export const IMAGE_PROXY_KEY = "image-proxy-v5";
 export const VIDEO_PROXY_KEY = "video-proxy-v5";
 // 用于节流: 同一时间窗内不重复探测, 避免多次挂载时重复发请求。
 const PROBE_TS_KEY = "moonchan-probe-ts";
@@ -36,28 +35,6 @@ export function isManualMode(): boolean {
   } catch {
     return false;
   }
-}
-
-/**
- * 26-09-11: 图片源固定 pbs.moonchan.xyz, 这里把 localStorage 里的历史值纠正回来。
- *
- * 旧版本的自动探测会把 image-proxy-v5 写成 ech-proxy (twimg.l.moonchan.xyz:8443),
- * 或者在更早的图片源配置里被选成 twimg.moonchan.xyz / peerjs / 第三方地址;
- * 这些值现在都不该再影响图片 —— overrideImageProxy 本身已经忽略它们,
- * 这一步只是让本地存储和 UI 显示保持一致。
- * 档位无关 —— 图片不提供手动配置 (配置页已无图片源选项), 任何档位都按固定源算。
- */
-export function normalizeImageProxy(setImage: (v: string) => void): void {
-  let raw: string | null = null;
-  try {
-    raw = localStorage.getItem(IMAGE_PROXY_KEY);
-  } catch {
-    return;
-  }
-  // useLocalStorage 存的是 JSON, 字符串值带引号 (如 "\"https://pbs.moonchan.xyz\"");
-  // 两种写法都算已经是固定源, 免得每次挂载都重复写一遍 + 派发 storage 事件。
-  if (raw === JSON.stringify(FIXED_IMAGE_PROXY) || raw === FIXED_IMAGE_PROXY) return;
-  setImage(FIXED_IMAGE_PROXY);
 }
 
 /**
@@ -101,7 +78,7 @@ export interface MoonchanProbeResult {
 /**
  * 探测 MOONCHAN_PROBE_URL; 若可达, 把视频源切到 MOONCHAN_PROBE_TARGET (ech-proxy)。
  *
- * 26-09-11: 只管视频 —— 图片源固定 pbs.moonchan.xyz, 不在这里改 (见 normalizeImageProxy)。
+ * 只管视频源 —— 图片源固定 pbs.moonchan.xyz, 与本函数无关, 也不受档位影响。
  *
  * - 手动档: 直接跳过 —— 用户在配置页手选的源不许被自动探测覆盖。
  * - 非CN: 直接跳过, 不发请求(moonchan 只在 CN 有效, 非CN 走外网探测本身也会被墙)。

@@ -1,15 +1,10 @@
-// 26-09-11: 图片源固定 pbs.moonchan.xyz 的回归测试。
-// 覆盖: 展示/下载用的 URL 替换, 以及自动探测不再改图片源。
+// 26-09-11: 图片源固定 pbs.moonchan.xyz 的回归测试 (URL 替换 + 本地值纠正)。
 
-import {
-  overrideImageProxy,
-  overrideVideoProxy,
-} from "./proxyOverride";
+import { overrideImageProxy, overrideVideoProxy } from "./proxyOverride";
+import { IMAGE_PROXY_KEY, normalizeStoredImageProxy } from "./imageProxy";
 import {
   runMoonchanProbe,
-  normalizeImageProxy,
   MOONCHAN_PROBE_TARGET,
-  IMAGE_PROXY_KEY,
   VIDEO_PROXY_KEY,
 } from "./probe";
 import { FIXED_IMAGE_PROXY } from "./endpoints";
@@ -53,22 +48,27 @@ describe("overrideVideoProxy: 视频仍按所选视频源替换", () => {
   });
 });
 
-describe("normalizeImageProxy: 纠正本地存的历史图片源", () => {
+describe("normalizeStoredImageProxy: 纠正本地存的历史图片源", () => {
   it("ech-proxy 脏值被改回固定源", () => {
     localStorage.setItem(
       IMAGE_PROXY_KEY,
       JSON.stringify(MOONCHAN_PROBE_TARGET),
     );
     const setImage = jest.fn();
-    normalizeImageProxy(setImage);
+    normalizeStoredImageProxy(setImage);
     expect(setImage).toHaveBeenCalledWith(FIXED_IMAGE_PROXY);
   });
 
-  it("旧 twimg 入口 / peerjs 也被改回固定源", () => {
-    for (const stale of ["https://twimg.moonchan.xyz", "peerjs"]) {
+  it("旧 twimg 入口 / peerjs / 第三方地址都被改回固定源", () => {
+    for (const stale of [
+      "https://twimg.moonchan.xyz",
+      "https://twimg.l.moonchan.xyz:8443",
+      "peerjs",
+      "https://my-own-proxy.example",
+    ]) {
       localStorage.setItem(IMAGE_PROXY_KEY, JSON.stringify(stale));
       const setImage = jest.fn();
-      normalizeImageProxy(setImage);
+      normalizeStoredImageProxy(setImage);
       expect(setImage).toHaveBeenCalledWith(FIXED_IMAGE_PROXY);
     }
   });
@@ -76,15 +76,14 @@ describe("normalizeImageProxy: 纠正本地存的历史图片源", () => {
   it("已经是固定源时不重复写", () => {
     localStorage.setItem(IMAGE_PROXY_KEY, JSON.stringify(FIXED_IMAGE_PROXY));
     const setImage = jest.fn();
-    normalizeImageProxy(setImage);
+    normalizeStoredImageProxy(setImage);
     expect(setImage).not.toHaveBeenCalled();
   });
 });
 
-describe("runMoonchanProbe: 只切视频源", () => {
-  it("ech-proxy 可达时切视频源, 图片源不被探测改写", async () => {
+describe("runMoonchanProbe: 只切视频源, 图片源不受影响", () => {
+  it("ech-proxy 可达时切视频源, 且完全不碰 image-proxy-v5", async () => {
     localStorage.setItem("country", "CN");
-    const setImage = jest.fn();
     const setVideo = jest.fn();
     global.fetch = jest.fn().mockResolvedValue({ ok: true }) as any;
 
@@ -92,16 +91,15 @@ describe("runMoonchanProbe: 只切视频源", () => {
 
     expect(result).toEqual({ switched: true, reason: "switched" });
     expect(setVideo).toHaveBeenCalledWith(MOONCHAN_PROBE_TARGET);
-    expect(setImage).not.toHaveBeenCalled();
-    expect(localStorage.getItem(VIDEO_PROXY_KEY)).toBeNull(); // 探测只回调 setter, 不直接写存储
+    expect(localStorage.getItem(VIDEO_PROXY_KEY)).toBeNull(); // 只回调 setter, 不直接写存储
+    expect(localStorage.getItem(IMAGE_PROXY_KEY)).toBeNull(); // 探测不碰图片源
   });
 
-  it("手动档不探测也不改源", async () => {
+  it("手动档不探测也不改源 (两种存储写法都认)", async () => {
     localStorage.setItem("country", "CN");
     const setVideo = jest.fn();
     global.fetch = jest.fn().mockResolvedValue({ ok: true }) as any;
 
-    // 两种写法都算手动档: useLocalStorage 写的 JSON 字符串, 和裸字符串
     for (const raw of [JSON.stringify("manual"), "manual"]) {
       localStorage.setItem("config-mode-v5", raw);
       setVideo.mockClear();

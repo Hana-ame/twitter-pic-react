@@ -33,7 +33,8 @@ import {
   overrideVideoProxy,
 } from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
-import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时探测 moonchan 备份 CDN
+import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时探测 moonchan 备份 CDN (只管视频)
+import useFixedImageProxy from "./hooks/useFixedImageProxy"; // 26-09-11: 图片源固定 pbs.moonchan.xyz, 与档位无关
 
 import Ranking from "./components/Ranking";
 
@@ -111,7 +112,7 @@ const Main = ({ profile, handleSetProfile }) => {
   // 26-09-08: 挂载时探测 https://twimg.l.moonchan.xyz:8443/favicon.ico,
   // 可达就把视频源切过去 (判定用 no-cors, 见 api/probe.ts)。
   // 手动档下 runMoonchanProbe 直接短路, 不会覆盖用户手选的源。
-  // 26-09-11: 图片源固定 pbs.moonchan.xyz, 探测只管视频 (hook 内会顺手纠正本地存的图片源脏值)。
+  // 26-09-11: 只影响视频源 —— 图片源固定 pbs.moonchan.xyz, 与档位无关。
   useMoonchanProbe();
 
   // 26-09-08: 页面卸载时释放所有 PeerJS 连接和 Blob URL (防内存泄漏)
@@ -1072,6 +1073,10 @@ const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+
+  // 26-09-11: 图片源固定 pbs.moonchan.xyz —— 挂在最外层, 所有页面 (主页/排行榜/帮助页)
+  // 都会跑一次; 这个 hook 不读自动档 / 手动档, 所以图片行为和档位无关。
+  useFixedImageProxy();
 
   const [ranking, setRanking] = useState(false); // 正在投票的 emoji，用于禁用按钮
   // 首次加载时
