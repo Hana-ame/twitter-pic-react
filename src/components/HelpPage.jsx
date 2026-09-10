@@ -55,12 +55,13 @@ const HelpPage = ({ onClick }) => {
           onClick={() => handleOnClickBlock("dsv4.1f")}
         >
           <p className="text-gray-500">
-            大改版，非常好用！
+            大改版，非常好用！推荐下载这个。昨天那个apk写的什么区
+            <br />
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.0/app-release.apk"
+              href="https://gh-proxy.org/https://github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.0/app-release.apk"
             >
-              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.0/app-release.apk
+              v0.5.0
             </a>
           </p>
         </Block>
