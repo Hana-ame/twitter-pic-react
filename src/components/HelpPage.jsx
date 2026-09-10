@@ -64,6 +64,14 @@ const HelpPage = ({ onClick }) => {
               v0.5.0
             </a>
           </p>
+          <p className="text-gray-500">
+            另外x.810114.xyz被举报，可以分流到<a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://x.4545810.xyz"
+            >
+              x.4545810.xyz
+            </a>
+          </p>
         </Block>
         
         {/* 豆腐块4 - ech-proxy 本地代理 */}
