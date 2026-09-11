@@ -8,7 +8,8 @@ import { ENDPOINT } from "./endpoints";
 // 25-08-14: 支持 AbortSignal, 原因同 getTags (快速切 profile 时旧请求占用连接池)。
 export function getEmojis(username: string, signal?: AbortSignal) {
     return new Promise((resolve, reject) => {
-        fetch(`${ENDPOINT}/emojis?username=${username}`, {
+        // 修复: username 含 # & 空格 时会破坏 URL, 用 encodeURIComponent 编码。
+        fetch(`${ENDPOINT}/emojis?username=${encodeURIComponent(username)}`, {
             method: 'GET',
             signal,
         }).then(res => res.json()).then(data => {

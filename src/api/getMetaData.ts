@@ -16,6 +16,11 @@ export default async function getMetaData(username: string, t: string = "") {
   }
 
   const res = await fetch(url.toString());
+  // 修复: 服务端 4xx/5xx 时 res.json() 会抛 "Unexpected token '<'" (HTML 错误页),
+  // 抛出可读的 HTTP 错误信息, 便于调用方区分 "网络失败" vs "服务端拒绝"。
+  if (!res.ok) {
+    throw new Error(`getMetaData failed: HTTP ${res.status} ${res.statusText} for user "${username}"`);
+  }
 
   // 注意：如果返回的是 .gz 压缩包，某些环境下 fetch 可能需要处理解压
   // 但通常浏览器/Node 运行时会自动处理 Content-Encoding: gzip

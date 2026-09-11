@@ -525,7 +525,7 @@ const Main = ({ profile, handleSetProfile }) => {
       for (let i = 0; i < profile.timeline.length; i++) {
         const item = profile.timeline[i];
         const fileName = extractFileName(item.url, i, item.type);
-        const finalUrl = getProxiedUrl(item.url, item.type);
+        const finalUrl = await getProxiedUrl(item.url, item.type);
 
         setStatusMsg(`下载中 (${i + 1}/${profile.timeline.length})...`);
 
@@ -592,7 +592,7 @@ const Main = ({ profile, handleSetProfile }) => {
       for (let i = 0; i < profile.timeline.length; i++) {
         const item = profile.timeline[i];
         const fileName = extractFileName(item.url, i, item.type);
-        const finalUrl = getProxiedUrl(item.url, item.type);
+        const finalUrl = await getProxiedUrl(item.url, item.type);
 
         setStatusMsg(
           `正在推送第 (${i + 1}/${profile.timeline.length}) 个到下载列表...`,

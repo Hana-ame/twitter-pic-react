@@ -9,6 +9,17 @@ import { DEFAULT_SIGNALING } from "../api/peerMedia";
 import { PeerVideo } from "./PeerMedia";
 import PhotoV2 from "./PhotoV2";
 
+// 将外部输入做 HTML 实体转义, 防止 srcDoc 模板被 URL 注入 (iframe 沙箱逃逸 / 属性注入)
+const escapeHtml = (s: string): string => {
+  if (typeof s !== "string") return "";
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
+
 type MediaProps = {
   url: string;
   type: string;
@@ -68,6 +79,9 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
   // 构造 iframe 内部的 HTML
   // 1. 设置 meta referrer 为 no-referrer (这是核心，用于绕过防盗链)
   // 2. 移除 autoplay，保留 controls 和 poster，这样默认显示封面且不自动播放
+  // 3. URL / poster 来自外部输入，必须做 HTML 实体转义，避免 srcDoc 属性注入
+  const safeUrl = escapeHtml(url);
+  const safePoster = escapeHtml(poster || "");
   const iframeHtml = `
         <!DOCTYPE html>
         <html>
@@ -84,9 +98,9 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                 controls 
                 playsinline
                 preload="metadata"
-                poster="${poster || ""}"
+                poster="${safePoster}"
             >
-                <source src="${url}" type="video/mp4">
+                <source src="${safeUrl}" type="video/mp4">
             </video>
         </body>
         </html>
@@ -103,7 +117,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
           srcDoc={iframeHtml}
           className="w-full h-full border-none"
           referrerPolicy="no-referrer"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+          sandbox="allow-scripts allow-forms allow-presentation"
           allowFullScreen
         />
       </div>

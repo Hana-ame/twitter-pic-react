@@ -68,8 +68,10 @@ const FavList = ({ onClick }) => {
             const parts = cleanLine.replace(/\/+$/, '').split('/');
             const key = parts.pop();
 
-            // 简单的校验：确保 key 存在且不是 http/https (防止只输入了域名没有username)
-            if (key && key !== 'http:' && key !== 'https:') {
+            // 修复: 之前只排除 'http:'/'https:', 对 `https://x.810114.xyz` (无尾斜杠) 会
+            // 让 .pop() 拿到域名 'x.810114.xyz', 直接当 username 存进 favMap。
+            // 校验 key 不含 '.' 和 ':', 域名 (含 . 或 ://) 一律拒绝。
+            if (key && !key.includes('.') && !key.includes(':')) {
                 // 如果为了保证导入的顺序也是“新入在前”，
                 // 实际上 JS Object 并不严格保证顺序，但通常追加的 Key 会在最后。
                 // 渲染时 reverse 即可。

@@ -4,13 +4,15 @@ type ListType = "users";
 type SearchMethod = "username" | "nick"
 
 export async function getUserList(after?: string) {
-    const response = await fetch(`${ENDPOINT}/?list=users${after ? "&after=" + after : ""}`);
+    // 修复: after 含 # & 空格 时会破坏 URL, 用 encodeURIComponent 编码。
+    const response = await fetch(`${ENDPOINT}/?list=users${after ? "&after=" + encodeURIComponent(after) : ""}`);
     return response.json();
 }
 export async function searchUserList(by: SearchMethod, search: string) {
     if (by !== "username" && by !== "nick") return []
     if (search === "") return []
 
-    const response = await fetch(`${ENDPOINT}/?by=${by}&search=${search}`);
+    // 修复: search 是自由文本 (可含空格 / & / #), 必须编码。
+    const response = await fetch(`${ENDPOINT}/?by=${by}&search=${encodeURIComponent(search)}`);
     return response.json();
 }

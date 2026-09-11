@@ -148,9 +148,9 @@ const Advertisement = () => {
     return (
         <div ref={containerRef} className="w-full">
             <div className="flex flex-wrap justify-center">
-                {randomAds.map((obj, index) => (
+                {randomAds.map((obj) => (
                     <a
-                        key={index}
+                        key={obj.a}
                         href={obj.a}
                         rel="noreferrer"
                         target="_blank"

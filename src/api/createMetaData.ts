@@ -20,13 +20,17 @@ export default async function createMetaData(
   }
 
   // 3. 发送请求
-  await fetch(url.toString(), {
+  // 修复: 之前未检查 res.ok, 服务端 4xx/5xx 会被静默当成功 (调用方以为 create 完成)。
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : null,
   });
+  if (!res.ok) {
+    throw new Error(`createMetaData failed: HTTP ${res.status} ${res.statusText}`);
+  }
 
   return;
 }

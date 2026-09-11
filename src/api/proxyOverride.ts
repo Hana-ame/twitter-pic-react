@@ -26,8 +26,18 @@ export const isMoonchanProxy = (proxy?: string | null): boolean => {
 };
 
 // 非CN判断: CN / 空 / 脏值(非字符串) 都按 CN 处理(走代理), 只有明确非CN才弹回。
+// 修复: Safari 隐私模式下 localStorage.getItem 会抛 SecurityError;
+// 包 try/catch, 失败时按 CN 处理 (返回 false = 未禁用代理), 保持安全默认。
 export const isNonCN = (): boolean => {
-  const country = localStorage.getItem("country");
+  let country: string | null;
+  try {
+    country = localStorage.getItem("country");
+  } catch {
+    // localStorage 被禁 (Safari 隐私模式 / 第三方 cookie 阻断)
+    // 按 CN 处理, 走代理 —— 对墙内用户是正确选择, 对墙外用户最多多绕一次代理,
+    // 不会出现 404 / 显示失败这种更糟的结果。
+    return false;
+  }
   return !(country === "CN" || country === "" || typeof country !== "string");
 };
 

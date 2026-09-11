@@ -152,9 +152,9 @@ const HeaderV2 = ({ user, onClick }) => {
       {/* Tag 显示区域：右下角 */}
       {displayTags.length > 0 && (
         <div className="absolute bottom-2 right-2 flex flex-wrap justify-end gap-1 pointer-events-none">
-          {displayTags.map((tag, index) => (
+          {displayTags.map((tag) => (
             <span
-              key={index}
+              key={tag}
               className="px-1.5 py-0.5 text-xs font-medium text-blue-800 bg-blue-100 rounded-md border border-blue-200 opacity-90"
             >
               {tag}
