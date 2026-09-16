@@ -1,27 +1,76 @@
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 
-export const GAY_TAGS = new Set<string>(["男同", "男性", "露屌"]);
+export const DEFAULT_GAY_TAGS: string[] = ["男同", "男性", "露屌"];
+export const GAY_TAGS = new Set<string>(DEFAULT_GAY_TAGS);
+export const GAY_TAGS_KEY = "gay-tags";
+export const TP_GAY_TAGS_KEY = "tp_gay_tags_v1";
 export const GAY_MODE_KEY = "gay-mode";
 export const TP_GAY_MODE_KEY = "tp_gay_mode_v1";
 
 /**
- * 检查标签是否属于 Gay 模式控制的标签 (男同 / 男性 / 露屌)
+ * 规范化并读取当前配置的 Gay 标签列表
  */
-export function isGayTag(tag: string): boolean {
-  return GAY_TAGS.has(tag);
+export function getGayTags(): string[] {
+  if (typeof window === "undefined") return [...DEFAULT_GAY_TAGS];
+  try {
+    const raw = window.localStorage.getItem(GAY_TAGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((t) => String(t).trim().replace(/^#+/, "")).filter(Boolean);
+      }
+    }
+    const rawGo = window.localStorage.getItem(TP_GAY_TAGS_KEY);
+    if (rawGo) {
+      const parsedGo = JSON.parse(rawGo);
+      if (Array.isArray(parsedGo) && parsedGo.length > 0) {
+        return parsedGo.map((t) => String(t).trim().replace(/^#+/, "")).filter(Boolean);
+      }
+    }
+  } catch (e) {}
+  return [...DEFAULT_GAY_TAGS];
+}
+
+/**
+ * 保存 Gay 标签列表并同步多存储 key 与跨组件事件
+ */
+export function saveGayTags(tags: string[]): void {
+  if (typeof window === "undefined") return;
+  const clean = Array.from(new Set(tags.map((t) => String(t).trim().replace(/^#+/, "")).filter(Boolean)));
+  try {
+    window.localStorage.setItem(GAY_TAGS_KEY, JSON.stringify(clean));
+    window.localStorage.setItem(TP_GAY_TAGS_KEY, JSON.stringify(clean));
+    window.dispatchEvent(new CustomEvent("gay-tags-change", { detail: clean }));
+  } catch (e) {}
+}
+
+/**
+ * 检查标签是否属于 Gay 模式控制的标签 (支持自定义列表或传入集合)
+ */
+export function isGayTag(tag: string, customGayTags?: string[] | Set<string>): boolean {
+  const clean = tag.replace(/^#+/, "").trim();
+  if (customGayTags) {
+    return customGayTags instanceof Set ? customGayTags.has(clean) : customGayTags.includes(clean);
+  }
+  const current = getGayTags();
+  return current.includes(clean);
 }
 
 /**
  * 判断标签列表或标签字典中是否包含任一 Gay 标签
  */
-export function hasGayTag(tags: string[] | Record<string, any> | undefined | null): boolean {
+export function hasGayTag(
+  tags: string[] | Record<string, any> | undefined | null,
+  customGayTags?: string[] | Set<string>
+): boolean {
   if (!tags) return false;
+  const check = (t: string) => isGayTag(t, customGayTags);
   if (Array.isArray(tags)) {
-    return tags.some((t) => typeof t === "string" && isGayTag(t));
+    return tags.some((t) => typeof t === "string" && check(t));
   }
   if (typeof tags === "object") {
-    return Object.keys(tags).some((t) => isGayTag(t));
+    return Object.keys(tags).some((t) => check(t));
   }
   return false;
 }
@@ -33,9 +82,10 @@ export function hasGayTag(tags: string[] | Record<string, any> | undefined | nul
  */
 export function matchesGayMode(
   tags: string[] | Record<string, any> | undefined | null,
-  gayMode: boolean
+  gayMode: boolean,
+  customGayTags?: string[] | Set<string>
 ): boolean {
-  const has = hasGayTag(tags);
+  const has = hasGayTag(tags, customGayTags);
   return gayMode ? has : !has;
 }
 
@@ -85,4 +135,65 @@ export function useGayMode(): [
   }, [setGayMode]);
 
   return [gayMode, toggleGayMode, setGayMode];
+}
+
+/**
+ * React Hook: 获取与配置 Gay 标签列表
+ */
+export function useGayTags(): [
+  string[],
+  (tags: string[]) => void,
+  (tag: string) => void,
+  (tag: string) => void,
+  () => void
+] {
+  const [tags, setTagsState] = useState<string[]>(getGayTags);
+
+  useEffect(() => {
+    const handleTagsChange = (e: Event) => {
+      const detail = (e as CustomEvent<string[]>).detail;
+      if (Array.isArray(detail)) {
+        setTagsState(detail);
+      } else {
+        setTagsState(getGayTags());
+      }
+    };
+    window.addEventListener("gay-tags-change", handleTagsChange);
+    window.addEventListener("storage", handleTagsChange);
+    return () => {
+      window.removeEventListener("gay-tags-change", handleTagsChange);
+      window.removeEventListener("storage", handleTagsChange);
+    };
+  }, []);
+
+  const setGayTags = useCallback((next: string[]) => {
+    saveGayTags(next);
+    setTagsState(next);
+  }, []);
+
+  const addGayTag = useCallback((newTag: string) => {
+    const clean = newTag.replace(/^#+/, "").trim();
+    if (!clean) return;
+    setTagsState((prev) => {
+      if (prev.includes(clean)) return prev;
+      const next = [...prev, clean];
+      saveGayTags(next);
+      return next;
+    });
+  }, []);
+
+  const removeGayTag = useCallback((tagToRemove: string) => {
+    const clean = tagToRemove.replace(/^#+/, "").trim();
+    setTagsState((prev) => {
+      const next = prev.filter((t) => t !== clean);
+      saveGayTags(next);
+      return next;
+    });
+  }, []);
+
+  const resetGayTags = useCallback(() => {
+    setGayTags([...DEFAULT_GAY_TAGS]);
+  }, [setGayTags]);
+
+  return [tags, setGayTags, addGayTag, removeGayTag, resetGayTags];
 }

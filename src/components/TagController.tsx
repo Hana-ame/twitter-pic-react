@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, Eye, EyeOff } from "lucide-react";
-import { useGayMode } from "../utils/gayMode";
+import { useGayMode, useGayTags } from "../utils/gayMode";
 
 const STORAGE_KEY = "tag-rules";
 
@@ -20,6 +20,7 @@ const DEFAULT_BLOCK = [
 
 const TagController = () => {
   const [gayMode, toggleGayMode] = useGayMode();
+  const [gayTags, setGayTags, addGayTag, removeGayTag, resetGayTags] = useGayTags();
   const [inputValue, setInputValue] = useState("");
   const [highlight, setHighlight] = useState<string[]>(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
@@ -125,8 +126,8 @@ const TagController = () => {
           </div>
           <div className="text-xs text-purple-700 mt-0.5">
             {gayMode
-              ? "已开启：显示男同、男性、露屌等标签"
-              : "已关闭：隐藏男同、男性、露屌等标签"}
+              ? `已开启：只显示包含【${gayTags.join(" / ")}】的账号`
+              : `已关闭：隐藏包含【${gayTags.join(" / ")}】的账号`}
           </div>
         </div>
         <button
@@ -168,6 +169,17 @@ const TagController = () => {
           className="flex-1 flex items-center justify-center gap-1 bg-red-100 text-red-700 px-3 py-2 rounded hover:bg-red-200 disabled:opacity-50 transition"
         >
           <EyeOff size={16} /> 屏蔽
+        </button>
+        <button
+          onClick={() => {
+            if (!inputValue.trim()) return;
+            addGayTag(inputValue);
+            setInputValue("");
+          }}
+          disabled={!inputValue.trim()}
+          className="flex-1 flex items-center justify-center gap-1 bg-purple-100 text-purple-700 px-3 py-2 rounded hover:bg-purple-200 disabled:opacity-50 transition"
+        >
+          <span>🌈</span> 设为Gay
         </button>
       </div>
 
@@ -220,6 +232,44 @@ const TagController = () => {
                 <button
                   onClick={() => removeTag(tag, "block")}
                   className="hover:text-red-900"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <hr className="border-gray-100" />
+
+        {/* Gay 标签列表 */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-semibold text-gray-500 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              Gay 专属标签 ({gayTags.length})
+            </h4>
+            <button
+              onClick={resetGayTags}
+              className="text-xs text-purple-600 hover:text-purple-800 underline"
+            >
+              恢复默认
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {gayTags.length === 0 && (
+              <span className="text-xs text-gray-400">无 Gay 标签</span>
+            )}
+            {gayTags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 text-sm rounded border border-purple-200"
+              >
+                {tag}
+                <button
+                  onClick={() => removeGayTag(tag)}
+                  className="hover:text-purple-900"
+                  title="从 Gay 列表中移除"
                 >
                   <Trash2 size={12} />
                 </button>

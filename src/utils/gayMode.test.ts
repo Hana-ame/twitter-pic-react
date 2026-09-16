@@ -1,4 +1,4 @@
-import { isGayTag, hasGayTag, matchesGayMode, getInitialGayMode, GAY_TAGS, GAY_MODE_KEY, TP_GAY_MODE_KEY } from "./gayMode";
+import { isGayTag, hasGayTag, matchesGayMode, getInitialGayMode, getGayTags, saveGayTags, GAY_TAGS, GAY_MODE_KEY, TP_GAY_MODE_KEY } from "./gayMode";
 
 describe("gayMode utilities", () => {
   beforeEach(() => {
@@ -62,5 +62,24 @@ describe("gayMode utilities", () => {
     expect(matchesGayMode(["露屌"], true)).toBe(true);
     expect(matchesGayMode(["二次元"], true)).toBe(false);
     expect(matchesGayMode([], true)).toBe(false);
+  });
+
+  test("getGayTags and saveGayTags allow custom gay list configuration", () => {
+    expect(getGayTags()).toEqual(["男同", "男性", "露屌"]);
+
+    // Save custom tags
+    saveGayTags(["男同", "男娘", "#伪娘"]);
+    expect(getGayTags()).toEqual(["男同", "男娘", "伪娘"]);
+
+    // Matches with custom tags
+    expect(matchesGayMode(["男娘"], true)).toBe(true);
+    expect(matchesGayMode(["男性"], true)).toBe(false); // 男性 is no longer in custom list
+
+    // Check localStorage fallback
+    localStorage.removeItem("gay-tags");
+    expect(getGayTags()).toEqual(["男同", "男娘", "伪娘"]); // from tp_gay_tags_v1
+
+    localStorage.clear();
+    expect(getGayTags()).toEqual(["男同", "男性", "露屌"]); // default fallback
   });
 });

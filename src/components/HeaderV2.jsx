@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
 import { FIXED_IMAGE_PROXY } from "../api/endpoints";
 import { extractDisplayTags } from "../utils/extract.js";
-import { useGayMode, isGayTag, matchesGayMode } from "../utils/gayMode";
+import { useGayMode, useGayTags, isGayTag, matchesGayMode } from "../utils/gayMode";
 
 const HeaderV2 = ({ user, onClick }) => {
   // 模拟从API获取的用户数据
@@ -12,6 +12,7 @@ const HeaderV2 = ({ user, onClick }) => {
   // 新增：用于存储经过筛选后需要显示的tag
   const [displayTags, setDisplayTags] = useState([]);
   const [gayMode] = useGayMode();
+  const [gayTags] = useGayTags();
 
   function fetchAndSet() {
     setUserData({ loading: true });
@@ -60,9 +61,9 @@ const HeaderV2 = ({ user, onClick }) => {
         const userTagKeys = extractDisplayTags(user.tags).map((t) => t.name);
 
         // Gay 模式正好取反：
-        // 开启 Gay 模式时：只显示包含男同/男性/露屌的用户（未包含则隐藏）
-        // 关闭 Gay 模式时：隐藏包含男同/男性/露屌的用户（包含则隐藏）
-        if (!matchesGayMode(userTagKeys, gayMode)) {
+        // 开启 Gay 模式时：只显示包含 Gay 标签的用户（未包含则隐藏）
+        // 关闭 Gay 模式时：隐藏包含 Gay 标签的用户（包含则隐藏）
+        if (!matchesGayMode(userTagKeys, gayMode, gayTags)) {
           setBlocked(true);
           flag = false;
         }
@@ -91,8 +92,8 @@ const HeaderV2 = ({ user, onClick }) => {
 
           for (let tag of userTagKeys) {
             // 2.1 检查是否触犯屏蔽词
-            // Gay 模式下，"男同"、"男性"、"露屌" 不触发屏蔽
-            const isGayBypass = gayMode && isGayTag(tag);
+            // Gay 模式下，配置的 Gay 标签不触发屏蔽
+            const isGayBypass = gayMode && isGayTag(tag, gayTags);
             if (!isGayBypass && blockRules.includes(tag)) {
               setBlocked(true);
               flag = false;
@@ -102,10 +103,10 @@ const HeaderV2 = ({ user, onClick }) => {
             // 2.2 检查是否命中高亮词
             // 非 Gay 模式下绝不显示 Gay 标签；Gay 模式下若命中高亮词或为 Gay 标签则展示
             if (highlightRules.includes(tag)) {
-              if (gayMode || !isGayTag(tag)) {
+              if (gayMode || !isGayTag(tag, gayTags)) {
                 tagsToShow.push(tag);
               }
-            } else if (gayMode && isGayTag(tag)) {
+            } else if (gayMode && isGayTag(tag, gayTags)) {
               tagsToShow.push(tag);
             }
           }
@@ -124,7 +125,7 @@ const HeaderV2 = ({ user, onClick }) => {
       setBlocked(false);
       fetchAndSet();
     }
-  }, [user, gayMode]);
+  }, [user, gayMode, gayTags]);
 
   // 被屏蔽不返回
   // 不渲染
