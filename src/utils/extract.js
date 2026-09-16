@@ -9,13 +9,25 @@ export const PRESET_CATEGORIES = [
 ];
 
 // 核心提取函数
-export const extractDisplayTags = (tags, categories = PRESET_CATEGORIES) => {
+export const extractDisplayTags = (
+  tags,
+  categories = PRESET_CATEGORIES,
+  excludeTags = null
+) => {
   if (!tags || Object.keys(tags).length === 0) return [];
+
+  const shouldExclude = (name) => {
+    if (!excludeTags) return false;
+    if (typeof excludeTags.has === "function") return excludeTags.has(name);
+    if (Array.isArray(excludeTags)) return excludeTags.includes(name);
+    return false;
+  };
 
   // --- 第一步：处理预设分类 (保留原有逻辑：取分类内最高分) ---
   const presetResults = categories.reduce((acc, category) => {
-    // 1. 获取该分类下所有 > 0 的标签
+    // 1. 获取该分类下所有 > 0 且未被排除的标签
     const relevantTags = category.tags
+      .filter((t) => !shouldExclude(t))
       .map((t) => ({ name: t, score: tags[t] || 0 }))
       .filter((t) => t.score > 0);
 
@@ -43,7 +55,10 @@ export const extractDisplayTags = (tags, categories = PRESET_CATEGORIES) => {
   const allPresetTags = new Set(categories.flatMap((c) => c.tags));
 
   const otherResults = Object.entries(tags)
-    .filter(([name, score]) => !allPresetTags.has(name) && score > 0)
+    .filter(
+      ([name, score]) =>
+        !allPresetTags.has(name) && !shouldExclude(name) && score > 0
+    )
     .sort(([, scoreA], [, scoreB]) => scoreB - scoreA) // 降序
     .map(([name, score]) => ({
       name,

@@ -1,11 +1,14 @@
 import React, { useMemo } from "react";
 import { extractDisplayTags, PRESET_CATEGORIES } from "../utils/extract.js"; 
+import { useGayMode, GAY_TAGS } from "../utils/gayMode";
 
 const TagDisplayArea = ({ tags }) => {
+  const [gayMode] = useGayMode();
+
   // 使用 useMemo 避免每次渲染都重新计算
   const displayList = useMemo(() => {
-    return extractDisplayTags(tags, PRESET_CATEGORIES);
-  }, [tags]);
+    return extractDisplayTags(tags, PRESET_CATEGORIES, gayMode ? null : GAY_TAGS);
+  }, [tags, gayMode]);
 
   if (displayList.length === 0) return null;
 

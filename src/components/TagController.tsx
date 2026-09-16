@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Plus, Eye, EyeOff } from "lucide-react"; // 假设使用 lucide-react 图标库，如果没有可用文字代替
+import { Trash2, Eye, EyeOff } from "lucide-react";
+import { useGayMode } from "../utils/gayMode";
 
 const STORAGE_KEY = "tag-rules";
 
@@ -18,6 +19,7 @@ const DEFAULT_BLOCK = [
 ];
 
 const TagController = () => {
+  const [gayMode, toggleGayMode] = useGayMode();
   const [inputValue, setInputValue] = useState("");
   const [highlight, setHighlight] = useState<string[]>(() => {
     const savedData = localStorage.getItem(STORAGE_KEY);
@@ -113,7 +115,31 @@ const TagController = () => {
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-md border border-gray-200 max-w-md">
-      <h3 className="text-lg font-bold mb-4 text-gray-800">标签显示控制</h3>
+      <h3 className="text-lg font-bold mb-3 text-gray-800">标签显示控制</h3>
+
+      {/* Gay 模式快捷开关 */}
+      <div className="mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200 flex items-center justify-between">
+        <div>
+          <div className="font-semibold text-purple-900 text-sm flex items-center gap-1.5">
+            <span>🌈</span> Gay 模式
+          </div>
+          <div className="text-xs text-purple-700 mt-0.5">
+            {gayMode
+              ? "已开启：显示男同、男性、露屌等标签"
+              : "已关闭：隐藏男同、男性、露屌等标签"}
+          </div>
+        </div>
+        <button
+          onClick={toggleGayMode}
+          className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${
+            gayMode
+              ? "bg-purple-600 text-white hover:bg-purple-700"
+              : "bg-white text-purple-700 border border-purple-300 hover:bg-purple-100"
+          }`}
+        >
+          {gayMode ? "已开启" : "开启"}
+        </button>
+      </div>
 
       {/* 输入区域 */}
       <div className="flex gap-2 mb-6">

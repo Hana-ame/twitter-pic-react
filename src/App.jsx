@@ -37,6 +37,7 @@ import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时�
 import useFixedImageProxy from "./hooks/useFixedImageProxy"; // 26-09-11: 图片源固定 pbs.moonchan.xyz, 与档位无关
 
 import Ranking from "./components/Ranking";
+import { useGayMode } from "./utils/gayMode";
 
 // --- 关键配置 ---
 // 指定你刚才放在 public 目录下的 mitm.html 的路径
@@ -1073,6 +1074,7 @@ const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [gayMode, toggleGayMode] = useGayMode();
 
   // 26-09-11: 图片源固定 pbs.moonchan.xyz —— 挂在最外层, 所有页面 (主页/排行榜/帮助页)
   // 都会跑一次; 这个 hook 不读自动档 / 手动档, 所以图片行为和档位无关。
@@ -1131,7 +1133,7 @@ const ResponsiveLayout = () => {
           {/* 左侧：返回主页 */}
           <button
             onClick={onClickHome}
-            className="flex-1 py-2 px-4 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
+            className="flex-1 py-2 px-3 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1147,14 +1149,14 @@ const ResponsiveLayout = () => {
                 d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
               />
             </svg>
-            <span className="ml-2">返回主页</span>
+            <span className="ml-1.5 font-medium">返回主页</span>
           </button>
 
-          {/* 右侧：排行榜 */}
+          {/* 中间：排行榜 */}
           <button
             onClick={onClickRanking}
             // 样式同上，仅 Hover 颜色改为紫色以示区分
-            className="flex-1 py-2 px-4 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-purple-500 hover:text-white transition-colors duration-200"
+            className="flex-1 py-2 px-3 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-purple-500 hover:text-white transition-colors duration-200"
           >
             {/* 柱状图图标 */}
             <svg
@@ -1171,7 +1173,21 @@ const ResponsiveLayout = () => {
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
-            <span className="ml-2">排行榜</span>
+            <span className="ml-1.5 font-medium">排行榜</span>
+          </button>
+
+          {/* 右侧：Gay模式 */}
+          <button
+            onClick={toggleGayMode}
+            className={`flex-1 py-2 px-3 flex items-center justify-center rounded-md transition-colors duration-200 ${
+              gayMode
+                ? "bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200 font-semibold shadow-sm"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+            title="切换 Gay 模式（显示男同/男性/露屌等标签）"
+          >
+            <span className="text-base mr-1">🌈</span>
+            <span className="font-medium">{gayMode ? "Gay模式 (开)" : "Gay模式"}</span>
           </button>
         </div>
 

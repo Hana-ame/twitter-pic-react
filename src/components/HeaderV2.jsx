@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
 import { FIXED_IMAGE_PROXY } from "../api/endpoints";
 import { extractDisplayTags } from "../utils/extract.js";
+import { useGayMode, isGayTag } from "../utils/gayMode";
 
 const HeaderV2 = ({ user, onClick }) => {
   // 模拟从API获取的用户数据
@@ -10,6 +11,7 @@ const HeaderV2 = ({ user, onClick }) => {
   const [blocked, setBlocked] = useState(false);
   // 新增：用于存储经过筛选后需要显示的tag
   const [displayTags, setDisplayTags] = useState([]);
+  const [gayMode] = useGayMode();
 
   function fetchAndSet() {
     setUserData({ loading: true });
@@ -54,26 +56,48 @@ const HeaderV2 = ({ user, onClick }) => {
       if (flag) {
         const rawRules = window.localStorage.getItem("tag-rules");
 
-        // 使用了先前的
+        // 提取用户的所有展示标签
         const userTagKeys = extractDisplayTags(user.tags).map((t) => t.name);
 
-        if (rawRules && userTagKeys.length > 0) {
-          const rules = JSON.parse(rawRules);
-          const blockRules = Array.isArray(rules.block) ? rules.block : [];
-          const highlightRules = Array.isArray(rules.highlight)
-            ? rules.highlight
-            : [];
+        if (userTagKeys.length > 0) {
+          let blockRules = [
+            "无关内容",
+            "男性",
+            "男娘",
+            "人妖",
+            "露屌",
+            "阳痿",
+            "男同",
+          ];
+          let highlightRules = [];
+
+          if (rawRules) {
+            try {
+              const rules = JSON.parse(rawRules);
+              if (Array.isArray(rules.block)) blockRules = rules.block;
+              if (Array.isArray(rules.highlight)) highlightRules = rules.highlight;
+            } catch (err) {
+              console.error("解析 tag-rules 出错:", err);
+            }
+          }
 
           for (let tag of userTagKeys) {
             // 2.1 检查是否触犯屏蔽词
-            if (blockRules.includes(tag)) {
+            // Gay 模式下，"男同"、"男性"、"露屌" 不触发屏蔽
+            const isGayBypass = gayMode && isGayTag(tag);
+            if (!isGayBypass && blockRules.includes(tag)) {
               setBlocked(true);
               flag = false;
               break;
             }
 
             // 2.2 检查是否命中高亮词
+            // 非 Gay 模式下绝不显示 Gay 标签；Gay 模式下若命中高亮词或为 Gay 标签则展示
             if (highlightRules.includes(tag)) {
+              if (gayMode || !isGayTag(tag)) {
+                tagsToShow.push(tag);
+              }
+            } else if (gayMode && isGayTag(tag)) {
               tagsToShow.push(tag);
             }
           }
@@ -89,9 +113,10 @@ const HeaderV2 = ({ user, onClick }) => {
     setDisplayTags(tagsToShow);
 
     if (flag) {
+      setBlocked(false);
       fetchAndSet();
     }
-  }, [user]);
+  }, [user, gayMode]);
 
   // 被屏蔽不返回
   // 不渲染
