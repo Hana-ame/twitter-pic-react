@@ -1,4 +1,4 @@
-import { isGayTag, getInitialGayMode, GAY_TAGS, GAY_MODE_KEY, TP_GAY_MODE_KEY } from "./gayMode";
+import { isGayTag, hasGayTag, matchesGayMode, getInitialGayMode, GAY_TAGS, GAY_MODE_KEY, TP_GAY_MODE_KEY } from "./gayMode";
 
 describe("gayMode utilities", () => {
   beforeEach(() => {
@@ -35,5 +35,32 @@ describe("gayMode utilities", () => {
   test("getInitialGayMode falls back to tp_gay_mode_v1 when gay-mode is not set", () => {
     localStorage.setItem(TP_GAY_MODE_KEY, "1");
     expect(getInitialGayMode()).toBe(true);
+  });
+
+  test("hasGayTag detects gay tags in arrays and objects", () => {
+    expect(hasGayTag(["二次元", "男同"])).toBe(true);
+    expect(hasGayTag(["二次元", "男性"])).toBe(true);
+    expect(hasGayTag(["露屌", "自拍"])).toBe(true);
+    expect(hasGayTag(["二次元", "自拍"])).toBe(false);
+    expect(hasGayTag({ 男同: 1, 二次元: 2 })).toBe(true);
+    expect(hasGayTag({ 自拍: 1, 二次元: 2 })).toBe(false);
+    expect(hasGayTag([])).toBe(false);
+    expect(hasGayTag(null)).toBe(false);
+  });
+
+  test("matchesGayMode performs exact inversion", () => {
+    // Normal mode (gayMode = false):
+    // Gay users should NOT match; Non-gay users SHOULD match
+    expect(matchesGayMode(["男同"], false)).toBe(false);
+    expect(matchesGayMode(["二次元"], false)).toBe(true);
+    expect(matchesGayMode([], false)).toBe(true);
+
+    // Gay mode (gayMode = true):
+    // Gay users SHOULD match; Non-gay users should NOT match
+    expect(matchesGayMode(["男同"], true)).toBe(true);
+    expect(matchesGayMode(["男性", "自拍"], true)).toBe(true);
+    expect(matchesGayMode(["露屌"], true)).toBe(true);
+    expect(matchesGayMode(["二次元"], true)).toBe(false);
+    expect(matchesGayMode([], true)).toBe(false);
   });
 });

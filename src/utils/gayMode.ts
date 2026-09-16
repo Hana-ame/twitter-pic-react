@@ -13,6 +13,33 @@ export function isGayTag(tag: string): boolean {
 }
 
 /**
+ * 判断标签列表或标签字典中是否包含任一 Gay 标签
+ */
+export function hasGayTag(tags: string[] | Record<string, any> | undefined | null): boolean {
+  if (!tags) return false;
+  if (Array.isArray(tags)) {
+    return tags.some((t) => typeof t === "string" && isGayTag(t));
+  }
+  if (typeof tags === "object") {
+    return Object.keys(tags).some((t) => isGayTag(t));
+  }
+  return false;
+}
+
+/**
+ * 判断用户标签是否符合当前 Gay 模式筛选（正好取反）：
+ * - gayMode = true：只显示包含 Gay 标签的用户
+ * - gayMode = false：只显示不包含 Gay 标签的用户
+ */
+export function matchesGayMode(
+  tags: string[] | Record<string, any> | undefined | null,
+  gayMode: boolean
+): boolean {
+  const has = hasGayTag(tags);
+  return gayMode ? has : !has;
+}
+
+/**
  * 获取 Gay 模式的初始状态，兼容 twitter-pic-go 的 tp_gay_mode_v1 键
  */
 export function getInitialGayMode(): boolean {

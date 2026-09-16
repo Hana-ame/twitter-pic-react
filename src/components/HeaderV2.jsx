@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
 import { FIXED_IMAGE_PROXY } from "../api/endpoints";
 import { extractDisplayTags } from "../utils/extract.js";
-import { useGayMode, isGayTag } from "../utils/gayMode";
+import { useGayMode, isGayTag, matchesGayMode } from "../utils/gayMode";
 
 const HeaderV2 = ({ user, onClick }) => {
   // 模拟从API获取的用户数据
@@ -59,7 +59,15 @@ const HeaderV2 = ({ user, onClick }) => {
         // 提取用户的所有展示标签
         const userTagKeys = extractDisplayTags(user.tags).map((t) => t.name);
 
-        if (userTagKeys.length > 0) {
+        // Gay 模式正好取反：
+        // 开启 Gay 模式时：只显示包含男同/男性/露屌的用户（未包含则隐藏）
+        // 关闭 Gay 模式时：隐藏包含男同/男性/露屌的用户（包含则隐藏）
+        if (!matchesGayMode(userTagKeys, gayMode)) {
+          setBlocked(true);
+          flag = false;
+        }
+
+        if (flag && userTagKeys.length > 0) {
           let blockRules = [
             "无关内容",
             "男性",
