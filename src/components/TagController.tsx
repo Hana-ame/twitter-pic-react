@@ -8,7 +8,8 @@ interface TagSettings {
   highlight: string[];
   block: string[];
 }
-const DEFAULT_BLOCK = [
+const DEFAULT_BLOCK = ["无关内容"];
+const OLD_DEFAULT_BLOCK = [
   "无关内容",
   "男性",
   "男娘",
@@ -41,8 +42,16 @@ const TagController = () => {
 
     try {
       const parsed: TagSettings = JSON.parse(savedData);
-      const parsedBlock = parsed.block || [];
+      let parsedBlock = parsed.block || [];
       const parsedHighlight = parsed.highlight || [];
+
+      // 若保存的是旧版本默认的 7 个屏蔽词（包含 6 个 gay 标签），自动迁移为仅保留 ["无关内容"]
+      const isOldDefault =
+        parsedBlock.length === OLD_DEFAULT_BLOCK.length &&
+        OLD_DEFAULT_BLOCK.every((item) => parsedBlock.includes(item));
+      if (isOldDefault) {
+        parsedBlock = ["无关内容"];
+      }
 
       // 2. 检查 highlight 里面是否包含 DEFAULT_BLOCK 中的任何一个元素
       const hasIntersection = DEFAULT_BLOCK.some((item) =>
@@ -51,12 +60,9 @@ const TagController = () => {
 
       if (!hasIntersection) {
         // 如果没有交集：返回 DEFAULT_BLOCK 和 parsedBlock 的并集
-        // 使用 Set 自动处理重复项
         return Array.from(new Set([...DEFAULT_BLOCK, ...parsedBlock]));
       }
 
-      // 如果有交集：返回原本存储的 block
-      // 如果你依然想保留“如果为空则设为默认”的逻辑，可以加个兜底
       return parsedBlock.length === 0 ? ["无关内容"] : parsedBlock;
     } catch (e) {
       console.error("Failed to parse tag settings", e);

@@ -1,7 +1,7 @@
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 import { useCallback, useState, useEffect } from "react";
 
-export const DEFAULT_GAY_TAGS: string[] = ["男同", "男性", "露屌"];
+export const DEFAULT_GAY_TAGS: string[] = ["男性", "男娘", "人妖", "露屌", "阳痿", "男同"];
 export const GAY_TAGS = new Set<string>(DEFAULT_GAY_TAGS);
 export const GAY_TAGS_KEY = "gay-tags";
 export const TP_GAY_TAGS_KEY = "tp_gay_tags_v1";
