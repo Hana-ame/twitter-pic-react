@@ -53,8 +53,19 @@ describe("gayMode utilities", () => {
     expect(hasGayTag(["二次元", "自拍"])).toBe(false);
     expect(hasGayTag({ 男同: 1, 二次元: 2 })).toBe(true);
     expect(hasGayTag({ 自拍: 1, 二次元: 2 })).toBe(false);
+    // 标签 score 为 < 0 的不要当做标签
+    expect(hasGayTag({ 男同: -1, 二次元: 2 })).toBe(false);
+    expect(hasGayTag({ 男同: -1, 男性: 1 })).toBe(true);
     expect(hasGayTag([])).toBe(false);
     expect(hasGayTag(null)).toBe(false);
+  });
+
+  test("matchesGayMode ignores tags with score < 0", () => {
+    // A user with downvoted gay tag (score < 0) does NOT count as Gay
+    expect(matchesGayMode({ 男同: -1, 自拍: 2 }, false)).toBe(true);
+    expect(matchesGayMode({ 男同: -1, 自拍: 2 }, true)).toBe(false);
+    expect(matchesGayMode({ 男同: 1, 自拍: 2 }, false)).toBe(false);
+    expect(matchesGayMode({ 男同: 1, 自拍: 2 }, true)).toBe(true);
   });
 
   test("matchesGayMode performs exact inversion", () => {

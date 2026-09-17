@@ -59,6 +59,7 @@ export function isGayTag(tag: string, customGayTags?: string[] | Set<string>): b
 
 /**
  * 判断标签列表或标签字典中是否包含任一 Gay 标签
+ * 标签 score 为 < 0 的不要当做标签
  */
 export function hasGayTag(
   tags: string[] | Record<string, any> | undefined | null,
@@ -70,7 +71,11 @@ export function hasGayTag(
     return tags.some((t) => typeof t === "string" && check(t));
   }
   if (typeof tags === "object") {
-    return Object.keys(tags).some((t) => check(t));
+    return Object.entries(tags).some(([t, score]) => {
+      const num = typeof score === "number" ? score : Number(score);
+      if (!isNaN(num) && num < 0) return false;
+      return check(t);
+    });
   }
   return false;
 }

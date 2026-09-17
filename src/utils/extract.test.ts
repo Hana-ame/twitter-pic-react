@@ -52,4 +52,14 @@ describe("extractDisplayTags with Gay mode tag filtering", () => {
     const result = extractDisplayTags(tags, PRESET_CATEGORIES, GAY_TAGS);
     expect(result).toEqual([]);
   });
+
+  test("tags with score <= 0 are not treated as tags", () => {
+    const tags = {
+      "女性": -1,
+      "自拍": -2,
+      "二次元": 3,
+    };
+    const result = extractDisplayTags(tags, PRESET_CATEGORIES);
+    expect(result.map((t) => t.name)).toEqual(["二次元"]);
+  });
 });
