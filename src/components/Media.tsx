@@ -77,7 +77,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
   // 构造 iframe 内部的 HTML
   // 1. 设置 meta referrer 为 no-referrer (这是核心，用于绕过防盗链)
   // 2. 移除 autoplay，保留 controls 和 poster，这样默认显示封面且不自动播放
-  // 3. 支持固定两次重试: twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com（超时2.5s / 报错立即切换）
+  // 3. 支持固定两次重试: twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com（报错立即切换）
   const candidates = getVideoCandidates(url);
   const safePoster = escapeHtml(poster || "");
   const candidatesJSON = JSON.stringify(candidates);
@@ -105,11 +105,9 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                 var v = document.getElementById('v');
                 var candidates = ${candidatesJSON};
                 var idx = 0;
-                var timer = null;
                 var done = false;
 
                 function cleanup() {
-                  if (timer) { clearTimeout(timer); timer = null; }
                   v.removeEventListener('loadedmetadata', onOk);
                   v.removeEventListener('canplay', onOk);
                   v.removeEventListener('error', onFail);
@@ -134,10 +132,6 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                   if (idx >= candidates.length) return;
                   done = false;
                   var src = candidates[idx];
-                  timer = setTimeout(function() {
-                    if (done) return;
-                    onFail();
-                  }, 2500);
 
                   v.addEventListener('loadedmetadata', onOk, { once: true });
                   v.addEventListener('canplay', onOk, { once: true });

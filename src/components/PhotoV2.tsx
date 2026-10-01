@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getImageCandidates } from "../api/proxyOverride";
 
-const MEDIA_TIMEOUT_MS = 2500;
-
 const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [displayUrl, setDisplayUrl] = useState<string>("");
@@ -31,16 +29,10 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
 
     const tryFetchCandidate = async (
       candidateUrl: string,
-      timeoutMs: number,
     ): Promise<boolean> => {
-      const timeoutController = new AbortController();
-      const onParentAbort = () => timeoutController.abort();
-      signal.addEventListener("abort", onParentAbort);
-      const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
-
       try {
         const response = await fetch(candidateUrl, {
-          signal: timeoutController.signal,
+          signal,
           referrerPolicy: "no-referrer",
         });
 
@@ -86,9 +78,8 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
         }
         setIsLoading(false);
         return true;
-      } finally {
-        clearTimeout(timer);
-        signal.removeEventListener("abort", onParentAbort);
+      } catch (err) {
+        throw err;
       }
     };
 
@@ -98,7 +89,7 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
       for (let i = 0; i < candidates.length; i++) {
         if (signal.aborted) return;
         try {
-          const ok = await tryFetchCandidate(candidates[i], MEDIA_TIMEOUT_MS);
+          const ok = await tryFetchCandidate(candidates[i]);
           if (ok) return;
         } catch (err: any) {
           if (signal.aborted) {
@@ -109,9 +100,9 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
         }
       }
 
-      // 如果两个候选源 fetch 均失败（如 CORS 拦截或网络限制），降级为直接赋值 fallback URL 给 img 渲染
+      // 如果候选源 fetch 均失败（如 CORS 拦截或网络限制），降级为直接赋值首选源给 img 渲染（img 标签的 onError 会在失败时切换到备用源）
       if (!signal.aborted) {
-        setDisplayUrl(candidates[1] || candidates[0] || url);
+        setDisplayUrl(candidates[0] || url);
         setIsLoading(false);
       }
     };

@@ -157,34 +157,6 @@ const Main = ({ profile, handleSetProfile }) => {
 
 
   useEffect(() => {
-    // 如果已有缓存，可以选择跳过请求（视需求而定）
-    // 这里为了演示始终请求，也可以加上 if (localStorage.getItem('country')) return;
-
-    const fetchCountry = async () => {
-      try {
-        const response = await fetch('https://ipinfo.io/json');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        // 假设 data 包含 country 字段（如 "CN"）
-        const countryCode = data.country || '';
-        // 存储到 localStorage
-        localStorage.setItem('country', countryCode);
-        // 更新状态
-      } catch (err) {
-        console.error('Failed to fetch country:', err);
-      } finally {
-      }
-    };
-
-    fetchCountry();
-
-    // 清理函数（此例无订阅，不需要）
-  }, []); // 空依赖 => 只在组件挂载时执行一次
-
-
-  useEffect(() => {
     setShowAll(false);
     setDownloadStatus("");
     setStatusMsg("");
@@ -368,14 +340,10 @@ const Main = ({ profile, handleSetProfile }) => {
     for (let i = 0; i < candidates.length; i++) {
       const candUrl = candidates[i];
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
         const response = await fetch(candUrl, {
           cache: "force-cache",
           referrerPolicy: "no-referrer",
-          signal: controller.signal,
         });
-        clearTimeout(timeoutId);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return { response, finalUrl: candUrl };
       } catch (err) {
