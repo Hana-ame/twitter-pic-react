@@ -3,7 +3,7 @@ import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 import { DEFAULT_VIDEO_PROXY } from "../api/endpoints";
 import {
   overrideImageProxy,
-  overrideVideoProxy,
+  getVideoCandidates,
 } from "../api/proxyOverride";
 import { DEFAULT_SIGNALING } from "../api/peerMedia";
 import { PeerVideo } from "./PeerMedia";
@@ -36,12 +36,10 @@ const getSignaling = () => ({
 });
 
 const Media = ({ url, type }: MediaProps) => {
-  const [videoProxy] = useLocalStorage("video-proxy-v5", DEFAULT_VIDEO_PROXY);
+  const [videoProxy] = useLocalStorage<string>("video-proxy-v5", DEFAULT_VIDEO_PROXY);
 
   // 26-09-08: 展示与下载共用 src/api/proxyOverride.ts 的同一份替换逻辑。
-  // 26-09-11: 图片固定走 pbs.moonchan.xyz, 不再读 image-proxy-v5 (见 overrideImageProxy)。
   const imageProxyOverride = (url: string) => overrideImageProxy(url);
-  const videoProxyOverride = (url: string) => overrideVideoProxy(url, videoProxy);
 
   if (type === "photo") {
     return <PhotoV2 url={imageProxyOverride(url)} />;
@@ -68,7 +66,7 @@ const Media = ({ url, type }: MediaProps) => {
         />
       );
     }
-    return <Video url={videoProxyOverride(url)} />;
+    return <Video url={url} />;
   }
 
   // LSP 提示返回值包含 undefined: 未知/文本类型(如 text, quote)时显式不渲染
@@ -79,9 +77,10 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
   // 构造 iframe 内部的 HTML
   // 1. 设置 meta referrer 为 no-referrer (这是核心，用于绕过防盗链)
   // 2. 移除 autoplay，保留 controls 和 poster，这样默认显示封面且不自动播放
-  // 3. URL / poster 来自外部输入，必须做 HTML 实体转义，避免 srcDoc 属性注入
-  const safeUrl = escapeHtml(url);
+  // 3. 支持固定两次重试: twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com（超时2.5s / 报错立即切换）
+  const candidates = getVideoCandidates(url);
   const safePoster = escapeHtml(poster || "");
+  const candidatesJSON = JSON.stringify(candidates);
   const iframeHtml = `
         <!DOCTYPE html>
         <html>
@@ -100,8 +99,56 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
                 preload="metadata"
                 poster="${safePoster}"
             >
-                <source src="${safeUrl}" type="video/mp4">
             </video>
+            <script>
+              (function() {
+                var v = document.getElementById('v');
+                var candidates = ${candidatesJSON};
+                var idx = 0;
+                var timer = null;
+                var done = false;
+
+                function cleanup() {
+                  if (timer) { clearTimeout(timer); timer = null; }
+                  v.removeEventListener('loadedmetadata', onOk);
+                  v.removeEventListener('canplay', onOk);
+                  v.removeEventListener('error', onFail);
+                }
+
+                function onOk() {
+                  if (done) return;
+                  done = true;
+                  cleanup();
+                }
+
+                function onFail() {
+                  if (done) return;
+                  cleanup();
+                  idx++;
+                  if (idx < candidates.length) {
+                    tryCandidate();
+                  }
+                }
+
+                function tryCandidate() {
+                  if (idx >= candidates.length) return;
+                  done = false;
+                  var src = candidates[idx];
+                  timer = setTimeout(function() {
+                    if (done) return;
+                    onFail();
+                  }, 2500);
+
+                  v.addEventListener('loadedmetadata', onOk, { once: true });
+                  v.addEventListener('canplay', onOk, { once: true });
+                  v.addEventListener('error', onFail, { once: true });
+                  v.src = src;
+                  try { v.load(); } catch (e) {}
+                }
+
+                tryCandidate();
+              })();
+            </script>
         </body>
         </html>
     `;

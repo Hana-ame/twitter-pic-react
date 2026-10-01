@@ -32,6 +32,7 @@ import {
   overrideImageProxy,
   overrideVideoProxy,
   getImageCandidates,
+  getVideoCandidates,
 } from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
 import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时探测 moonchan 备份 CDN (只管视频)
@@ -346,10 +347,10 @@ const Main = ({ profile, handleSetProfile }) => {
     return overrideImageProxy(originalUrl);
   };
 
-  // 媒体拉取辅助函数：图片走固定顺序两次重试（twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com 无referer）
+  // 媒体拉取辅助函数：所有 media（图片/视频）统一走固定顺序两次重试（twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com 无referer）
   const fetchMediaWithFallback = async (originalUrl, type) => {
     const isVideo = type === "video" || type === "animated_gif";
-    if (isVideo) {
+    if (isVideo && videoProxy === "peerjs") {
       const finalUrl = await getProxiedUrl(originalUrl, type);
       const response = await fetch(finalUrl, {
         cache: "force-cache",
@@ -359,7 +360,10 @@ const Main = ({ profile, handleSetProfile }) => {
       return { response, finalUrl };
     }
 
-    const candidates = getImageCandidates(originalUrl);
+    const candidates = isVideo
+      ? getVideoCandidates(originalUrl)
+      : getImageCandidates(originalUrl);
+
     let lastErr = null;
     for (let i = 0; i < candidates.length; i++) {
       const candUrl = candidates[i];
@@ -378,7 +382,7 @@ const Main = ({ profile, handleSetProfile }) => {
         lastErr = err;
       }
     }
-    throw lastErr || new Error("All image candidates failed");
+    throw lastErr || new Error(`All ${type} candidates failed`);
   };
 
   // 1. 极其严苛的文件名提取逻辑
@@ -645,7 +649,8 @@ const Main = ({ profile, handleSetProfile }) => {
         } catch (err) {
           console.error(`文件 ${fileName} 推送失败:`, err);
           // 备用方案：如果 Fetch 失败，尝试降级源（video-cf.twimg.com）
-          const candidates = getImageCandidates(item.url);
+          const isItemVideo = item.type === "video" || item.type === "animated_gif";
+          const candidates = isItemVideo ? getVideoCandidates(item.url) : getImageCandidates(item.url);
           window.open(candidates[1] || candidates[0] || item.url, "_blank");
         }
       }

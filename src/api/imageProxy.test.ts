@@ -4,7 +4,9 @@ import {
   overrideImageProxy,
   overrideVideoProxy,
   getImageCandidates,
+  getVideoCandidates,
   IMAGE_BASES,
+  VIDEO_BASES,
 } from "./proxyOverride";
 import { IMAGE_PROXY_KEY, normalizeStoredImageProxy } from "./imageProxy";
 import {
@@ -12,7 +14,7 @@ import {
   MOONCHAN_PROBE_TARGET,
   VIDEO_PROXY_KEY,
 } from "./probe";
-import { FIXED_IMAGE_PROXY } from "./endpoints";
+import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY } from "./endpoints";
 
 const PHOTO = "https://pbs.twimg.com/media/AAA.jpg";
 const VIDEO = "https://video.twimg.com/amplify_video/1/vid/720x1280/BBB.mp4";
@@ -50,17 +52,23 @@ describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", ()
   });
 });
 
-describe("overrideVideoProxy: 视频仍按所选视频源替换", () => {
-  it("ech-proxy: video.twimg.com 换成探测目标主机", () => {
-    localStorage.setItem("country", "CN");
-    expect(overrideVideoProxy(VIDEO, MOONCHAN_PROBE_TARGET)).toBe(
-      VIDEO.replace("https://video.twimg.com", MOONCHAN_PROBE_TARGET),
+describe("overrideVideoProxy & getVideoCandidates: 视频走固定顺序两次重试", () => {
+  it("首选源替换为 twimg.l.moonchan.xyz:8443", () => {
+    expect(overrideVideoProxy(VIDEO)).toBe(
+      `${FIXED_VIDEO_PROXY}/amplify_video/1/vid/720x1280/BBB.mp4`,
     );
   });
 
-  it("非 CN 保持原站", () => {
-    localStorage.setItem("country", "US");
-    expect(overrideVideoProxy(VIDEO, MOONCHAN_PROBE_TARGET)).toBe(VIDEO);
+  it("getVideoCandidates 返回固定两次重试候选列表", () => {
+    expect(getVideoCandidates(VIDEO)).toEqual([
+      "https://twimg.l.moonchan.xyz:8443/amplify_video/1/vid/720x1280/BBB.mp4",
+      "https://video-cf.twimg.com/amplify_video/1/vid/720x1280/BBB.mp4",
+    ]);
+  });
+
+  it("空 URL 原样返回", () => {
+    expect(overrideVideoProxy("")).toBe("");
+    expect(getVideoCandidates("")).toEqual([]);
   });
 });
 

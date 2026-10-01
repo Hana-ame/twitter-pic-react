@@ -204,7 +204,7 @@ const VideoConfig = () => {
 
   // 预设选项。手动档整列可点; 自动档同列表灰色不可点, 只表示当前源。
   const predefinedOptions = [
-    { url: "https://video.twimg.com", label: "原站" },
+    { url: "https://video-cf.twimg.com", label: "video-cf" },
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
   ];
