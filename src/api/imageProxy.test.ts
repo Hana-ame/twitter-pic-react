@@ -1,4 +1,4 @@
-// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , pbs-cf.twimg.com（无referer）
+// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , video-cf.twimg.com（无referer）
 
 import {
   overrideImageProxy,
@@ -31,7 +31,7 @@ describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", ()
   it("getImageCandidates 返回固定两次重试候选列表", () => {
     expect(getImageCandidates(PHOTO)).toEqual([
       "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg",
-      "https://pbs-cf.twimg.com/media/AAA.jpg",
+      "https://video-cf.twimg.com/media/AAA.jpg",
     ]);
   });
 
@@ -40,7 +40,7 @@ describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", ()
       getImageCandidates("https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig"),
     ).toEqual([
       "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig",
-      "https://pbs-cf.twimg.com/media/AAA.jpg?name=orig",
+      "https://video-cf.twimg.com/media/AAA.jpg?name=orig",
     ]);
   });
 

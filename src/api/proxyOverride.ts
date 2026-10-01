@@ -22,7 +22,7 @@ export const extractMediaPath = (url: string): string => {
   }
 };
 
-// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , pbs-cf.twimg.com（无referer）
+// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , video-cf.twimg.com（无referer）
 export const getImageCandidates = (url: string): string[] => {
   if (!url) return [];
   const path = extractMediaPath(url);
@@ -38,7 +38,7 @@ export const isMoonchanProxy = (proxy?: string | null): boolean => {
       host === "twimg.moonchan.xyz" ||
       host === "twimg.l.moonchan.xyz" ||
       host === "proxy.moonchan.xyz" ||
-      host === "pbs-cf.twimg.com" ||
+      host === "video-cf.twimg.com" ||
       host === "pbs.moonchan.xyz"
     );
   } catch {
@@ -66,7 +66,7 @@ export const isNonCN = (): boolean => {
 const normalizeProxy = (proxy: string): string =>
   proxy.replace(/\/+$/, "");
 
-// 图片: pbs.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs-cf.twimg.com（无referer）
+// 图片: pbs.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 video-cf.twimg.com（无referer）
 export const overrideImageProxy = (url: string): string => {
   if (!url) return url;
   const candidates = getImageCandidates(url);

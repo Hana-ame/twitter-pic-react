@@ -346,7 +346,7 @@ const Main = ({ profile, handleSetProfile }) => {
     return overrideImageProxy(originalUrl);
   };
 
-  // 媒体拉取辅助函数：图片走固定顺序两次重试（twimg.l.moonchan.xyz:8443 -> pbs-cf.twimg.com 无referer）
+  // 媒体拉取辅助函数：图片走固定顺序两次重试（twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com 无referer）
   const fetchMediaWithFallback = async (originalUrl, type) => {
     const isVideo = type === "video" || type === "animated_gif";
     if (isVideo) {
@@ -644,7 +644,7 @@ const Main = ({ profile, handleSetProfile }) => {
           await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (err) {
           console.error(`文件 ${fileName} 推送失败:`, err);
-          // 备用方案：如果 Fetch 失败，尝试降级源（pbs-cf.twimg.com）
+          // 备用方案：如果 Fetch 失败，尝试降级源（video-cf.twimg.com）
           const candidates = getImageCandidates(item.url);
           window.open(candidates[1] || candidates[0] || item.url, "_blank");
         }

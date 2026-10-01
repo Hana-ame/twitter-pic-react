@@ -4,10 +4,10 @@ export const ENDPOINT = "https://x.moonchan.xyz/api/twitter"
 // export const ENDPOINT = window.location.origin + "/api/twitter";
 // export const ENDPOINT = "/api/twitter"
 
-// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , pbs-cf.twimg.com（无referer）
+// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , video-cf.twimg.com（无referer）
 export const IMAGE_BASES = [
   "https://twimg.l.moonchan.xyz:8443",
-  "https://pbs-cf.twimg.com",
+  "https://video-cf.twimg.com",
 ] as const;
 
 export const FIXED_IMAGE_PROXY = IMAGE_BASES[0];

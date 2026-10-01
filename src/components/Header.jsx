@@ -86,7 +86,7 @@ const Header = ({ username, onClick }) => {
       className="flex items-center m-4 p-4 bg-gray-200 hover:bg-gray-100 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md"
       onClick={() => onClick(userData)}
     >
-      {/* 用户头像 (固定顺序两次重试: twimg.l.moonchan.xyz:8443 -> pbs-cf.twimg.com 无referer) */}
+      {/* 用户头像 (固定顺序两次重试: twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com 无referer) */}
       <div className="flex-shrink-0 mr-4">
         {(() => {
           const profileImg = userData.account_info?.profile_image;
