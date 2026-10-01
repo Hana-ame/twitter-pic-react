@@ -16,8 +16,7 @@ import {
 // 26-09-08: 配置模式 — 自动档 (探测自动选源) / 手动档 (自己填, 探测不许覆盖)
 const MODE_KEY = CONFIG_MODE_KEY;
 
-// 26-09-08: 旧初始化逻辑, HelpPage 已注释掉 (被 auto/manual 模式取代)。
-// 26-09-11: 图片源这里也只写固定源 pbs.moonchan.xyz, 与档位无关。
+// 26-09-11: 图片源这里也只写固定源, 与档位无关。
 const AutoConfig = () => {
   const { current: now } = useRef(Date.now());
 
@@ -37,7 +36,7 @@ const AutoConfig = () => {
   useEffect(() => {
     if (ts === now) {
       setImage(FIXED_IMAGE_PROXY);
-      setVideo("https://pbs.moonchan.xyz");
+      setVideo(DEFAULT_VIDEO_PROXY);
       setTS(now);
     }
   }, []);
@@ -73,8 +72,8 @@ function ModeToggle({ mode, onModeChange }) {
       </div>
       <p className="text-xs text-gray-400 mb-2">
         {mode === MODE_AUTO
-          ? "自动探测可用源并切换视频源，会覆盖手动填写的地址（图片固定走 pbs.moonchan.xyz）"
-          : "只用你选的源，自动探测不再改你的设置（图片固定走 pbs.moonchan.xyz）"}
+          ? "自动探测可用源并切换视频源，会覆盖手动填写的地址（图片按固定顺序两次重试：twimg.l.moonchan.xyz:8443，pbs-cf.twimg.com）"
+          : "只用你选的源，自动探测不再改你的设置（图片按固定顺序两次重试：twimg.l.moonchan.xyz:8443，pbs-cf.twimg.com）"}
       </p>
     </>
   );
@@ -155,18 +154,17 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disab
   );
 };
 
-// 26-09-08: 图片源固定 pbs.moonchan.xyz, 无需配置。保留组件供兼容, HelpPage 已注释掉。
-// 26-09-11: 显示固定源本身, 不再读 image-proxy-v5 (那个 key 已不参与图片 URL 的生成)。
+// 图片源固定两次重试: twimg.l.moonchan.xyz:8443 -> pbs-cf.twimg.com（无referer）
 const ImageConfig = () => {
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
       <h3 className="text-sm font-semibold text-gray-700">图片源</h3>
       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-        <span className="text-sm text-gray-600">pbs.moonchan.xyz</span>
-        <span className="text-xs text-green-500">● 固定</span>
+        <span className="text-sm text-gray-600">twimg.l.moonchan.xyz:8443 → pbs-cf.twimg.com</span>
+        <span className="text-xs text-green-500">● 固定重试</span>
       </div>
       <p className="text-xs text-gray-400">
-        图片源固定使用 pbs.moonchan.xyz（自动档 / 手动档都一样），无需配置。
+        图片源固定按顺序尝试：twimg.l.moonchan.xyz:8443，失败自动降级到 pbs-cf.twimg.com（无 referer）。
       </p>
     </div>
   );
@@ -456,7 +454,7 @@ const PeerJSConfig = () => {
       <h3 className="text-lg font-semibold text-gray-700">PeerJS 配置</h3>
       <p className="text-xs text-gray-500">
         选择 "peerjs" 作为视频源时，通过 PeerJS WebRTC DataChannel 从 Node 端 peer 拉取媒体。
-        需要先运行 peerdrive-media Node 端服务。（图片固定走 pbs.moonchan.xyz，不走 peerjs）
+        需要先运行 peerdrive-media Node 端服务。（图片固定走 twimg.l.moonchan.xyz:8443 → pbs-cf.twimg.com，不走 peerjs）
       </p>
 
       <div className="space-y-2">

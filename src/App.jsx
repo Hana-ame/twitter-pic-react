@@ -31,6 +31,7 @@ import { getEmojis, voteUpEmoji } from "./api/emojis";
 import {
   overrideImageProxy,
   overrideVideoProxy,
+  getImageCandidates,
 } from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
 import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时探测 moonchan 备份 CDN (只管视频)
@@ -338,12 +339,48 @@ const Main = ({ profile, handleSetProfile }) => {
       }
     }
 
-    // 常规分支: HTTP URL 替换 (图片一律 pbs.moonchan.xyz, 视频按所选视频源)
+    // 常规分支: HTTP URL 替换 (图片一律固定顺序重试, 视频按所选视频源)
     if (isVideo) {
       return overrideVideoProxy(originalUrl, videoProxy);
     }
     return overrideImageProxy(originalUrl);
   };
+
+  // 媒体拉取辅助函数：图片走固定顺序两次重试（twimg.l.moonchan.xyz:8443 -> pbs-cf.twimg.com 无referer）
+  const fetchMediaWithFallback = async (originalUrl, type) => {
+    const isVideo = type === "video" || type === "animated_gif";
+    if (isVideo) {
+      const finalUrl = await getProxiedUrl(originalUrl, type);
+      const response = await fetch(finalUrl, {
+        cache: "force-cache",
+        referrerPolicy: "no-referrer",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return { response, finalUrl };
+    }
+
+    const candidates = getImageCandidates(originalUrl);
+    let lastErr = null;
+    for (let i = 0; i < candidates.length; i++) {
+      const candUrl = candidates[i];
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const response = await fetch(candUrl, {
+          cache: "force-cache",
+          referrerPolicy: "no-referrer",
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return { response, finalUrl: candUrl };
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error("All image candidates failed");
+  };
+
   // 1. 极其严苛的文件名提取逻辑
   const extractFileName = (urlStr, index, type) => {
     try {
@@ -432,19 +469,13 @@ const Main = ({ profile, handleSetProfile }) => {
         for (let i = 0; i < profile.timeline.length; i++) {
           const item = profile.timeline[i];
           const fileName = extractFileName(item.url, i, item.type);
-          const finalUrl = await getProxiedUrl(item.url, item.type);
 
           setStatusMsg(
             `处理 (${i + 1}/${profile.timeline.length}): ${fileName}`,
           );
 
           try {
-            const response = await fetch(finalUrl, {
-              cache: "force-cache",
-              referrerPolicy: "no-referrer", // 关键属性：强制不发送 Referer
-            });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
+            const { response } = await fetchMediaWithFallback(item.url, item.type);
             yield {
               name: fileName,
               lastModified: new Date(item.date || Date.now()),
@@ -455,7 +486,7 @@ const Main = ({ profile, handleSetProfile }) => {
             yield {
               name: `FAILED_${fileName}.txt`,
               lastModified: new Date(),
-              input: `URL: ${finalUrl}\nError: ${err.message}`,
+              input: `URL: ${item.url}\nError: ${err.message}`,
             };
           }
         }
@@ -526,18 +557,11 @@ const Main = ({ profile, handleSetProfile }) => {
       for (let i = 0; i < profile.timeline.length; i++) {
         const item = profile.timeline[i];
         const fileName = extractFileName(item.url, i, item.type);
-        const finalUrl = await getProxiedUrl(item.url, item.type);
 
         setStatusMsg(`下载中 (${i + 1}/${profile.timeline.length})...`);
 
         try {
-          const response = await fetch(finalUrl, {
-            cache: "force-cache",
-            referrerPolicy: "no-referrer",
-          });
-
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
+          const { response } = await fetchMediaWithFallback(item.url, item.type);
           const blob = await response.blob();
           // 将文件添加到压缩包
           zip.file(fileName, blob, { binary: true });
@@ -545,7 +569,7 @@ const Main = ({ profile, handleSetProfile }) => {
           console.error(`文件 ${fileName} 下载失败:`, err);
           zip.file(
             `ERROR_${fileName}.txt`,
-            `URL: ${finalUrl}\nError: ${err.message}`,
+            `URL: ${item.url}\nError: ${err.message}`,
           );
         }
       }
@@ -593,7 +617,6 @@ const Main = ({ profile, handleSetProfile }) => {
       for (let i = 0; i < profile.timeline.length; i++) {
         const item = profile.timeline[i];
         const fileName = extractFileName(item.url, i, item.type);
-        const finalUrl = await getProxiedUrl(item.url, item.type);
 
         setStatusMsg(
           `正在推送第 (${i + 1}/${profile.timeline.length}) 个到下载列表...`,
@@ -602,12 +625,7 @@ const Main = ({ profile, handleSetProfile }) => {
         try {
           // 方法 A: 跨域友好方案 (推荐)
           // 通过 fetch 获取 blob 再下载，可以确保 'download' 属性生效并自定义文件名
-          const response = await fetch(finalUrl, {
-            cache: "force-cache",
-            referrerPolicy: "no-referrer",
-          });
-
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const { response } = await fetchMediaWithFallback(item.url, item.type);
 
           const blob = await response.blob();
           const blobUrl = window.URL.createObjectURL(blob);
@@ -626,8 +644,9 @@ const Main = ({ profile, handleSetProfile }) => {
           await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (err) {
           console.error(`文件 ${fileName} 推送失败:`, err);
-          // 备用方案：如果 Fetch 失败，尝试直接打开窗口（这种方式通常无法重命名）
-          window.open(finalUrl, "_blank");
+          // 备用方案：如果 Fetch 失败，尝试降级源（pbs-cf.twimg.com）
+          const candidates = getImageCandidates(item.url);
+          window.open(candidates[1] || candidates[0] || item.url, "_blank");
         }
       }
 

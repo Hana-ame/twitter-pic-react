@@ -4,10 +4,14 @@ export const ENDPOINT = "https://x.moonchan.xyz/api/twitter"
 // export const ENDPOINT = window.location.origin + "/api/twitter";
 // export const ENDPOINT = "/api/twitter"
 
-// 26-09-11: 图片源固定为 pbs.moonchan.xyz —— 所有图片 (pbs.twimg.com) 一律走这个源,
-// 不再由自动探测 / 配置改成 ech-proxy, 见 api/proxyOverride.ts 的 overrideImageProxy。
-export const FIXED_IMAGE_PROXY = "https://pbs.moonchan.xyz";
+// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , pbs-cf.twimg.com（无referer）
+export const IMAGE_BASES = [
+  "https://twimg.l.moonchan.xyz:8443",
+  "https://pbs-cf.twimg.com",
+] as const;
 
-// 兼容旧 import: 默认图片源 = 固定图片源。
+export const FIXED_IMAGE_PROXY = IMAGE_BASES[0];
+
+// 兼容旧 import: 默认图片源 = 固定首选图片源。
 export const DEFAULT_IMAGE_PROXY = FIXED_IMAGE_PROXY;
-export const DEFAULT_VIDEO_PROXY = "https://pbs.moonchan.xyz";
+export const DEFAULT_VIDEO_PROXY = "https://twimg.l.moonchan.xyz:8443";

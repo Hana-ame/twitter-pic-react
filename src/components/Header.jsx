@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
-import { FIXED_IMAGE_PROXY } from "../api/endpoints";
+import { getImageCandidates } from "../api/proxyOverride";
 // import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
 const Header = ({ username, onClick }) => {
@@ -86,16 +86,25 @@ const Header = ({ username, onClick }) => {
       className="flex items-center m-4 p-4 bg-gray-200 hover:bg-gray-100 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md"
       onClick={() => onClick(userData)}
     >
-      {/* 用户头像 (26-09-11: 图片来源统一用 FIXED_IMAGE_PROXY, 与档位无关) */}
+      {/* 用户头像 (固定顺序两次重试: twimg.l.moonchan.xyz:8443 -> pbs-cf.twimg.com 无referer) */}
       <div className="flex-shrink-0 mr-4">
-        <img
-          src={userData.account_info?.profile_image?.replace(
-            "https://pbs.twimg.com",
-            FIXED_IMAGE_PROXY
-          )}
-          alt={userData.account_info?.nick}
-          className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
-        />
+        {(() => {
+          const profileImg = userData.account_info?.profile_image;
+          const candidates = profileImg ? getImageCandidates(profileImg) : [];
+          return (
+            <img
+              src={candidates[0] || profileImg}
+              alt={userData.account_info?.nick}
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                if (candidates[1] && e.currentTarget.src !== candidates[1]) {
+                  e.currentTarget.src = candidates[1];
+                }
+              }}
+              className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
+            />
+          );
+        })()}
       </div>
 
       {/* 用户信息 */}

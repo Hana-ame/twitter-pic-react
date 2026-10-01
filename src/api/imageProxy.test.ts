@@ -1,6 +1,11 @@
-// 26-09-11: 图片源固定 pbs.moonchan.xyz 的回归测试 (URL 替换 + 本地值纠正)。
+// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , pbs-cf.twimg.com（无referer）
 
-import { overrideImageProxy, overrideVideoProxy } from "./proxyOverride";
+import {
+  overrideImageProxy,
+  overrideVideoProxy,
+  getImageCandidates,
+  IMAGE_BASES,
+} from "./proxyOverride";
 import { IMAGE_PROXY_KEY, normalizeStoredImageProxy } from "./imageProxy";
 import {
   runMoonchanProbe,
@@ -16,21 +21,32 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe("overrideImageProxy: 图片一律走 pbs.moonchan.xyz", () => {
-  it("CN 下替换 pbs.twimg.com", () => {
-    localStorage.setItem("country", "CN");
+describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", () => {
+  it("首选源替换为 twimg.l.moonchan.xyz:8443", () => {
     expect(overrideImageProxy(PHOTO)).toBe(
       `${FIXED_IMAGE_PROXY}/media/AAA.jpg`,
     );
   });
 
-  it("非 CN 保持原站(不做任何代理替换)", () => {
-    localStorage.setItem("country", "US");
-    expect(overrideImageProxy(PHOTO)).toBe(PHOTO);
+  it("getImageCandidates 返回固定两次重试候选列表", () => {
+    expect(getImageCandidates(PHOTO)).toEqual([
+      "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg",
+      "https://pbs-cf.twimg.com/media/AAA.jpg",
+    ]);
+  });
+
+  it("已经替换过的 URL 也能正确提取候选列表", () => {
+    expect(
+      getImageCandidates("https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig"),
+    ).toEqual([
+      "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig",
+      "https://pbs-cf.twimg.com/media/AAA.jpg?name=orig",
+    ]);
   });
 
   it("空 URL 原样返回", () => {
     expect(overrideImageProxy("")).toBe("");
+    expect(getImageCandidates("")).toEqual([]);
   });
 });
 
@@ -49,20 +65,10 @@ describe("overrideVideoProxy: 视频仍按所选视频源替换", () => {
 });
 
 describe("normalizeStoredImageProxy: 纠正本地存的历史图片源", () => {
-  it("ech-proxy 脏值被改回固定源", () => {
-    localStorage.setItem(
-      IMAGE_PROXY_KEY,
-      JSON.stringify(MOONCHAN_PROBE_TARGET),
-    );
-    const setImage = jest.fn();
-    normalizeStoredImageProxy(setImage);
-    expect(setImage).toHaveBeenCalledWith(FIXED_IMAGE_PROXY);
-  });
-
-  it("旧 twimg 入口 / peerjs / 第三方地址都被改回固定源", () => {
+  it("旧 twimg 入口 / 旧 pbs.moonchan.xyz / peerjs / 第三方地址都被改回固定首选源", () => {
     for (const stale of [
       "https://twimg.moonchan.xyz",
-      "https://twimg.l.moonchan.xyz:8443",
+      "https://pbs.moonchan.xyz",
       "peerjs",
       "https://my-own-proxy.example",
     ]) {

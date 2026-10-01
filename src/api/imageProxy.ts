@@ -1,13 +1,12 @@
-// 26-09-11: 图片源 = 固定 https://pbs.moonchan.xyz。
+// 26-09-11: 图片源 = 固定首选源 FIXED_IMAGE_PROXY (twimg.l.moonchan.xyz:8443)。
 //
 // 本文件只处理"本地存的图片源一律纠正回固定值"这一件事, 与自动档 / 手动档
 // 完全无关 —— 它不读 config-mode-v5, 也不接受任何档位参数。
 // 真正决定图片 URL 的是 proxyOverride.ts 的 overrideImageProxy(), 那个函数同样
 // 不看档位、不看本地存储。
 //
-// 为什么要纠正本地值: 旧版本的自动探测会把 image-proxy-v5 写成 ech-proxy,
-// 更早的图片源配置还能选 twimg.moonchan.xyz / peerjs / 第三方地址。这些值现在
-// 已经不影响图片 URL 了, 这里顺手把存储改回固定源, 免得留下让人误会的脏值。
+// 为什么要纠正本地值: 旧版本的图片源配置可能存有旧 twimg.moonchan.xyz / peerjs /
+// pbs.moonchan.xyz / 第三方地址。这里顺手把存储改回固定源, 免得留下让人误会的脏值。
 
 import { FIXED_IMAGE_PROXY } from "./endpoints";
 

@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { getImageCandidates } from "../api/proxyOverride";
+
+const MEDIA_TIMEOUT_MS = 2500;
 
 const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -7,6 +10,9 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
 
   // 记录已下载的数据量，用于控制更新频率
   const loadedBytes = useRef<number>(0);
+
+  // 候选列表：固定顺序两次重试：twimg.l.moonchan.xyz:8443 -> pbs-cf.twimg.com（无referer）
+  const candidates = getImageCandidates(url);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -18,12 +24,27 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
       }
     };
 
-    const loadImage = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(url, { signal });
+    if (!candidates || candidates.length === 0) {
+      setIsLoading(false);
+      return;
+    }
 
-        if (!response.ok) throw new Error("Fetch failed");
+    const tryFetchCandidate = async (
+      candidateUrl: string,
+      timeoutMs: number,
+    ): Promise<boolean> => {
+      const timeoutController = new AbortController();
+      const onParentAbort = () => timeoutController.abort();
+      signal.addEventListener("abort", onParentAbort);
+      const timer = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+      try {
+        const response = await fetch(candidateUrl, {
+          signal: timeoutController.signal,
+          referrerPolicy: "no-referrer",
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         if (!response.body) throw new Error("No body");
 
         const reader = response.body.getReader();
@@ -64,15 +85,34 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
           }
         }
         setIsLoading(false);
-      } catch (err: any) {
-        if (err.name === "AbortError") {
-          console.log("Abort successful: Socket closed.");
-        } else {
-          // 降级：如果 fetch 被跨域策略(CORS)拦截，直接赋值 URL
-          // 此时虽然不能硬中止，但能保证图片能看
-          setDisplayUrl(url);
-          setIsLoading(false);
+        return true;
+      } finally {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", onParentAbort);
+      }
+    };
+
+    const loadImage = async () => {
+      setIsLoading(true);
+
+      for (let i = 0; i < candidates.length; i++) {
+        if (signal.aborted) return;
+        try {
+          const ok = await tryFetchCandidate(candidates[i], MEDIA_TIMEOUT_MS);
+          if (ok) return;
+        } catch (err: any) {
+          if (signal.aborted) {
+            console.log("Abort successful: Socket closed.");
+            return;
+          }
+          // 当前候选源失败，尝试下一个候选源
         }
+      }
+
+      // 如果两个候选源 fetch 均失败（如 CORS 拦截或网络限制），降级为直接赋值 fallback URL 给 img 渲染
+      if (!signal.aborted) {
+        setDisplayUrl(candidates[1] || candidates[0] || url);
+        setIsLoading(false);
       }
     };
 
@@ -82,15 +122,22 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
       controller.abort(); // 这里会真正断开 HTTP 连接，新图片能立刻开始下载
       revokeUrl(currentObjectURL.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
-  if (url.endsWith(".webp"))
+  if (url.endsWith(".webp") || displayUrl.endsWith(".webp"))
     return (
       <div className="flex justify-center items-start max-h-screen">
         <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
           <img
-            src={url}
+            src={displayUrl || candidates[0] || url}
             alt={alt || url}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              if (candidates[1] && e.currentTarget.src !== candidates[1]) {
+                e.currentTarget.src = candidates[1];
+              }
+            }}
             className="mx-auto max-h-screen object-contain transition-opacity duration-200"
           />
         </div>
@@ -109,6 +156,12 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
           <img
             src={displayUrl}
             alt={alt || url}
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              if (candidates[1] && e.currentTarget.src !== candidates[1]) {
+                e.currentTarget.src = candidates[1];
+              }
+            }}
             className="mx-auto max-h-screen object-contain transition-opacity duration-200"
             style={{ opacity: isLoading ? 0.8 : 1 }} // 加载中给一点透明度，视觉暗示还在渐进中
           />

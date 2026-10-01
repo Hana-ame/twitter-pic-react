@@ -1,4 +1,4 @@
-// 26-09-11: 图片源固定 pbs.moonchan.xyz —— 直接验证"图片不分手动/自动档"。
+// 26-09-11: 图片源固定首选源 FIXED_IMAGE_PROXY (twimg.l.moonchan.xyz:8443) —— 直接验证"图片不分手动/自动档"。
 // 这个 hook 不读 config-mode-v5, 所以三种档位取值下结果必须完全一致。
 
 import { renderHook } from "@testing-library/react";
@@ -7,7 +7,7 @@ import { FIXED_IMAGE_PROXY } from "../api/endpoints";
 import { IMAGE_PROXY_KEY } from "../api/imageProxy";
 import { CONFIG_MODE_KEY, MODE_AUTO, MODE_MANUAL, VIDEO_PROXY_KEY } from "../api/probe";
 
-const STALE_IMAGE = "https://twimg.l.moonchan.xyz:8443"; // 旧版本探测写进本地的 ech-proxy
+const STALE_IMAGE = "https://pbs.moonchan.xyz"; // 旧版本存储的固定源
 const VIDEO = "https://twimg.l.moonchan.xyz:8443";
 
 beforeEach(() => {
@@ -25,7 +25,7 @@ describe("useFixedImageProxy: 与档位无关", () => {
     ["手动档", JSON.stringify(MODE_MANUAL)],
   ];
 
-  it.each(cases)("%s: 图片被纠正为 pbs.moonchan.xyz", (_name, mode) => {
+  it.each(cases)("%s: 图片被纠正为 FIXED_IMAGE_PROXY", (_name, mode) => {
     if (mode !== null) localStorage.setItem(CONFIG_MODE_KEY, mode);
 
     renderHook(() => useFixedImageProxy());
