@@ -1,4 +1,4 @@
-// 所有的media（pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , video-cf.twimg.com（无referer）
+// 所有的media（pbs.twimg.com）都按顺序降级重试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
 
 import {
   overrideImageProxy,
@@ -23,16 +23,17 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", () => {
+describe("overrideImageProxy & getImageCandidates: 顺序降级重试", () => {
   it("首选源替换为 twimg.l.moonchan.xyz:8443", () => {
     expect(overrideImageProxy(PHOTO)).toBe(
       `${FIXED_IMAGE_PROXY}/media/AAA.jpg`,
     );
   });
 
-  it("getImageCandidates 返回固定两次重试候选列表", () => {
+  it("getImageCandidates 返回顺序降级候选列表", () => {
     expect(getImageCandidates(PHOTO)).toEqual([
       "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg",
+      "https://pbs.moonchan.xyz/media/AAA.jpg",
       "https://video-cf.twimg.com/media/AAA.jpg",
     ]);
   });
@@ -42,6 +43,7 @@ describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", ()
       getImageCandidates("https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig"),
     ).toEqual([
       "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig",
+      "https://pbs.moonchan.xyz/media/AAA.jpg?name=orig",
       "https://video-cf.twimg.com/media/AAA.jpg?name=orig",
     ]);
   });
@@ -52,16 +54,17 @@ describe("overrideImageProxy & getImageCandidates: 固定顺序两次重试", ()
   });
 });
 
-describe("overrideVideoProxy & getVideoCandidates: 视频走固定顺序两次重试", () => {
+describe("overrideVideoProxy & getVideoCandidates: 视频走顺序降级重试", () => {
   it("首选源替换为 twimg.l.moonchan.xyz:8443", () => {
     expect(overrideVideoProxy(VIDEO)).toBe(
       `${FIXED_VIDEO_PROXY}/amplify_video/1/vid/720x1280/BBB.mp4`,
     );
   });
 
-  it("getVideoCandidates 返回固定两次重试候选列表", () => {
+  it("getVideoCandidates 返回顺序降级候选列表", () => {
     expect(getVideoCandidates(VIDEO)).toEqual([
       "https://twimg.l.moonchan.xyz:8443/amplify_video/1/vid/720x1280/BBB.mp4",
+      "https://pbs.moonchan.xyz/amplify_video/1/vid/720x1280/BBB.mp4",
       "https://video-cf.twimg.com/amplify_video/1/vid/720x1280/BBB.mp4",
     ]);
   });

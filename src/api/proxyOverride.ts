@@ -33,14 +33,14 @@ export const extractVideoPath = (url: string): string => {
   }
 };
 
-// 所有的media（图片: pbs.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , video-cf.twimg.com（无referer）
+// 所有的media（图片: pbs.twimg.com）都按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
 export const getImageCandidates = (url: string): string[] => {
   if (!url) return [];
   const path = extractMediaPath(url);
   return IMAGE_BASES.map((b) => b + path);
 };
 
-// 所有的media（视频: video.twimg.com）都改成固定顺序的两次重试：twimg.l.moonchan.xyz:8443 , video-cf.twimg.com（无referer）
+// 所有的media（视频: video.twimg.com）都按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频 302 正常重定向） -> video-cf.twimg.com（无referer）
 export const getVideoCandidates = (url: string): string[] => {
   if (!url) return [];
   const path = extractVideoPath(url);
@@ -67,14 +67,14 @@ export const isMoonchanProxy = (proxy?: string | null): boolean => {
 // 去掉 ipinfo 检查，完全按候选源顺序尝试
 export const isNonCN = (): boolean => false;
 
-// 图片: pbs.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 video-cf.twimg.com（无referer）
+// 图片: pbs.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
 export const overrideImageProxy = (url: string): string => {
   if (!url) return url;
   const candidates = getImageCandidates(url);
   return candidates[0] || url;
 };
 
-// 视频: video.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 video-cf.twimg.com（无referer）
+// 视频: video.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs.moonchan.xyz（302 正常） -> video-cf.twimg.com（无referer）
 export const overrideVideoProxy = (
   url: string,
   videoProxy?: string | null | undefined,

@@ -77,7 +77,7 @@ const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
   // 构造 iframe 内部的 HTML
   // 1. 设置 meta referrer 为 no-referrer (这是核心，用于绕过防盗链)
   // 2. 移除 autoplay，保留 controls 和 poster，这样默认显示封面且不自动播放
-  // 3. 支持固定两次重试: twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com（报错立即切换）
+  // 3. 支持顺序降级: twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频 302 正常重定向） -> video-cf.twimg.com（报错立即切换）
   const candidates = getVideoCandidates(url);
   const safePoster = escapeHtml(poster || "");
   const candidatesJSON = JSON.stringify(candidates);

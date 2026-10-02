@@ -319,7 +319,8 @@ const Main = ({ profile, handleSetProfile }) => {
     return overrideImageProxy(originalUrl);
   };
 
-  // 媒体拉取辅助函数：所有 media（图片/视频）统一走固定顺序两次重试（twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com 无referer）
+  // 媒体拉取辅助函数：所有 media（图片/视频）统一按顺序降级重试（twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com 无referer）
+  // 注意视频情况下 pbs.moonchan.xyz 会返回 302，302 = 正常响应，按 Location 跟随重定向
   const fetchMediaWithFallback = async (originalUrl, type) => {
     const isVideo = type === "video" || type === "animated_gif";
     if (isVideo && videoProxy === "peerjs") {
@@ -328,7 +329,8 @@ const Main = ({ profile, handleSetProfile }) => {
         cache: "force-cache",
         referrerPolicy: "no-referrer",
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const isOk = response.ok || response.status === 200 || response.status === 302 || response.status === 206;
+      if (!isOk) throw new Error(`HTTP ${response.status}`);
       return { response, finalUrl };
     }
 
@@ -344,7 +346,23 @@ const Main = ({ profile, handleSetProfile }) => {
           cache: "force-cache",
           referrerPolicy: "no-referrer",
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const isOk = response.ok || response.status === 200 || response.status === 302 || response.status === 206;
+        if (!isOk) throw new Error(`HTTP ${response.status}`);
+
+        // 视频 302 正常响应处理：跟进重定向获取实际媒体流
+        if (response.status === 302) {
+          const loc = response.headers.get("Location") || response.headers.get("location");
+          if (loc) {
+            const nextResp = await fetch(loc, {
+              cache: "force-cache",
+              referrerPolicy: "no-referrer",
+            });
+            if (nextResp.ok || nextResp.status === 200 || nextResp.status === 206) {
+              return { response: nextResp, finalUrl: loc };
+            }
+          }
+          return { response, finalUrl: candUrl };
+        }
         return { response, finalUrl: candUrl };
       } catch (err) {
         lastErr = err;

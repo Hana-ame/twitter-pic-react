@@ -9,7 +9,7 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   // 记录已下载的数据量，用于控制更新频率
   const loadedBytes = useRef<number>(0);
 
-  // 候选列表：固定顺序两次重试：twimg.l.moonchan.xyz:8443 -> video-cf.twimg.com（无referer）
+  // 候选列表：按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
   const candidates = getImageCandidates(url);
 
   useEffect(() => {
@@ -36,7 +36,8 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
           referrerPolicy: "no-referrer",
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const isOk = response.ok || response.status === 200 || response.status === 302 || response.status === 206;
+        if (!isOk) throw new Error(`HTTP ${response.status}`);
         if (!response.body) throw new Error("No body");
 
         const reader = response.body.getReader();
