@@ -59,9 +59,9 @@ const HelpPage = ({ onClick }) => {
             <br />
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://gh-proxy.org/https://github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.5.1/app-release.apk"
+              href="https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk"
             >
-              v0.5.1
+              最新版 app-release.apk
             </a>
           </p>
           <p className="text-gray-500">
@@ -200,7 +200,7 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">apk不走转发，暂时可以下载apk用</p>
           <p className="text-gray-500">免翻的,没梯子的用用</p>
           <p className="text-gray-500">但是没梯子为什么不挂下面的公共1T呢,下次不写了</p>
-          <p className="text-gray-500">半成品,不打算更新,不过你还是可以
+          <p className="text-gray-500">半成品,不打算更新,后来还是一直在更新,不过你还是可以
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
               href="https://810114.xyz/?bid=103&tid=195456&pn=0"
@@ -211,17 +211,17 @@ const HelpPage = ({ onClick }) => {
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://github.com/Hana-ame/twitter-pic-flutter/releases/tag/v0.2.8"
+              href="https://github.com/Hana-ame/twitter-pic-flutter/releases/tag/v0.7.10"
             >
-              https://github.com/Hana-ame/twitter-pic-flutter/releases/tag/v0.2.8
+              https://github.com/Hana-ame/twitter-pic-flutter/releases/tag/v0.7.10
             </a>
           </p>
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
-              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk"
+              href="https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk"
             >
-              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/download/v0.2.8/app-release.apk
+              https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk
             </a>
           </p>
           <p className="text-gray-500">
