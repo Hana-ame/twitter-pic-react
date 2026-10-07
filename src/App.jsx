@@ -31,7 +31,6 @@ import { getEmojis, voteUpEmoji } from "./api/emojis";
 import {
   overrideImageProxy,
   overrideVideoProxy,
-  getImageCandidates,
   getVideoCandidates,
 } from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
@@ -312,14 +311,15 @@ const Main = ({ profile, handleSetProfile }) => {
       }
     }
 
-    // 常规分支: HTTP URL 替换 (图片一律固定顺序重试, 视频按所选视频源)
+    // 常规分支: HTTP URL 替换 (图片固定 pbs.moonchan.xyz, 视频按所选视频源)
     if (isVideo) {
       return overrideVideoProxy(originalUrl, videoProxy);
     }
     return overrideImageProxy(originalUrl);
   };
 
-  // 媒体拉取辅助函数：所有 media（图片/视频）统一按顺序降级重试（twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com 无referer）
+  // 媒体拉取辅助函数：视频按顺序降级重试（twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com 无referer）
+  // 26-10-08: 图片只有一个源 pbs.moonchan.xyz, 不重试、不换源, 所以下面图片分支是单元素数组。
   // 注意视频情况下 pbs.moonchan.xyz 会返回 302，302 = 正常响应，按 Location 跟随重定向
   const fetchMediaWithFallback = async (originalUrl, type) => {
     const isVideo = type === "video" || type === "animated_gif";
@@ -336,7 +336,7 @@ const Main = ({ profile, handleSetProfile }) => {
 
     const candidates = isVideo
       ? getVideoCandidates(originalUrl)
-      : getImageCandidates(originalUrl);
+      : [overrideImageProxy(originalUrl)];
 
     let lastErr = null;
     for (let i = 0; i < candidates.length; i++) {
@@ -634,9 +634,11 @@ const Main = ({ profile, handleSetProfile }) => {
           await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (err) {
           console.error(`文件 ${fileName} 推送失败:`, err);
-          // 备用方案：如果 Fetch 失败，尝试降级源（video-cf.twimg.com）
+          // 备用方案：如果 Fetch 失败，直接交给浏览器下载。
+          // 26-10-08: 图片只有 pbs.moonchan.xyz 一个源 (单元素数组, candidates[1] 为空自动落到 candidates[0]);
+          // 视频的降级链保留, 见 src/api/endpoints.ts 的 VIDEO_BASES 注释。
           const isItemVideo = item.type === "video" || item.type === "animated_gif";
-          const candidates = isItemVideo ? getVideoCandidates(item.url) : getImageCandidates(item.url);
+          const candidates = isItemVideo ? getVideoCandidates(item.url) : [overrideImageProxy(item.url)];
           window.open(candidates[1] || candidates[0] || item.url, "_blank");
         }
       }

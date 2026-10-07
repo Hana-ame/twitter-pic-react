@@ -4,12 +4,12 @@
 //   - 用户代理带端口/路径/尾斜杠时, 下载和展示会拼出不同的 URL。
 // 现在两边都 import 这里的 overrideImageProxy / overrideVideoProxy, 单一实现。
 
-import { FIXED_IMAGE_PROXY, IMAGE_BASES, FIXED_VIDEO_PROXY, VIDEO_BASES } from "./endpoints";
+import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY, VIDEO_BASES } from "./endpoints";
 
 export const IMAGE_ORIGINAL_HOST = "pbs.twimg.com";
 export const VIDEO_ORIGINAL_HOST = "video.twimg.com";
 
-export { FIXED_IMAGE_PROXY, IMAGE_BASES, FIXED_VIDEO_PROXY, VIDEO_BASES };
+export { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY, VIDEO_BASES };
 
 // 提取 media 相对路径与查询参数
 export const extractMediaPath = (url: string): string => {
@@ -33,11 +33,13 @@ export const extractVideoPath = (url: string): string => {
   }
 };
 
-// 所有的media（图片: pbs.twimg.com）都按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
-export const getImageCandidates = (url: string): string[] => {
-  if (!url) return [];
-  const path = extractMediaPath(url);
-  return IMAGE_BASES.map((b) => b + path);
+// 26-10-08: 图片只有一个源 FIXED_IMAGE_PROXY (https://pbs.moonchan.xyz), 没有 fallback / 候选列表。
+// 之前这里返回 IMAGE_BASES 映射出的候选数组 + 各调用方的 onError 换源, 现在收敛成返回单个 URL。
+// 保留 host 无关的取路径逻辑 (extractMediaPath): 输入可能是 pbs.twimg.com 原链, 也可能是旧版本
+// 已经替换过的 moonchan 链, 两种都能正确提取 path+query。
+export const imageProxyUrl = (url: string): string => {
+  if (!url) return "";
+  return FIXED_IMAGE_PROXY + extractMediaPath(url);
 };
 
 // 所有的media（视频: video.twimg.com）都按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频 302 正常重定向） -> video-cf.twimg.com（无referer）
@@ -67,14 +69,12 @@ export const isMoonchanProxy = (proxy?: string | null): boolean => {
 // 去掉 ipinfo 检查，完全按候选源顺序尝试
 export const isNonCN = (): boolean => false;
 
-// 图片: pbs.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
-export const overrideImageProxy = (url: string): string => {
-  if (!url) return url;
-  const candidates = getImageCandidates(url);
-  return candidates[0] || url;
-};
+// 图片: pbs.twimg.com -> 固定源 https://pbs.moonchan.xyz, 没有 fallback。
+export const overrideImageProxy = (url: string): string => imageProxyUrl(url);
 
-// 视频: video.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs.moonchan.xyz（302 正常） -> video-cf.twimg.com（无referer）
+// 视频: video.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
+// 26-10-08: 视频不能收敛成单一 pbs.moonchan.xyz —— 它只回 302 到 twimg.moonchan.xyz,
+// 后者当前是 Cloudflare 429 (error 1027), 见 endpoints.ts 的 VIDEO_BASES 注释。
 export const overrideVideoProxy = (
   url: string,
   videoProxy?: string | null | undefined,

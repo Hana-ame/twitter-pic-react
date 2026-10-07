@@ -1,11 +1,10 @@
-// 所有的media（pbs.twimg.com）都按顺序降级重试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
+// 图片固定单一源 https://pbs.moonchan.xyz (无 fallback)；视频保留顺序降级重试链。
 
 import {
   overrideImageProxy,
   overrideVideoProxy,
-  getImageCandidates,
+  imageProxyUrl,
   getVideoCandidates,
-  IMAGE_BASES,
   VIDEO_BASES,
 } from "./proxyOverride";
 import { IMAGE_PROXY_KEY, normalizeStoredImageProxy } from "./imageProxy";
@@ -23,34 +22,28 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-describe("overrideImageProxy & getImageCandidates: 顺序降级重试", () => {
-  it("首选源替换为 twimg.l.moonchan.xyz:8443", () => {
+describe("overrideImageProxy & imageProxyUrl: 图片固定单一源 pbs.moonchan.xyz", () => {
+  it("替换为 FIXED_IMAGE_PROXY", () => {
     expect(overrideImageProxy(PHOTO)).toBe(
       `${FIXED_IMAGE_PROXY}/media/AAA.jpg`,
     );
   });
 
-  it("getImageCandidates 返回顺序降级候选列表", () => {
-    expect(getImageCandidates(PHOTO)).toEqual([
-      "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg",
-      "https://pbs.moonchan.xyz/media/AAA.jpg",
-      "https://video-cf.twimg.com/media/AAA.jpg",
-    ]);
+  it("只返回一个 URL, 没有备选源", () => {
+    expect(imageProxyUrl(PHOTO)).toBe("https://pbs.moonchan.xyz/media/AAA.jpg");
+    // 图片不再有 IMAGE_BASES 那样的候选数组; 只有 VIDEO_BASES 存在。
+    expect(VIDEO_BASES).toHaveLength(3);
   });
 
-  it("已经替换过的 URL 也能正确提取候选列表", () => {
+  it("已经替换过的 URL 也能正确提取 path+query", () => {
     expect(
-      getImageCandidates("https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig"),
-    ).toEqual([
-      "https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig",
-      "https://pbs.moonchan.xyz/media/AAA.jpg?name=orig",
-      "https://video-cf.twimg.com/media/AAA.jpg?name=orig",
-    ]);
+      imageProxyUrl("https://twimg.l.moonchan.xyz:8443/media/AAA.jpg?name=orig"),
+    ).toBe("https://pbs.moonchan.xyz/media/AAA.jpg?name=orig");
   });
 
-  it("空 URL 原样返回", () => {
+  it("空 URL 返回空字符串", () => {
     expect(overrideImageProxy("")).toBe("");
-    expect(getImageCandidates("")).toEqual([]);
+    expect(imageProxyUrl("")).toBe("");
   });
 });
 
@@ -76,10 +69,11 @@ describe("overrideVideoProxy & getVideoCandidates: 视频走顺序降级重试",
 });
 
 describe("normalizeStoredImageProxy: 纠正本地存的历史图片源", () => {
-  it("旧 twimg 入口 / 旧 pbs.moonchan.xyz / peerjs / 第三方地址都被改回固定首选源", () => {
+  it("旧 ech-proxy / 旧 twimg 入口 / peerjs / 第三方地址都被改回固定源", () => {
+    // 注意: pbs.moonchan.xyz 现在就是固定源本身, 不能出现在 stale 列表里。
     for (const stale of [
       "https://twimg.moonchan.xyz",
-      "https://pbs.moonchan.xyz",
+      "https://twimg.l.moonchan.xyz:8443",
       "peerjs",
       "https://my-own-proxy.example",
     ]) {

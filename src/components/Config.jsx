@@ -72,8 +72,8 @@ function ModeToggle({ mode, onModeChange }) {
       </div>
       <p className="text-xs text-gray-400 mb-2">
         {mode === MODE_AUTO
-          ? "自动探测可用源并切换视频源，会覆盖手动填写的地址（图片按顺序重试：twimg.l.moonchan.xyz:8443，pbs.moonchan.xyz，video-cf.twimg.com）"
-          : "只用你选的源，自动探测不再改你的设置（图片按顺序重试：twimg.l.moonchan.xyz:8443，pbs.moonchan.xyz，video-cf.twimg.com）"}
+          ? "自动探测可用源并切换视频源，会覆盖手动填写的地址（图片固定走 pbs.moonchan.xyz，无 fallback）"
+          : "只用你选的源，自动探测不再改你的设置（图片固定走 pbs.moonchan.xyz，无 fallback）"}
       </p>
     </>
   );
@@ -154,17 +154,17 @@ const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disab
   );
 };
 
-// 图片源降级尝试: twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
+// 26-10-08: 图片源固定 pbs.moonchan.xyz, 没有 fallback, 不可配置。
 const ImageConfig = () => {
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
       <h3 className="text-sm font-semibold text-gray-700">图片源</h3>
       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-        <span className="text-sm text-gray-600">twimg.l.moonchan.xyz:8443 → pbs.moonchan.xyz → video-cf.twimg.com</span>
-        <span className="text-xs text-green-500">● 降级重试</span>
+        <span className="text-sm text-gray-600">pbs.moonchan.xyz</span>
+        <span className="text-xs text-green-500">● 固定</span>
       </div>
       <p className="text-xs text-gray-400">
-        图片源按顺序尝试：twimg.l.moonchan.xyz:8443 → pbs.moonchan.xyz，失败自动降级到 video-cf.twimg.com（无 referer）。
+        所有图片（pbs.twimg.com / 视频封面 / 用户头像）统一走 pbs.moonchan.xyz，没有备选源，也不提供切换。
       </p>
     </div>
   );
@@ -454,7 +454,7 @@ const PeerJSConfig = () => {
       <h3 className="text-lg font-semibold text-gray-700">PeerJS 配置</h3>
       <p className="text-xs text-gray-500">
         选择 "peerjs" 作为视频源时，通过 PeerJS WebRTC DataChannel 从 Node 端 peer 拉取媒体。
-        需要先运行 peerdrive-media Node 端服务。（图片固定走 twimg.l.moonchan.xyz:8443 → pbs.moonchan.xyz → video-cf.twimg.com，不走 peerjs）
+        需要先运行 peerdrive-media Node 端服务。（图片固定走 pbs.moonchan.xyz，不走 peerjs）
       </p>
 
       <div className="space-y-2">

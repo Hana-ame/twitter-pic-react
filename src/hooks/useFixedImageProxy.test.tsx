@@ -1,4 +1,5 @@
-// 26-09-11: 图片源固定首选源 FIXED_IMAGE_PROXY (twimg.l.moonchan.xyz:8443) —— 直接验证"图片不分手动/自动档"。
+// 26-09-11: 图片源固定 FIXED_IMAGE_PROXY —— 直接验证"图片不分手动/自动档"。
+// 26-10-08: FIXED_IMAGE_PROXY = https://pbs.moonchan.xyz (单一源, 无 fallback)。
 // 这个 hook 不读 config-mode-v5, 所以三种档位取值下结果必须完全一致。
 
 import { renderHook } from "@testing-library/react";
@@ -7,8 +8,8 @@ import { FIXED_IMAGE_PROXY } from "../api/endpoints";
 import { IMAGE_PROXY_KEY } from "../api/imageProxy";
 import { CONFIG_MODE_KEY, MODE_AUTO, MODE_MANUAL, VIDEO_PROXY_KEY } from "../api/probe";
 
-const STALE_IMAGE = "https://pbs.moonchan.xyz"; // 旧版本存储的固定源
-const VIDEO = "https://twimg.l.moonchan.xyz:8443";
+const STALE_IMAGE = "https://twimg.l.moonchan.xyz:8443"; // 旧版本存的固定图片源
+const VIDEO = "https://pbs.moonchan.xyz"; // 视频源候选链中的一员, 本测试里作为"不该被动"的对照
 
 beforeEach(() => {
   localStorage.clear();

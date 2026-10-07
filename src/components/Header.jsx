@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
-import { getImageCandidates } from "../api/proxyOverride";
+import { overrideImageProxy } from "../api/proxyOverride";
 // import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
 const Header = ({ username, onClick }) => {
@@ -86,21 +86,15 @@ const Header = ({ username, onClick }) => {
       className="flex items-center m-4 p-4 bg-gray-200 hover:bg-gray-100 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md"
       onClick={() => onClick(userData)}
     >
-      {/* 用户头像 (降级尝试: twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com 无referer) */}
+      {/* 用户头像 (26-10-08: 固定 pbs.moonchan.xyz, 无 fallback) */}
       <div className="flex-shrink-0 mr-4">
         {(() => {
           const profileImg = userData.account_info?.profile_image;
-          const candidates = profileImg ? getImageCandidates(profileImg) : [];
           return (
             <img
-              src={candidates[0] || profileImg}
+              src={overrideImageProxy(profileImg || "")}
               alt={userData.account_info?.nick}
               referrerPolicy="no-referrer"
-              onError={(e) => {
-                if (candidates[1] && e.currentTarget.src !== candidates[1]) {
-                  e.currentTarget.src = candidates[1];
-                }
-              }}
               className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
             />
           );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getImageCandidates } from "../api/proxyOverride";
+import { overrideImageProxy } from "../api/proxyOverride";
 
 const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -9,8 +9,8 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   // 记录已下载的数据量，用于控制更新频率
   const loadedBytes = useRef<number>(0);
 
-  // 候选列表：按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
-  const candidates = getImageCandidates(url);
+  // 26-10-08: 图片唯一来源 https://pbs.moonchan.xyz, 没有 fallback, 只有一个 URL。
+  const imageUrl = overrideImageProxy(url);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -22,16 +22,16 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
       }
     };
 
-    if (!candidates || candidates.length === 0) {
+    if (!imageUrl) {
       setIsLoading(false);
       return;
     }
 
-    const tryFetchCandidate = async (
-      candidateUrl: string,
+    const tryFetchImageUrl = async (
+      targetUrl: string,
     ): Promise<boolean> => {
       try {
-        const response = await fetch(candidateUrl, {
+        const response = await fetch(targetUrl, {
           signal,
           referrerPolicy: "no-referrer",
         });
@@ -87,23 +87,20 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
     const loadImage = async () => {
       setIsLoading(true);
 
-      for (let i = 0; i < candidates.length; i++) {
-        if (signal.aborted) return;
-        try {
-          const ok = await tryFetchCandidate(candidates[i]);
-          if (ok) return;
-        } catch (err: any) {
-          if (signal.aborted) {
-            console.log("Abort successful: Socket closed.");
-            return;
-          }
-          // 当前候选源失败，尝试下一个候选源
+      try {
+        await tryFetchImageUrl(imageUrl);
+      } catch (err: any) {
+        if (signal.aborted) {
+          console.log("Abort successful: Socket closed.");
+          return;
         }
+        // 唯一的图片源拉取失败
       }
 
-      // 如果候选源 fetch 均失败（如 CORS 拦截或网络限制），降级为直接赋值首选源给 img 渲染（img 标签的 onError 会在失败时切换到备用源）
+      // 26-10-08: fetch 失败（如 CORS 拦截或网络限制）时直接把这个源赋给 img 渲染。
+      // 注意这里不再切换到备用源 —— 图片只有 pbs.moonchan.xyz 一个源, 没有 fallback。
       if (!signal.aborted) {
-        setDisplayUrl(candidates[0] || url);
+        setDisplayUrl(imageUrl);
         setIsLoading(false);
       }
     };
@@ -122,14 +119,9 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
       <div className="flex justify-center items-start max-h-screen">
         <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
           <img
-            src={displayUrl || candidates[0] || url}
+            src={displayUrl || imageUrl}
             alt={alt || url}
             referrerPolicy="no-referrer"
-            onError={(e) => {
-              if (candidates[1] && e.currentTarget.src !== candidates[1]) {
-                e.currentTarget.src = candidates[1];
-              }
-            }}
             className="mx-auto max-h-screen object-contain transition-opacity duration-200"
           />
         </div>
@@ -149,11 +141,6 @@ const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
             src={displayUrl}
             alt={alt || url}
             referrerPolicy="no-referrer"
-            onError={(e) => {
-              if (candidates[1] && e.currentTarget.src !== candidates[1]) {
-                e.currentTarget.src = candidates[1];
-              }
-            }}
             className="mx-auto max-h-screen object-contain transition-opacity duration-200"
             style={{ opacity: isLoading ? 0.8 : 1 }} // 加载中给一点透明度，视觉暗示还在渐进中
           />
