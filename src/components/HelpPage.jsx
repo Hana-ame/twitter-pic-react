@@ -61,7 +61,14 @@ const HelpPage = ({ onClick }) => {
               className="text-blue-500 cursor-pointer border-blue-700"
               href="https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk"
             >
-              最新版 app-release.apk
+              最新版（官方）
+            </a>
+            <br />
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://gh-proxy.org/https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk"
+            >
+              最新版（国内镜像）
             </a>
           </p>
           <p className="text-gray-500">
@@ -222,6 +229,14 @@ const HelpPage = ({ onClick }) => {
               href="https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk"
             >
               https://github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk
+            </a>
+          </p>
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk"
+            >
+              https://gh-proxy.com/github.com/Hana-ame/twitter-pic-flutter/releases/latest/download/app-release.apk
             </a>
           </p>
           <p className="text-gray-500">
