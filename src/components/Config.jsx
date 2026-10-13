@@ -140,8 +140,10 @@ const VideoConfig = () => {
   useEffect(() => {
     try {
       const raw = localStorage.getItem("config-mode-v5");
+      // 关键: raw === null 不能算"自动档残留" —— key 被清掉后永远是 null,
+      // 那样每次进配置页都会把用户刚选的源重置为空 (这次的 bug)。
+      // 只认真实证据: 档位值是 "auto", 或探测时间戳还在。
       const wasAuto =
-        raw === null ||
         raw === "auto" ||
         raw === JSON.stringify("auto") ||
         localStorage.getItem("moonchan-probe-ts") !== null;
