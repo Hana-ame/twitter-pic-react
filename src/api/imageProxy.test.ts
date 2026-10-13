@@ -8,11 +8,6 @@ import {
   VIDEO_BASES,
 } from "./proxyOverride";
 import { IMAGE_PROXY_KEY, normalizeStoredImageProxy } from "./imageProxy";
-import {
-  runMoonchanProbe,
-  MOONCHAN_PROBE_TARGET,
-  VIDEO_PROXY_KEY,
-} from "./probe";
 import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY } from "./endpoints";
 
 const PHOTO = "https://pbs.twimg.com/media/AAA.jpg";
@@ -54,7 +49,7 @@ describe("overrideVideoProxy & getVideoCandidates: 视频走顺序降级重试",
     );
   });
 
-  it("getVideoCandidates 返回顺序降级候选列表", () => {
+  it("getVideoCandidates (未选源) 返回顺序降级候选列表", () => {
     expect(getVideoCandidates(VIDEO)).toEqual([
       "https://twimg.l.moonchan.xyz:8443/amplify_video/1/vid/720x1280/BBB.mp4",
       "https://pbs.moonchan.xyz/amplify_video/1/vid/720x1280/BBB.mp4",
@@ -92,33 +87,37 @@ describe("normalizeStoredImageProxy: 纠正本地存的历史图片源", () => {
   });
 });
 
-describe("runMoonchanProbe: 只切视频源, 图片源不受影响", () => {
-  it("ech-proxy 可达时切视频源, 且完全不碰 image-proxy-v5", async () => {
-    localStorage.setItem("country", "CN");
-    const setVideo = jest.fn();
-    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as any;
-
-    const result = await runMoonchanProbe(setVideo, 5000, { force: true });
-
-    expect(result).toEqual({ switched: true, reason: "switched" });
-    expect(setVideo).toHaveBeenCalledWith(MOONCHAN_PROBE_TARGET);
-    expect(localStorage.getItem(VIDEO_PROXY_KEY)).toBeNull(); // 只回调 setter, 不直接写存储
-    expect(localStorage.getItem(IMAGE_PROXY_KEY)).toBeNull(); // 探测不碰图片源
+describe("视频源选择: 选什么就是什么 (26-10, 自动档已删)", () => {
+  it("选了 video-cf: 只有 video-cf 一个候选, 不降级", () => {
+    expect(getVideoCandidates(VIDEO, "https://video-cf.twimg.com")).toEqual([
+      "https://video-cf.twimg.com/amplify_video/1/vid/720x1280/BBB.mp4",
+    ]);
+    expect(overrideVideoProxy(VIDEO, "https://video-cf.twimg.com")).toBe(
+      "https://video-cf.twimg.com/amplify_video/1/vid/720x1280/BBB.mp4",
+    );
   });
 
-  it("手动档不探测也不改源 (两种存储写法都认)", async () => {
-    localStorage.setItem("country", "CN");
-    const setVideo = jest.fn();
-    global.fetch = jest.fn().mockResolvedValue({ ok: true }) as any;
+  it("选了 ech-proxy: 只有 ech-proxy 一个候选", () => {
+    expect(
+      getVideoCandidates(VIDEO, "https://twimg.l.moonchan.xyz:8443"),
+    ).toEqual([
+      "https://twimg.l.moonchan.xyz:8443/amplify_video/1/vid/720x1280/BBB.mp4",
+    ]);
+  });
 
-    for (const raw of [JSON.stringify("manual"), "manual"]) {
-      localStorage.setItem("config-mode-v5", raw);
-      setVideo.mockClear();
-      const result = await runMoonchanProbe(setVideo, 5000, { force: true });
+  it("自定义源: 尾斜杠被归一化", () => {
+    expect(getVideoCandidates(VIDEO, "https://my-proxy.example/")).toEqual([
+      "https://my-proxy.example/amplify_video/1/vid/720x1280/BBB.mp4",
+    ]);
+  });
 
-      expect(result).toEqual({ switched: false, reason: "manual" });
-      expect(setVideo).not.toHaveBeenCalled();
-      expect(global.fetch).not.toHaveBeenCalled();
-    }
+  it("空串 / undefined = 未选择: 保持全量降级链", () => {
+    expect(getVideoCandidates(VIDEO, "")).toHaveLength(3);
+    expect(getVideoCandidates(VIDEO)).toHaveLength(3);
+  });
+
+  it("peerjs: 不做 URL 替换 (走 WebRTC 通道)", () => {
+    expect(overrideVideoProxy(VIDEO, "peerjs")).toBe(VIDEO);
+    expect(getVideoCandidates(VIDEO, "peerjs")).toHaveLength(3); // 兜底: 不崩
   });
 });

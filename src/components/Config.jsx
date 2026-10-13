@@ -3,81 +3,36 @@ import { FIXED_IMAGE_PROXY, DEFAULT_VIDEO_PROXY } from "../api/endpoints";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 // import { delay } from "../Tools/utils"; // 26-09-08: 旧版已不需要
 import { testLatency } from "../Tools/network/testLatency";
-import useMoonchanProbe from "../hooks/useMoonchanProbe";
 import useEchProxyStatus from "../hooks/useEchProxyStatus";
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "../api/peerMedia";
-import {
-  CONFIG_MODE_KEY,
-  MODE_AUTO,
-  MODE_MANUAL,
-  runMoonchanProbe,
-} from "../api/probe";
 
-// 26-09-08: 配置模式 — 自动档 (探测自动选源) / 手动档 (自己填, 探测不许覆盖)
-const MODE_KEY = CONFIG_MODE_KEY;
+// 26-10: 自动档已删除 (api/probe.ts + useMoonchanProbe 一并移除)。
+// 用户选什么源就是什么源, 任何代码都不许再自动改写 video-proxy-v5。
+// 自动档留下的垃圾 key, 挂载时清一次。
+const STALE_AUTO_MODE_KEYS = ["config-mode-v5", "moonchan-probe-ts"];
 
 // 26-09-11: 图片源这里也只写固定源, 与档位无关。
 const AutoConfig = () => {
   const { current: now } = useRef(Date.now());
 
-  const [image, setImage] = useLocalStorage(
+  const [, setImage] = useLocalStorage(
     "image-proxy-v5",
     FIXED_IMAGE_PROXY
   );
-  const [video, setVideo] = useLocalStorage(
-    "video-proxy-v5",
-    DEFAULT_VIDEO_PROXY
-  );
-
-  useMoonchanProbe();
+  const [, setVideo] = useLocalStorage("video-proxy-v5", "");
 
   const [ts, setTS] = useLocalStorage("first-visit-at", now);
 
   useEffect(() => {
     if (ts === now) {
       setImage(FIXED_IMAGE_PROXY);
-      setVideo(DEFAULT_VIDEO_PROXY);
+      setVideo("");
       setTS(now);
     }
   }, []);
 
   return null;
 };
-
-// ====== 模式切换按钮 ======
-function ModeToggle({ mode, onModeChange }) {
-  return (
-    <>
-      <div className="flex items-center gap-1 mb-2 p-1 bg-gray-100 rounded-lg">
-        <button
-          onClick={() => onModeChange(MODE_AUTO)}
-          className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-            mode === MODE_AUTO
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          自动档
-        </button>
-        <button
-          onClick={() => onModeChange(MODE_MANUAL)}
-          className={`flex-1 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-            mode === MODE_MANUAL
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          手动档
-        </button>
-      </div>
-      <p className="text-xs text-gray-400 mb-2">
-        {mode === MODE_AUTO
-          ? "自动探测可用源并切换视频源，会覆盖手动填写的地址（图片固定走 pbs.moonchan.xyz，无 fallback）"
-          : "只用你选的源，自动探测不再改你的设置（图片固定走 pbs.moonchan.xyz，无 fallback）"}
-      </p>
-    </>
-  );
-}
 
 const ConfigItem = ({ value, url, label, note, noteColor, onClick, noTest, disabled }) => {
   const [latency, setLatency] = useState(-1);
@@ -170,26 +125,33 @@ const ImageConfig = () => {
   );
 };
 
-// 26-09-08: 自动档探测结果 → 人话。不切的时候要说清为什么不切，否则用户以为按钮坏了。
-// 26-09-11: 探测只管视频源 (图片固定 pbs.moonchan.xyz)，文案跟着改成"视频源"。
-const PROBE_RESULT_TEXT = {
-  switched: "视频源已切到 ech-proxy",
-  manual: "手动档不自动改源",
-  "non-cn": "非 CN 网络，不启用 moonchan 源",
-  throttled: "刚刚探测过，稍后再试",
-  unreachable: "未检测到 ech-proxy，保持当前源",
-};
-
+// 26-10: 视频源 = 用户选的, 就是用户选的。自动档已删除, 没有任何代码会再改写这个值。
+// 空值 = 未选择: 视频走全量降级链 (ech-proxy → pbs.moonchan → video-cf)。
 const VideoConfig = () => {
-  const [vidProxy, setVidProxy] = useLocalStorage(
-    "video-proxy-v5",
-    DEFAULT_VIDEO_PROXY
-  );
-  const [mode, setMode] = useLocalStorage(MODE_KEY, MODE_AUTO);
+  const [vidProxy, setVidProxy] = useLocalStorage("video-proxy-v5", "");
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState("");
 
-  // ech-proxy 开启检测: 与自动档探测同一套判定 (isReachable / no-cors)
+  // 清掉自动档时代留下的垃圾 key (幂等)。
+  // 关键: 如果旧档位是"自动"(或探测时间戳存在), 说明 video-proxy-v5 里的值
+  // 很可能是自动探测写进去的而不是用户选的 —— 重置为空 (未选择, 走全量降级链),
+  // 否则用户会被卡在探测写下的 ech-proxy 上, 正是这次要修的 bug。
+  // 手动档用户的选项原样保留。
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("config-mode-v5");
+      const wasAuto =
+        raw === null ||
+        raw === "auto" ||
+        raw === JSON.stringify("auto") ||
+        localStorage.getItem("moonchan-probe-ts") !== null;
+      if (wasAuto) setVidProxy("");
+      for (const k of STALE_AUTO_MODE_KEYS) localStorage.removeItem(k);
+    } catch { /* Safari 隐私模式: 不清也罢 */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ech-proxy 开启检测: 只打标注, 不切源。
   // 能通 → "已开启" (绿), 不通 → "需下载 APK/EXE" (黄)
   const [echStatus, recheckEch] = useEchProxyStatus();
 
@@ -202,9 +164,9 @@ const VideoConfig = () => {
   const echNoteColor =
     echStatus === "enabled" ? "text-green-600" : "text-amber-600";
 
-  // 预设选项。手动档整列可点; 自动档同列表灰色不可点, 只表示当前源。
+  // 预设选项。点哪个就用哪个, 立即持久化到 localStorage (video-proxy-v5)。
   const predefinedOptions = [
-    { url: "https://video-cf.twimg.com", label: "video-cf" },
+    { url: "https://video-cf.twimg.com", label: "video-cf", note: "需系统代理/VPN" },
     { url: "https://twimg.l.moonchan.xyz:8443", label: "ech-proxy", note: echNote, noteColor: echNoteColor, noTest: true },
     { url: "peerjs", label: "PeerJS", note: "需配置 Peer ID", noTest: true },
   ];
@@ -239,7 +201,7 @@ const VideoConfig = () => {
     setCustomUrlInput("");
   };
 
-  const renderPresets = (disabled, onSelect) =>
+  const renderPresets = () =>
     predefinedOptions.map((opt) => (
       <ConfigItem
         key={opt.url}
@@ -248,135 +210,76 @@ const VideoConfig = () => {
         label={opt.label}
         note={opt.note}
         noteColor={opt.noteColor}
-        onClick={onSelect}
+        onClick={selectPreset}
         noTest={opt.noTest || false}
-        disabled={disabled}
       />
     ));
 
-  // 自动档: 手动重跑一次探测 (force 绕过 5 分钟节流), 让选择结果可复查
-  // 26-09-11: 探测只改视频源 —— 图片固定 pbs.moonchan.xyz, 不再传给探测。
-  const [reprobing, setReprobing] = useState(false);
-  const [probeResult, setProbeResult] = useState(null); // null | MoonchanProbeResult
-
-  const handleReprobe = async () => {
-    setReprobing(true);
-    setProbeResult(null);
-    const result = await runMoonchanProbe(setVidProxy, 5000, {
-      force: true,
-    });
-    setProbeResult(result);
-    setReprobing(false);
-    // 同步刷新 ech-proxy 那一行的"已开启 / 需下载"标注
-    recheckEch();
-  };
-
-  // 切档时顺带重测一次 ech-proxy，让标注和自动档的决策保持同一份事实
-  const handleModeChange = (next) => {
-    setMode(next);
-    recheckEch();
-  };
-
-  // 手动档专用: 只刷新检测标注, 不改任何源
+  // 只刷新 ech-proxy 的"已开启 / 需下载"标注, 不动用户选的源
   const handleRecheckOnly = () => recheckEch();
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white rounded-xl shadow-md space-y-2">
       <h3 className="text-sm font-semibold text-gray-700">视频源</h3>
+      <p className="text-xs text-gray-400">
+        选什么就是什么，不会被自动更改（图片固定走 pbs.moonchan.xyz）。
+        {!vidProxy && " 当前未选择：按 ech-proxy → pbs.moonchan → video-cf 顺序自动降级。"}
+      </p>
 
-      <ModeToggle mode={mode} onModeChange={handleModeChange} />
+      <div className="space-y-2">
+        {renderPresets()}
 
-      {mode === MODE_AUTO ? (
-        // 自动档: 只读展示, 当前源打勾 (自定义源也列出)
-        <div className="space-y-1">
-          {renderPresets(true, setVidProxy)}
-          {isCustomUrl && (
-            <ConfigItem
-              value={vidProxy}
-              url={vidProxy}
-              label="自定义"
-              note={vidProxy}
-              onClick={() => {}}
-              noTest
-              disabled
+        <ConfigItem
+          value={vidProxy}
+          url={isCustomUrl ? vidProxy : CUSTOM_SENTINEL}
+          label="自定义"
+          note={isCustomUrl ? vidProxy : "手动填写代理地址"}
+          onClick={openCustomEditor}
+          noTest
+        />
+
+        {/* 点"自定义"才在它正下方展开输入框; 未展开时不占位 */}
+        {showCustomInput && (
+          <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <input
+              type="text"
+              value={customUrlInput}
+              onChange={(e) => setCustomUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCustomSubmit();
+                if (e.key === "Escape") handleCustomCancel();
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              placeholder="https://your-proxy.com"
+              autoFocus
             />
-          )}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={handleReprobe}
-              disabled={reprobing}
-              className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-50 transition-colors"
-            >
-              {reprobing ? "探测中..." : "重新探测"}
-            </button>
-            {probeResult !== null && (
-              <span
-                className={`text-xs ${
-                  probeResult.switched ? "text-green-600" : "text-gray-400"
-                }`}
+            <p className="text-xs text-gray-400">替换 video.twimg.com 部分</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCustomSubmit}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
               >
-                {PROBE_RESULT_TEXT[probeResult.reason]}
-              </span>
-            )}
-          </div>
-        </div>
-      ) : (
-        // 手动档: 列表常驻, 点"自定义"在它下面展开输入框
-        <div className="space-y-2">
-          {renderPresets(false, selectPreset)}
-
-          <ConfigItem
-            value={vidProxy}
-            url={isCustomUrl ? vidProxy : CUSTOM_SENTINEL}
-            label="自定义"
-            note={isCustomUrl ? vidProxy : "手动填写代理地址"}
-            onClick={openCustomEditor}
-            noTest
-          />
-
-          {/* 点"自定义"才在它正下方展开输入框; 未展开时不占位 */}
-          {showCustomInput && (
-            <div className="space-y-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <input
-                type="text"
-                value={customUrlInput}
-                onChange={(e) => setCustomUrlInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCustomSubmit();
-                  if (e.key === "Escape") handleCustomCancel();
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                placeholder="https://your-proxy.com"
-                autoFocus
-              />
-              <p className="text-xs text-gray-400">替换 video.twimg.com 部分</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCustomSubmit}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
-                >
-                  确认
-                </button>
-                <button
-                  onClick={handleCustomCancel}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
-                >
-                  取消
-                </button>
-              </div>
+                确认
+              </button>
+              <button
+                onClick={handleCustomCancel}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+              >
+                取消
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 手动档只重测 ech-proxy 标注, 不动用户选的源 */}
-          <button
-            onClick={handleRecheckOnly}
-            disabled={echStatus === "checking"}
-            className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-50 transition-colors"
-          >
-            {echStatus === "checking" ? "检测中..." : "重新检测 ech-proxy"}
-          </button>
-        </div>
-      )}
+        {/* 只重测 ech-proxy 标注, 不动用户选的源 */}
+        <button
+          onClick={handleRecheckOnly}
+          disabled={echStatus === "checking"}
+          className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 disabled:opacity-50 transition-colors"
+        >
+          {echStatus === "checking" ? "检测中..." : "重新检测 ech-proxy"}
+        </button>
+      </div>
     </div>
   );
 };
@@ -590,5 +493,5 @@ const PeerJSConfig = () => {
   );
 };
 
-const Config = { ImageConfig, VideoConfig, AutoConfig, ConfigItem, ModeToggle, PeerJSConfig };
+const Config = { ImageConfig, VideoConfig, AutoConfig, ConfigItem, PeerJSConfig };
 export default Config;

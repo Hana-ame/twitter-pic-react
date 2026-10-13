@@ -42,10 +42,23 @@ export const imageProxyUrl = (url: string): string => {
   return FIXED_IMAGE_PROXY + extractMediaPath(url);
 };
 
-// 所有的media（视频: video.twimg.com）都按顺序降级尝试：twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频 302 正常重定向） -> video-cf.twimg.com（无referer）
-export const getVideoCandidates = (url: string): string[] => {
+// 去掉尾斜杠, 避免 "https://proxy.com/" + "/media/xxx" 拼出双斜杠。
+const normalizeBase = (proxy: string): string => proxy.replace(/\/+$/, "");
+
+// 视频 URL 候选列表。
+// 26-10: 选什么就是什么 —— 用户在配置页选了具体源 (ech-proxy / video-cf / 自定义),
+// 就只返回那一个源, 不再自动降级到别的源 (自动档已删除, 用户选源不被任何代码改写)。
+// 未选择 (空串 / undefined) 时才保留旧的全量降级链:
+// twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频 302 正常重定向） -> video-cf.twimg.com（无referer）
+export const getVideoCandidates = (
+  url: string,
+  videoProxy?: string | null,
+): string[] => {
   if (!url) return [];
   const path = extractVideoPath(url);
+  if (typeof videoProxy === "string" && videoProxy !== "" && videoProxy !== "peerjs") {
+    return [normalizeBase(videoProxy) + path];
+  }
   return VIDEO_BASES.map((b) => b + path);
 };
 
@@ -72,7 +85,7 @@ export const isNonCN = (): boolean => false;
 // 图片: pbs.twimg.com -> 固定源 https://pbs.moonchan.xyz, 没有 fallback。
 export const overrideImageProxy = (url: string): string => imageProxyUrl(url);
 
-// 视频: video.twimg.com -> 固定首选源 twimg.l.moonchan.xyz:8443，降级到 pbs.moonchan.xyz -> video-cf.twimg.com（无referer）
+// 视频: 已选源 → 只用该源 (选什么就是什么); 未选 → 固定首选源 ech-proxy, 降级链见 VIDEO_BASES。
 // 26-10-08: 视频不能收敛成单一 pbs.moonchan.xyz —— 它只回 302 到 twimg.moonchan.xyz,
 // 后者当前是 Cloudflare 429 (error 1027), 见 endpoints.ts 的 VIDEO_BASES 注释。
 export const overrideVideoProxy = (
@@ -81,7 +94,7 @@ export const overrideVideoProxy = (
 ): string => {
   if (!url) return url;
   if (videoProxy === "peerjs") return url;
-  const candidates = getVideoCandidates(url);
+  const candidates = getVideoCandidates(url, videoProxy);
   return candidates[0] || url;
 };
 
