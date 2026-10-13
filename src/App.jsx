@@ -24,7 +24,6 @@ import FavList from "./components/FavList";
 import getTags from "./api/getTags"; // 确保有这个 API
 import TagSelectorModal from "./components/TagSelectorModal"; // 引入公共组件
 // 如果这些常量在其他文件定义了，请改为 import
-import { DEFAULT_VIDEO_PROXY } from "./api/endpoints";
 import TagDisplayArea from "./components/TagDisplayArea";
 
 import { getEmojis, voteUpEmoji } from "./api/emojis";
@@ -34,7 +33,7 @@ import {
   getVideoCandidates,
 } from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
 import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
-import useMoonchanProbe from "./hooks/useMoonchanProbe"; // 26-09-08: 挂载时探测 moonchan 备份 CDN (只管视频)
+// 26-10: 自动探测已删除 (useMoonchanProbe / api/probe.ts) —— 用户选什么视频源就是什么。
 import useFixedImageProxy from "./hooks/useFixedImageProxy"; // 26-09-11: 图片源固定 pbs.moonchan.xyz, 与档位无关
 
 import Ranking from "./components/Ranking";
@@ -111,11 +110,7 @@ const Main = ({ profile, handleSetProfile }) => {
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
 
-  // 26-09-08: 挂载时探测 https://twimg.l.moonchan.xyz:8443/favicon.ico,
-  // 可达就把视频源切过去 (判定用 no-cors, 见 api/probe.ts)。
-  // 手动档下 runMoonchanProbe 直接短路, 不会覆盖用户手选的源。
-  // 26-09-11: 只影响视频源 —— 图片源固定 pbs.moonchan.xyz, 与档位无关。
-  useMoonchanProbe();
+  // 26-10: 自动档已删除 —— 不再探测/切换视频源, 配置页选什么就是什么。
 
   // 26-09-08: 页面卸载时释放所有 PeerJS 连接和 Blob URL (防内存泄漏)
   useEffect(() => {
@@ -126,7 +121,8 @@ const Main = ({ profile, handleSetProfile }) => {
 
   // Proxy 设置
   // 26-09-11: 图片源固定 pbs.moonchan.xyz, 由 overrideImageProxy 内部决定, 这里只读视频源。
-  const [videoProxy] = useLocalStorage("video-proxy-v5", DEFAULT_VIDEO_PROXY);
+  // 26-10: 默认空串 = 未选择, 走全量降级链; 一旦用户选源, 只用所选源 (选什么就是什么)。
+  const [videoProxy] = useLocalStorage("video-proxy-v5", "");
 
   // 下载状态管理
   const [downloadStatus, setDownloadStatus] = useState("");
@@ -335,7 +331,7 @@ const Main = ({ profile, handleSetProfile }) => {
     }
 
     const candidates = isVideo
-      ? getVideoCandidates(originalUrl)
+      ? getVideoCandidates(originalUrl, videoProxy)
       : [overrideImageProxy(originalUrl)];
 
     let lastErr = null;
@@ -638,7 +634,7 @@ const Main = ({ profile, handleSetProfile }) => {
           // 26-10-08: 图片只有 pbs.moonchan.xyz 一个源 (单元素数组, candidates[1] 为空自动落到 candidates[0]);
           // 视频的降级链保留, 见 src/api/endpoints.ts 的 VIDEO_BASES 注释。
           const isItemVideo = item.type === "video" || item.type === "animated_gif";
-          const candidates = isItemVideo ? getVideoCandidates(item.url) : [overrideImageProxy(item.url)];
+          const candidates = isItemVideo ? getVideoCandidates(item.url, videoProxy) : [overrideImageProxy(item.url)];
           window.open(candidates[1] || candidates[0] || item.url, "_blank");
         }
       }

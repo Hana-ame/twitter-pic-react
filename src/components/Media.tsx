@@ -1,6 +1,5 @@
 import React from "react";
 import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
-import { DEFAULT_VIDEO_PROXY } from "../api/endpoints";
 import { getVideoCandidates } from "../api/proxyOverride";
 import { DEFAULT_SIGNALING } from "../api/peerMedia";
 import { PeerVideo } from "./PeerMedia";
@@ -33,7 +32,7 @@ const getSignaling = () => ({
 });
 
 const Media = ({ url, type }: MediaProps) => {
-  const [videoProxy] = useLocalStorage<string>("video-proxy-v5", DEFAULT_VIDEO_PROXY);
+  const [videoProxy] = useLocalStorage<string>("video-proxy-v5", ""); // 空 = 未选择, 走全量降级链
 
   // 26-10-08: 图片替换在 PhotoV2 内部做 (固定 pbs.moonchan.xyz), 这里传原始 url。
   if (type === "photo") {
@@ -61,20 +60,20 @@ const Media = ({ url, type }: MediaProps) => {
         />
       );
     }
-    return <Video url={url} />;
+    return <Video url={url} videoProxy={videoProxy} />;
   }
 
   // LSP 提示返回值包含 undefined: 未知/文本类型(如 text, quote)时显式不渲染
   return null;
 };
 
-const Video: React.FC<{ url: string; poster?: string }> = ({ url, poster }) => {
+const Video: React.FC<{ url: string; poster?: string; videoProxy?: string }> = ({ url, poster, videoProxy }) => {
   // 构造 iframe 内部的 HTML
   // 1. 设置 meta referrer 为 no-referrer (这是核心，用于绕过防盗链)
   // 2. 移除 autoplay，保留 controls 和 poster，这样默认显示封面且不自动播放
   // 3. 支持顺序降级: twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频只回 302 到 twimg.moonchan.xyz, 当前是 429） -> video-cf.twimg.com（报错立即切换）
   //    26-10-08: 视频这条 fallback 链是刻意保留的, 见 src/api/endpoints.ts 的 VIDEO_BASES 注释。
-  const candidates = getVideoCandidates(url);
+  const candidates = getVideoCandidates(url, videoProxy);
   const safePoster = escapeHtml(poster || "");
   const candidatesJSON = JSON.stringify(candidates);
   const iframeHtml = `

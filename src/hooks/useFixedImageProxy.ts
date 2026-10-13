@@ -6,7 +6,7 @@ import { normalizeStoredImageProxy } from "../api/imageProxy";
  * 26-09-11: 图片源固定 pbs.moonchan.xyz —— 挂载时把本地存的历史值纠正回固定源。
  *
  * 这个 hook **不读自动档 / 手动档**, 也不管非CN、不探测、不发请求:
- * 图片在所有档位下的行为完全一致。档位只决定视频源 (见 useMoonchanProbe)。
+ * 图片行为与视频源选择完全无关。26-10: 自动档已删除 (useMoonchanProbe 移除)。
  *
  * 挂载位置: App 的 ResponsiveLayout, 所有页面都会跑到一次。
  */
