@@ -1,106 +1,82 @@
-// 25-10-14：timeline去重 
-import { useEffect, useState, useMemo } from 'react';
-import { PhotoProvider } from 'react-photo-view';
-import Media from './Media';
+import React, { useEffect, useState, useMemo } from "react";
+import { PhotoProvider } from "react-photo-view";
+import Media from "./Media";
+import { V2TimelineItem } from "../api/clientCache";
 
-const MediaList = ({ timeline, showAll }: { timeline: any[], showAll: boolean }) => {
-    const [limit, setLimit] = useState(10);
-    const [loading, setLoading] = useState(false);
+type MediaListProps = {
+  timeline: V2TimelineItem[];
+  showAll: boolean;
+  mediaFilter?: "all" | "photo" | "video";
+};
 
-    // 使用useMemo对timeline进行去重处理
-    const uniqueTimeline = useMemo(() => {
-        if (!timeline || !Array.isArray(timeline)) return [];
-        
-        // 方法1: 使用Set根据url去重（推荐）
-        const seen = new Set();
-        return timeline.filter(item => {
-            if (!item || !item.url) return false;
-            if (seen.has(item.url)) {
-                return false;
-            }
-            seen.add(item.url);
-            return true;
-        });
-        
-        // 方法2: 使用Reduce根据url去重
-        // return timeline.reduce((acc, current) => {
-        //     if (!current || !current.url) return acc;
-        //     const exists = acc.find(item => item.url === current.url);
-        //     if (!exists) {
-        //         acc.push(current);
-        //     }
-        //     return acc;
-        // }, []);
-        
-        // 方法3: 使用Map根据url去重
-        // const map = new Map();
-        // timeline.forEach(item => {
-        //     if (item && item.url && !map.has(item.url)) {
-        //         map.set(item.url, item);
-        //     }
-        // });
-        // return Array.from(map.values());
-    }, [timeline]);
+const MediaList: React.FC<MediaListProps> = ({
+  timeline,
+  showAll,
+  mediaFilter = "all",
+}) => {
+  const [limit, setLimit] = useState(12);
 
-    useEffect(() => {
-        setLoading(true);
-        setLimit(10);
-        if (!showAll) {
-            return;
-        }
-        const interval = setInterval(() => {
-            setLimit(prev => {
-                  if (prev >= uniqueTimeline.length) {
-                        clearInterval(interval);  // 停止定时器
-                        return prev;
-                  }
-                  return prev + 1;
-            });
-        }, 1500);
-        
-        return () => clearInterval(interval); // 清理函数
-        
-    }, [timeline, showAll]);
+  // 去重并按类型筛选
+  const filteredTimeline = useMemo(() => {
+    if (!timeline || !Array.isArray(timeline)) return [];
+    const seen = new Set<string>();
+    return timeline.filter((item) => {
+      if (!item || !item.url) return false;
+      if (seen.has(item.url)) return false;
+      seen.add(item.url);
 
-    useEffect(() => {
-        if (timeline && (typeof timeline === 'object' || Array.isArray(timeline))) {
-            setLoading(false);
-        }
-    }, [loading, timeline]);
+      const t = (item.type || "").toLowerCase();
+      const isVideo =
+        t === "video" || t === "animated_gif" || t === "article:video";
+      if (mediaFilter === "photo") return !isVideo;
+      if (mediaFilter === "video") return isVideo;
+      return true;
+    });
+  }, [timeline, mediaFilter]);
 
-    if (loading) {
-        return <div>Loading...</div>;
+  useEffect(() => {
+    if (showAll) {
+      setLimit(filteredTimeline.length || 12);
+    } else {
+      setLimit(12);
     }
+  }, [timeline, mediaFilter, showAll, filteredTimeline.length]);
 
-    // 使用去重后的timeline
-    const displayTimeline = uniqueTimeline.slice(0, limit);
+  const displayTimeline = filteredTimeline.slice(0, limit);
 
+  if (filteredTimeline.length === 0) {
     return (
-        <PhotoProvider>
-            {displayTimeline.map(status => (
-                <Media key={status.url} url={status.url} type={status.type} />
-            ))}
-            {limit < uniqueTimeline.length && (
-                <div className="flex justify-center my-4">
-                    <button
-                        className={`
-                            bg-gradient-to-r from-blue-500 to-indigo-600
-                            hover:from-blue-600 hover:to-indigo-700
-                            text-white font-semibold
-                            py-2 px-4 rounded shadow-md
-                            hover:shadow-lg transition duration-300 ease-in-out
-                            focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50
-                            disabled:opacity-75 disabled:cursor-not-allowed
-                            flex items-center justify-center w-full h-24
-                        `}
-                        onClick={() => setLimit(limit + 10)}
-                    >
-                        加载更多
-                    </button>
-                </div>
-            )}
-        </PhotoProvider>
+      <div className="py-12 text-center text-gray-400 text-sm">
+        当前筛选条件下暂无媒体内容
+      </div>
     );
+  }
+
+  return (
+    <PhotoProvider>
+      <div className="space-y-3">
+        {displayTimeline.map((status) => (
+          <Media
+            key={status.url}
+            url={status.url}
+            type={status.type}
+            cover={status.cover}
+            ouoUrl={status.ouo_url}
+          />
+        ))}
+      </div>
+      {limit < filteredTimeline.length && (
+        <div className="flex justify-center my-4">
+          <button
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-2 px-4 rounded shadow-md hover:shadow-lg transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 flex items-center justify-center w-full h-16"
+            onClick={() => setLimit((prev) => prev + 12)}
+          >
+            加载更多 ({limit} / {filteredTimeline.length})
+          </button>
+        </div>
+      )}
+    </PhotoProvider>
+  );
 };
 
 export default MediaList;

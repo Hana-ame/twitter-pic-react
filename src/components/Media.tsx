@@ -1,164 +1,100 @@
 import React from "react";
-import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
-import { getVideoCandidates } from "../api/proxyOverride";
-import { DEFAULT_SIGNALING } from "../api/peerMedia";
-import { PeerVideo } from "./PeerMedia";
+import { resolveVideoCoverUrl, buildOuoVideoUrl } from "../api/proxyOverride";
 import PhotoV2 from "./PhotoV2";
 
-// 将外部输入做 HTML 实体转义, 防止 srcDoc 模板被 URL 注入 (iframe 沙箱逃逸 / 属性注入)
-const escapeHtml = (s: string): string => {
-  if (typeof s !== "string") return "";
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-};
-
-type MediaProps = {
+export type MediaProps = {
   url: string;
   type: string;
+  cover?: string;
+  ouoUrl?: string;
 };
 
-// 从 localStorage 读取 PeerJS 配置
-const getPeerId = () => localStorage.getItem("peerjs-peer-id") || "";
-const getSignaling = () => ({
-  host: localStorage.getItem("peerjs-signaling-host") || DEFAULT_SIGNALING.host,
-  port: Number(localStorage.getItem("peerjs-signaling-port") || DEFAULT_SIGNALING.port),
-  secure: true,
-  key: localStorage.getItem("peerjs-signaling-key") || DEFAULT_SIGNALING.key,
-  path: "/",
-});
+/**
+ * 视频封面卡片：
+ * 1. 绝不渲染 <video> 或 <iframe>，不在页面内发起任何 .mp4 请求（彻底防止打满 VPS 出站带宽）；
+ * 2. 封面图固定使用 gallery_dl 添加的 cover 字段并经由唯一资源 CDN https://pbs.moonchan.xyz 加载；
+ *    例如：https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
+ * 3. 点击封面后跳转到 http://ouo.io/api/6z4kqAz7?s=<video_url> 获取广告收益并限流。
+ */
+const VideoCoverCard: React.FC<{
+  url: string;
+  cover?: string;
+  ouoUrl?: string;
+}> = ({ url, cover, ouoUrl }) => {
+  const coverImgUrl = resolveVideoCoverUrl(cover, url);
+  const targetOuoUrl = buildOuoVideoUrl(url, ouoUrl);
 
-const Media = ({ url, type }: MediaProps) => {
-  const [videoProxy] = useLocalStorage<string>("video-proxy-v5", ""); // 空 = 未选择, 走全量降级链
+  return (
+    <div className="flex justify-center items-start my-3">
+      <a
+        href={targetOuoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group relative block w-full max-w-4xl rounded-xl overflow-hidden bg-gray-900 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer"
+        title="点击通过 ouo.io 跳转观看视频"
+      >
+        {coverImgUrl ? (
+          <img
+            src={coverImgUrl}
+            alt="视频封面"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="w-full max-h-[80vh] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+          />
+        ) : (
+          <div
+            className="w-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-gray-300"
+            style={{ aspectRatio: "16/9" }}
+          >
+            <span className="text-base font-medium">视频资源（无预览封面）</span>
+            <span className="text-xs text-gray-400 mt-1">点击跳转播放</span>
+          </div>
+        )}
 
-  // 26-10-08: 图片替换在 PhotoV2 内部做 (固定 pbs.moonchan.xyz), 这里传原始 url。
-  if (type === "photo") {
+        {/* 半透明暗角遮罩与中央播放图标 */}
+        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center pointer-events-none">
+          <div className="w-16 h-16 rounded-full bg-black/65 group-hover:bg-blue-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-200 border border-white/30">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-8 w-8 ml-1"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* 右上角视频跳转标识 */}
+        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-black/70 text-white text-xs font-medium backdrop-blur-sm border border-white/15 pointer-events-none">
+          ▶ 视频 · 点击跳转播放
+        </div>
+      </a>
+    </div>
+  );
+};
+
+const Media: React.FC<MediaProps> = ({ url, type, cover, ouoUrl }) => {
+  const cleanType = (type || "").toLowerCase();
+
+  if (
+    cleanType === "video" ||
+    cleanType === "animated_gif" ||
+    cleanType === "article:video"
+  ) {
+    return <VideoCoverCard url={url} cover={cover} ouoUrl={ouoUrl} />;
+  }
+
+  if (
+    cleanType === "photo" ||
+    cleanType === "card" ||
+    cleanType === "article:cover" ||
+    cleanType === "article:image"
+  ) {
     return <PhotoV2 url={url} />;
   }
 
-  if (type === "video" || type === "animated_gif") {
-    if (videoProxy === "peerjs") {
-      const peer = getPeerId();
-      if (!peer) {
-        return (
-          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
-            请在设置页配置 PeerJS Peer ID
-          </div>
-        );
-      }
-      return (
-        <PeerVideo
-          peer={peer}
-          url={url}
-          signaling={getSignaling()}
-          controls
-          playsInline
-          className="w-full h-full"
-        />
-      );
-    }
-    return <Video url={url} videoProxy={videoProxy} />;
-  }
-
-  // LSP 提示返回值包含 undefined: 未知/文本类型(如 text, quote)时显式不渲染
   return null;
-};
-
-const Video: React.FC<{ url: string; poster?: string; videoProxy?: string }> = ({ url, poster, videoProxy }) => {
-  // 构造 iframe 内部的 HTML
-  // 1. 设置 meta referrer 为 no-referrer (这是核心，用于绕过防盗链)
-  // 2. 移除 autoplay，保留 controls 和 poster，这样默认显示封面且不自动播放
-  // 3. 支持顺序降级: twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频只回 302 到 twimg.moonchan.xyz, 当前是 429） -> video-cf.twimg.com（报错立即切换）
-  //    26-10-08: 视频这条 fallback 链是刻意保留的, 见 src/api/endpoints.ts 的 VIDEO_BASES 注释。
-  const candidates = getVideoCandidates(url, videoProxy);
-  const safePoster = escapeHtml(poster || "");
-  const candidatesJSON = JSON.stringify(candidates);
-  const iframeHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="referrer" content="no-referrer">
-            <style>
-                body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
-                video { width: 100%; height: 100%; object-fit: contain; }
-            </style>
-        </head>
-        <body>
-            <video 
-                id="v"
-                controls 
-                playsinline
-                preload="metadata"
-                poster="${safePoster}"
-            >
-            </video>
-            <script>
-              (function() {
-                var v = document.getElementById('v');
-                var candidates = ${candidatesJSON};
-                var idx = 0;
-                var done = false;
-
-                function cleanup() {
-                  v.removeEventListener('loadedmetadata', onOk);
-                  v.removeEventListener('canplay', onOk);
-                  v.removeEventListener('error', onFail);
-                }
-
-                function onOk() {
-                  if (done) return;
-                  done = true;
-                  cleanup();
-                }
-
-                function onFail() {
-                  if (done) return;
-                  cleanup();
-                  idx++;
-                  if (idx < candidates.length) {
-                    tryCandidate();
-                  }
-                }
-
-                function tryCandidate() {
-                  if (idx >= candidates.length) return;
-                  done = false;
-                  var src = candidates[idx];
-
-                  v.addEventListener('loadedmetadata', onOk, { once: true });
-                  v.addEventListener('canplay', onOk, { once: true });
-                  v.addEventListener('error', onFail, { once: true });
-                  v.src = src;
-                  try { v.load(); } catch (e) {}
-                }
-
-                tryCandidate();
-              })();
-            </script>
-        </body>
-        </html>
-    `;
-
-  return (
-    <div className="flex justify-center items-start">
-      <div
-        className="relative w-full max-w-4xl rounded-lg overflow-hidden bg-black"
-        style={{ aspectRatio: "16/9" }}
-      >
-        <iframe
-          title="video-player"
-          srcDoc={iframeHtml}
-          className="w-full h-full border-none"
-          referrerPolicy="no-referrer"
-          sandbox="allow-scripts allow-forms allow-presentation"
-          allowFullScreen
-        />
-      </div>
-    </div>
-  );
 };
 
 export default Media;

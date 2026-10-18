@@ -1,17 +1,26 @@
-// 26-09-08: 统一下载与展示的代理替换逻辑。
-// 之前 App.jsx 的 getProxiedUrl 和 Media.tsx 的两个 override 是三份独立实现:
-//   - App.jsx 用 URL 对象改 host/port, Media.tsx 用字符串 replace;
-//   - 用户代理带端口/路径/尾斜杠时, 下载和展示会拼出不同的 URL。
-// 现在两边都 import 这里的 overrideImageProxy / overrideVideoProxy, 单一实现。
+// ============================================================================
+// 媒体资源与视频跳转链接转换器（直接替换 host，无任何 fallback 轮询）
+// 设计规范：
+//   1. 图片与视频封面（cover）：直接将 pbs.twimg.com 的 host 替换为 pbs.moonchan.xyz，保留完整 path+query；
+//      例如：https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
+//   2. 视频点击链接：前端点击视频封面时，指向 twitter-pic-go 的专属视频处理端点：
+//      https://x.moonchan.xyz/api/twitter/v2/video/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12
+//      后端收到请求后，直接替换 host 为 twimg.moonchan.xyz（保留完整 path+query），
+//      并通过 ouo.io/qs 或 ouo.io/api 重定向到 ouo.io 广告中转页收钱，最后转到 https://twimg.moonchan.xyz/...
+// ============================================================================
 
-import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY, VIDEO_BASES } from "./endpoints";
+import {
+  FIXED_IMAGE_PROXY,
+  FIXED_VIDEO_PROXY,
+  VIDEO_REDIRECT_ENDPOINT,
+} from "./endpoints";
 
 export const IMAGE_ORIGINAL_HOST = "pbs.twimg.com";
 export const VIDEO_ORIGINAL_HOST = "video.twimg.com";
 
-export { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY, VIDEO_BASES };
+export { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY, VIDEO_REDIRECT_ENDPOINT };
 
-// 提取 media 相对路径与查询参数
+// 提取 media 相对路径与查询参数（保留完整 /path?query#hash）
 export const extractMediaPath = (url: string): string => {
   if (!url) return "";
   try {
@@ -22,7 +31,7 @@ export const extractMediaPath = (url: string): string => {
   }
 };
 
-// 提取 video 相对路径与查询参数
+// 提取 video 相对路径与查询参数（保留完整 /path?query#hash）
 export const extractVideoPath = (url: string): string => {
   if (!url) return "";
   try {
@@ -33,79 +42,72 @@ export const extractVideoPath = (url: string): string => {
   }
 };
 
-// 26-10-08: 图片只有一个源 FIXED_IMAGE_PROXY (https://pbs.moonchan.xyz), 没有 fallback / 候选列表。
-// 之前这里返回 IMAGE_BASES 映射出的候选数组 + 各调用方的 onError 换源, 现在收敛成返回单个 URL。
-// 保留 host 无关的取路径逻辑 (extractMediaPath): 输入可能是 pbs.twimg.com 原链, 也可能是旧版本
-// 已经替换过的 moonchan 链, 两种都能正确提取 path+query。
+// 图片与视频封面（cover）：直接替换 host 为 https://pbs.moonchan.xyz，保留完整 path+query
 export const imageProxyUrl = (url: string): string => {
   if (!url) return "";
   return FIXED_IMAGE_PROXY + extractMediaPath(url);
 };
 
-// 去掉尾斜杠, 避免 "https://proxy.com/" + "/media/xxx" 拼出双斜杠。
-const normalizeBase = (proxy: string): string => proxy.replace(/\/+$/, "");
-
-// 视频 URL 候选列表。
-// 26-10: 选什么就是什么 —— 用户在配置页选了具体源 (ech-proxy / video-cf / 自定义),
-// 就只返回那一个源, 不再自动降级到别的源 (自动档已删除, 用户选源不被任何代码改写)。
-// 未选择 (空串 / undefined) 时才保留旧的全量降级链:
-// twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz（视频 302 正常重定向） -> video-cf.twimg.com（无referer）
-export const getVideoCandidates = (
-  url: string,
-  videoProxy?: string | null,
-): string[] => {
-  if (!url) return [];
-  const path = extractVideoPath(url);
-  if (typeof videoProxy === "string" && videoProxy !== "" && videoProxy !== "peerjs") {
-    return [normalizeBase(videoProxy) + path];
-  }
-  return VIDEO_BASES.map((b) => b + path);
-};
-
-// moonchan 系代理只在 CN 有效; 非CN 用户配了这个就弹回原站。
-// 用 hostname 判断而不是完整 URL, 兼容用户输入带端口/路径/斜杠等变体。
-export const isMoonchanProxy = (proxy?: string | null): boolean => {
-  try {
-    const host = new URL(proxy || "").hostname;
-    return (
-      host === "twimg.moonchan.xyz" ||
-      host === "twimg.l.moonchan.xyz" ||
-      host === "proxy.moonchan.xyz" ||
-      host === "video-cf.twimg.com" ||
-      host === "pbs.moonchan.xyz"
-    );
-  } catch {
-    return false;
-  }
-};
-
-// 去掉 ipinfo 检查，完全按候选源顺序尝试
-export const isNonCN = (): boolean => false;
-
-// 图片: pbs.twimg.com -> 固定源 https://pbs.moonchan.xyz, 没有 fallback。
 export const overrideImageProxy = (url: string): string => imageProxyUrl(url);
 
-// 视频: 已选源 → 只用该源 (选什么就是什么); 未选 → 固定首选源 ech-proxy, 降级链见 VIDEO_BASES。
-// 26-10-08: 视频不能收敛成单一 pbs.moonchan.xyz —— 它只回 302 到 twimg.moonchan.xyz,
-// 后者当前是 Cloudflare 429 (error 1027), 见 endpoints.ts 的 VIDEO_BASES 注释。
-export const overrideVideoProxy = (
-  url: string,
-  videoProxy?: string | null | undefined,
-): string => {
-  if (!url) return url;
-  if (videoProxy === "peerjs") return url;
-  const candidates = getVideoCandidates(url, videoProxy);
-  return candidates[0] || url;
+// 视频代理地址（直接替换 host 为 https://twimg.moonchan.xyz，保留完整 path+query）
+export const overrideVideoProxy = (url: string): string => {
+  if (!url) return "";
+  return FIXED_VIDEO_PROXY + extractVideoPath(url);
 };
 
-// 统一入口: 按 media type 分派, 供下载与展示共用。
+// 解析视频封面图地址：使用 gallery_dl 添加的 cover 字段并直接替换 host 至 pbs.moonchan.xyz
+export const resolveVideoCoverUrl = (
+  cover?: string | null,
+  fallbackUrl?: string | null
+): string => {
+  const rawCover = (cover || "").trim();
+  if (rawCover) {
+    return imageProxyUrl(rawCover);
+  }
+  const rawFallback = (fallbackUrl || "").trim();
+  if (
+    rawFallback &&
+    !rawFallback.includes(".mp4") &&
+    !rawFallback.includes("video.twimg.com")
+  ) {
+    return imageProxyUrl(rawFallback);
+  }
+  return "";
+};
+
+// 构造点击视频封面时访问的后端专属视频端点 URL：
+// https://x.moonchan.xyz/api/twitter/v2/video/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12
+// 后端收到后会将 host 替换为 twimg.moonchan.xyz 并通过 ouo.io 重定向到广告中转页面收钱。
+export const buildOuoVideoUrl = (
+  rawVideoUrl: string,
+  prebuiltEndpointUrl?: string | null
+): string => {
+  const baseEndpoint = VIDEO_REDIRECT_ENDPOINT.replace(/\/+$/, "");
+  const prebuilt = (prebuiltEndpointUrl || "").trim();
+  if (prebuilt) {
+    if (prebuilt.startsWith("http://") || prebuilt.startsWith("https://")) {
+      return prebuilt;
+    }
+    if (prebuilt.startsWith("/api/twitter/v2/video/")) {
+      const suffix = prebuilt.slice("/api/twitter/v2/video".length);
+      return `${baseEndpoint}${suffix}`;
+    }
+  }
+  if (!rawVideoUrl) return "";
+  const pathAndQuery = extractVideoPath(rawVideoUrl);
+  if (!pathAndQuery) return "";
+  return `${baseEndpoint}${pathAndQuery.startsWith("/") ? pathAndQuery : "/" + pathAndQuery}`;
+};
+
+// 统一入口
 export const overrideProxyUrl = (
   url: string,
-  type: string | undefined,
-  videoProxy?: string | null | undefined,
+  type?: string,
+  cover?: string
 ): string => {
-  if (type === "video" || type === "animated_gif") {
-    return overrideVideoProxy(url, videoProxy);
+  if (type === "video" || type === "animated_gif" || type === "article:video") {
+    return resolveVideoCoverUrl(cover, url);
   }
   return overrideImageProxy(url);
 };

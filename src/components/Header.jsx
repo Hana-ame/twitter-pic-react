@@ -1,114 +1,123 @@
 import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
+import { getBatchUsers } from "../api/getUserList";
+import { getCachedUserCard } from "../api/clientCache";
 import { overrideImageProxy } from "../api/proxyOverride";
-// import useLocalStorage from '../Tools/localstorage/useLocalStorageStatus.tsx';
 
-const Header = ({ username, onClick }) => {
-  // const [blockMap] = useLocalStorage("block-map", {});
-
-  // 模拟从API获取的用户数据（实际应用中这里会是API调用）
-  const [userData, setUserData] = useState({ loading: true });
+const Header = ({ username, userCard, onClick }) => {
+  const [card, setCard] = useState(
+    () => userCard || getCachedUserCard(username) || null
+  );
+  const [loading, setLoading] = useState(!card);
+  const [clicking, setClicking] = useState(false);
   const [error, setError] = useState(false);
   const [blocked, setBlocked] = useState(false);
 
-  function fetchAndSet() {
-    setUserData({ loading: true });
-    setError(false);
-
-    getMetaData(username)
-      .then((data) => {
-        if (data === null || data === undefined || data.error) {
-          console.log(username, data);
-          setError(true);
-          setUserData({ error: data.error || "未知错误", loading: false });
-        } else {
-          setUserData(data);
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-        setError(true);
-      });
-  }
-
-  // 当username变化时更新
   useEffect(() => {
-    let flag = true;
     try {
       const s = window.localStorage.getItem("block-map");
       if (s) {
-        let o = JSON.parse(s);
-        if (typeof o !== "object" || o === null || Array.isArray(o)) {
-          o = {};
-        }
-        if (o[username] === true) {
-          // 或者 if (Boolean(o[username])) 用于更宽松的判断
+        const o = JSON.parse(s);
+        if (o && typeof o === "object" && o[username] === true) {
           setBlocked(true);
-          flag = false;
+          return;
         }
       }
-    } catch (e) {
-      console.error(e);
-      setError(true);
-      flag = false;
+    } catch {}
+
+    if (userCard) {
+      setCard(userCard);
+      setLoading(false);
+      return;
     }
 
-    if (flag) fetchAndSet();
+    const cached = getCachedUserCard(username);
+    if (cached && (cached.avatar || cached.nick)) {
+      setCard(cached);
+      setLoading(false);
+      return;
+    }
 
-    return;
-  }, [username]);
+    let cancelled = false;
+    setLoading(true);
+    getBatchUsers([username])
+      .then((map) => {
+        if (cancelled) return;
+        if (map[username]) {
+          setCard(map[username]);
+        } else {
+          setCard({ username, nick: username, avatar: "", total_urls: 0, tags: {} });
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(true);
+          setLoading(false);
+        }
+      });
 
-  // 被屏蔽不返回
+    return () => {
+      cancelled = true;
+    };
+  }, [username, userCard]);
+
   if (blocked) return null;
 
-  if (userData.loading)
+  if (loading) {
     return (
-      <div className="flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md">
-        loading
-      </div>
-    );
-
-  if (error) {
-    return (
-      <div
-        className="flex items-center m-4 p-4 bg-gray-200 rounded-lg shadow-sm border border-gray-200 max-w-md"
-        onClick={() => {
-          fetchAndSet();
-        }}
-      >
-        {userData.error}, 点击重试
+      <div className="flex items-center m-2 p-3 bg-gray-100 rounded-lg border border-gray-200 max-w-md text-xs text-gray-500">
+        加载中 @{username}...
       </div>
     );
   }
 
+  const handleClick = async () => {
+    if (clicking) return;
+    setClicking(true);
+    setError(false);
+    try {
+      const detail = await getMetaData(username, card?.last_modify || "");
+      onClick(detail);
+    } catch {
+      setError(true);
+    } finally {
+      setClicking(false);
+    }
+  };
+
+  const avatarSrc = overrideImageProxy(card?.avatar || "");
+  const nick = card?.nick || username;
+
   return (
     <div
-      className="flex items-center m-4 p-4 bg-gray-200 hover:bg-gray-100 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md"
-      onClick={() => onClick(userData)}
+      className="flex items-center m-2 p-3 bg-gray-100 hover:bg-blue-50/60 hover:cursor-pointer rounded-lg shadow-sm border border-gray-200 max-w-md transition-all"
+      onClick={handleClick}
     >
-      {/* 用户头像 (26-10-08: 固定 pbs.moonchan.xyz, 无 fallback) */}
-      <div className="flex-shrink-0 mr-4">
-        {(() => {
-          const profileImg = userData.account_info?.profile_image;
-          return (
-            <img
-              src={overrideImageProxy(profileImg || "")}
-              alt={userData.account_info?.nick}
-              referrerPolicy="no-referrer"
-              className="w-16 h-16 rounded-full object-cover border-2 border-gray-100 shadow-sm"
-            />
-          );
-        })()}
+      <div className="flex-shrink-0 mr-3">
+        {avatarSrc ? (
+          <img
+            src={avatarSrc}
+            alt={nick}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className="w-12 h-12 rounded-full object-cover border border-white shadow-sm bg-gray-200"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center">
+            {(nick || "?").slice(0, 1).toUpperCase()}
+          </div>
+        )}
       </div>
 
-      {/* 用户信息 */}
-      <div className="flex flex-col">
-        <span className="text-lg font-semibold text-gray-900 truncate">
-          {userData.account_info?.nick}
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-sm font-semibold text-gray-900 truncate">
+          {nick}
         </span>
-        <span className="text-md text-gray-500 truncate">
-          @{userData.account_info?.name}
-        </span>
+        <span className="text-xs text-gray-500 truncate">@{username}</span>
+        {error && (
+          <span className="text-xs text-red-500">加载失败，点击重试</span>
+        )}
       </div>
     </div>
   );

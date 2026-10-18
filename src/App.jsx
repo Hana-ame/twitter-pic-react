@@ -1,11 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { downloadZip } from "client-zip"; // 引入 client-zip
-import streamSaver from "streamsaver"; // 引入 StreamSaver
-import JSZip from "jszip";
-import { saveAs } from "file-saver";
-
-// ... 其他原本的 import ...
-// 假设这些是你项目中原本存在的 import
 import useScreenMode from "./Tools/hooks/useScreenMode";
 import MediaList from "./components/MediaList";
 import HeaderList from "./components/HeaderListV2";
@@ -18,40 +11,21 @@ import AddUser from "./components/AddUser";
 import getMetaData from "./api/getMetaData";
 import useLocalStorage from "./Tools/localstorage/useLocalStorageStatus";
 import createMetaData from "./api/createMetaData";
-import Advertisement from "./components/Advertisement";
 import FavList from "./components/FavList";
-// ... 原有的 imports ...
-import getTags from "./api/getTags"; // 确保有这个 API
-import TagSelectorModal from "./components/TagSelectorModal"; // 引入公共组件
-// 如果这些常量在其他文件定义了，请改为 import
+import getTags from "./api/getTags";
+import TagSelectorModal from "./components/TagSelectorModal";
 import TagDisplayArea from "./components/TagDisplayArea";
-
 import { getEmojis, voteUpEmoji } from "./api/emojis";
-import {
-  overrideImageProxy,
-  overrideVideoProxy,
-  getVideoCandidates,
-} from "./api/proxyOverride"; // 26-09-08: 下载与展示共用 src/api/proxyOverride.ts 的同一份替换逻辑
-import { client as peerMediaClient, DEFAULT_SIGNALING } from "./api/peerMedia"; // 26-09-08: PeerJS 媒体拉取
-// 26-10: 自动探测已删除 (useMoonchanProbe / api/probe.ts) —— 用户选什么视频源就是什么。
-import useFixedImageProxy from "./hooks/useFixedImageProxy"; // 26-09-11: 图片源固定 pbs.moonchan.xyz, 与档位无关
-
+import useFixedImageProxy from "./hooks/useFixedImageProxy";
 import Ranking from "./components/Ranking";
 import { useGayMode } from "./utils/gayMode";
 
-// --- 关键配置 ---
-// 指定你刚才放在 public 目录下的 mitm.html 的路径
-// 如果你的项目部署在子路径，记得加上前缀
-streamSaver.mitm = "/mitm.html";
-
-// ... SideBar 组件保持不变 ...
+// 侧边栏组件：已移除旧版广告栏，使用新版 V2 富卡片列表接口（零 N+1 请求）
 const SideBar = ({ onClick }) => {
   const [userList, setUserList] = useState(null);
   const [search, setSearch] = useState("");
-  // 添加收藏夹显示状态
   const [showFav, setShowFav] = useState(false);
 
-  // 仅作初始化
   useEffect(() => {
     getUserList().then((users) => {
       setUserList(users);
@@ -60,136 +34,100 @@ const SideBar = ({ onClick }) => {
 
   return (
     <>
-      {/* 添加切换收藏夹的按钮 */}
       <button
-        className={`
-        bg-gradient-to-r from-blue-500 to-indigo-600
-        hover:from-blue-600 hover:to-indigo-700
-        text-white font-semibold
-        py-2 px-4 rounded shadow-md
-        hover:shadow-lg transition duration-300 ease-in-out
-        focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50
-        disabled:opacity-75 disabled:cursor-not-allowed
-        flex items-center justify-center w-full h-auto
-      `}
+        className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold py-2 px-4 rounded shadow-md hover:shadow-lg transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 flex items-center justify-center w-full h-auto mb-2"
         onClick={() => setShowFav(!showFav)}
       >
         {showFav ? "显示用户列表" : "显示收藏夹"}
       </button>
-
-      {/* 根据 showFav 状态显示收藏夹或用户列表 */}
 
       <div className={showFav ? "" : "hidden"}>
         <FavList onClick={onClick} />
       </div>
 
       <div className={showFav ? "hidden" : ""}>
-        <SearchBar onChange={setSearch} />
+        <SearchBar onChange={setSearch} placeholder="搜索用户名 / 昵称 / 标签..." />
         <div className={search !== "" ? "" : "hidden"}>
           <AddUser username={search} />
           <SearchList by="username" search={search} onClick={onClick} />
           <SearchList by="nick" search={search} onClick={onClick} />
+          <SearchList by="tag" search={search} onClick={onClick} />
         </div>
         <div className={search === "" ? "" : "hidden"}>
           <HeaderList userList={userList} onClick={onClick} />
           <LoadMoreButton
-            after={userList?.at(-1).username || ""}
+            after={userList?.at(-1)?.username || ""}
             setUserList={setUserList}
           />
         </div>
       </div>
-
-      <Advertisement />
     </>
   );
 };
 
-// 显示图片。瀑布流。
+// 主内容区：已移除旧版广告栏与全部批量下载按钮，视频统一使用 cover 封面 + 点击跳 ouo.io 广告变现
 const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
   const [showAll, setShowAll] = useState(false);
+  const [mediaFilter, setMediaFilter] = useState("all");
 
-  // 26-10: 自动档已删除 —— 不再探测/切换视频源, 配置页选什么就是什么。
-
-  // 26-09-08: 页面卸载时释放所有 PeerJS 连接和 Blob URL (防内存泄漏)
-  useEffect(() => {
-    return () => {
-      peerMediaClient.disposeAll();
-    };
-  }, []);
-
-  // Proxy 设置
-  // 26-09-11: 图片源固定 pbs.moonchan.xyz, 由 overrideImageProxy 内部决定, 这里只读视频源。
-  // 26-10: 默认空串 = 未选择, 走全量降级链; 一旦用户选源, 只用所选源 (选什么就是什么)。
-  const [videoProxy] = useLocalStorage("video-proxy-v5", "");
-
-  // 下载状态管理
-  const [downloadStatus, setDownloadStatus] = useState("");
-  const [statusMsg, setStatusMsg] = useState("");
-
-  // --- 新增：专门用于手机端调试的日志状态 ---
-  const [debugLog, setDebugLog] = useState("");
-
-  // --- 新增 State ---
   const [showTagModal, setShowTagModal] = useState(false);
-  // 这里我们将 existingTags 重命名为 userTags 以便通用，或者继续使用 existingTags
   const [userTags, setUserTags] = useState({});
   const [loadingTags, setLoadingTags] = useState(false);
-
   const [lastUsername, setLastUsername] = useState("");
+  const [refreshMsg, setRefreshMsg] = useState("");
 
-  // 26.02.15
-  // 2. 定义表情列表（你可以根据需要修改）
-  // const EMOJI_LIST = ["😍", "😋", "😱", "🤢", "🐷", "😅", "💩"];
-  // 3. 在组件内部定义 State
   const [emojiCounts, setEmojiCounts] = useState({});
-  const [votingEmoji, setVotingEmoji] = useState(null); // 正在投票的 emoji，用于禁用按钮
+  const [votingEmoji, setVotingEmoji] = useState(null);
 
-  // useState 插入位置。
-
-  const username = profile?.account_info?.name;
-
+  const username = profile?.account_info?.name || profile?.username;
 
   useEffect(() => {
     setShowAll(false);
-    setDownloadStatus("");
-    setStatusMsg("");
-    setDebugLog(""); // 切页清空日志
+    setMediaFilter("all");
+    setRefreshMsg("");
+    if (profile?.tags && Object.keys(profile.tags).length > 0) {
+      setUserTags(profile.tags);
+    }
+    if (profile?.emojis && Object.keys(profile.emojis).length > 0) {
+      setEmojiCounts(profile.emojis);
+    }
   }, [profile]);
 
-  // --- 新增 useEffect: 初始加载 Tags ---
+  // 加载或同步标签
   useEffect(() => {
     if (!username) {
       setUserTags({});
       return;
     }
-    // 25-08-14: 竞态防护。快速点击多个 profile 时, 旧 username 的在途请求
-    // 可能晚于新请求 resolve; 若不取消/丢弃, 旧数据会覆盖新 profile 的展示,
-    // 同时占用浏览器对同一 host 的连接池(HTTP/1.1 并发有限), 导致新请求排队。
-    // 方案: AbortController 主动断开旧连接 + stale 标记丢弃过期响应。
+    if (profile?.tags && Object.keys(profile.tags).length > 0) {
+      setUserTags(profile.tags);
+      return;
+    }
     const controller = new AbortController();
     let stale = false;
-    // 默默加载 Tags 用于展示，不需要 loading 状态阻断 UI
     getTags(username, controller.signal)
       .then((data) => {
         if (!stale) setUserTags(data.tags || {});
       })
       .catch((err) => {
-        if (err.name === "AbortError") return; // 旧请求被取消, 静默忽略
-        if (!stale) console.error("Auto fetch tags failed:", err);
+        if (err.name === "AbortError") return;
       });
     return () => {
       stale = true;
       controller.abort();
     };
-  }, [username]);
+  }, [username, profile]);
 
-  // 4. 获取初始数据的 Effect (当 username 变化时获取)
+  // 加载或同步 Emoji 计数
   useEffect(() => {
     if (!username) return;
+    if (profile?.emojis && Object.keys(profile.emojis).length > 0) {
+      setEmojiCounts(profile.emojis);
+      return;
+    }
     setEmojiCounts({});
-    // 25-08-14: 竞态防护, 原因同上方 getTags effect。
     const controller = new AbortController();
     let stale = false;
     getEmojis(username, controller.signal)
@@ -198,22 +136,17 @@ const Main = ({ profile, handleSetProfile }) => {
       })
       .catch((err) => {
         if (err.name === "AbortError") return;
-        if (!stale) console.error("获取表情失败:", err);
       });
     return () => {
       stale = true;
       controller.abort();
     };
-  }, [username]);
+  }, [username, profile]);
 
-  // useEffect 插入位置
-
-  // --- 新增处理函数 ---
   const handleModifyTagsClick = async () => {
     if (!username) return;
     setLoadingTags(true);
     try {
-      // 获取现有 Tags
       const data = await getTags(username);
       setUserTags(data.tags || {});
       setShowTagModal(true);
@@ -225,767 +158,159 @@ const Main = ({ profile, handleSetProfile }) => {
     }
   };
 
-  // --- 修改 handleConfirmTags ---
   const handleConfirmTags = async (newTags) => {
     setShowTagModal(false);
-
-    // 1. 乐观更新 UI (立即显示新 Tags，不用等接口返回)
     setUserTags(newTags);
-
     try {
-      // 2. 提交后端
-      await createMetaData(username, newTags, false, true);
+      const updated = await createMetaData(username, newTags, false, true);
+      if (updated && typeof updated === "object") {
+        setUserTags(updated);
+      }
     } catch (e) {
       alert("保存失败，请重试");
-      // 如果失败，可能需要回滚或重新获取，这里简化处理
     }
   };
 
-  // 辅助函数：追加日志到屏幕
-  const logToScreen = (msg) => {
-    console.log(msg); // 依然保留控制台输出
-    setDebugLog((prev) => prev + "\n" + msg);
-  };
-
-  // ... handleBlockUser, handleFavorite, getProxiedUrl, extractFileName 保持不变 ...
-  // 请确保保留上面的 extractFileName 和 getProxiedUrl 函数！
-  // ... 原有的 handleBlockUser 和 handleFavorite 保持不变 ...
   const handleBlockUser = () => {
     if (!username) return;
-
     setBlockMap((prev) => ({
       ...prev,
-      [username]: !(prev[username] || false), // 如果不存在，默认为false然后取反
+      [username]: !(prev[username] || false),
     }));
   };
 
   const handleFavorite = () => {
     if (!username) return;
-
     setFavMap((prev) => {
       const isCurrentlyFavorited = prev[username];
-
       if (isCurrentlyFavorited) {
-        // 如果当前已收藏，则删除该键[1,4](@ref)
         const { [username]: _, ...rest } = prev;
         return rest;
-      } else {
-        // 如果当前未收藏，则添加该键并设置为 true[2](@ref)
-        return {
-          ...prev,
-          [username]: true,
-        };
       }
+      return {
+        ...prev,
+        [username]: true,
+      };
     });
   };
 
-  // 26-09-08: 与 Media.tsx 展示共用 src/api/proxyOverride.ts 的同一份替换逻辑。
-  // 之前这里用 URL 对象改 host/port, 展示侧用字符串 replace, 两边会拼出不同的 URL;
-  // 现在都委托给同一个函数, 下载和展示的 URL 保证一致。
-  // 26-09-08: 支持 peerjs — 视频源选 "peerjs" 时通过 WebRTC DataChannel 拉取, 返回 blob URL。
-  // 26-09-11: 图片固定走 pbs.moonchan.xyz (overrideImageProxy), peerjs 只留给视频源。
-  const getProxiedUrl = async (originalUrl, type) => {
-    const isVideo = type === "video" || type === "animated_gif";
-
-    // peerjs 分支: 通过 PeerJS 拉取媒体, 返回 blob URL
-    if (isVideo && videoProxy === "peerjs") {
-      const peer = localStorage.getItem("peerjs-peer-id") || "";
-      if (!peer) return originalUrl; // 未配置 peer id, 回退到原站
-      try {
-        const signaling = {
-          host: localStorage.getItem("peerjs-signaling-host") || DEFAULT_SIGNALING.host,
-          port: Number(localStorage.getItem("peerjs-signaling-port") || DEFAULT_SIGNALING.port),
-          secure: true,
-          key: localStorage.getItem("peerjs-signaling-key") || DEFAULT_SIGNALING.key,
-          path: "/",
-        };
-        const result = await peerMediaClient.load(originalUrl, { peer, signaling });
-        return result.blobUrl;
-      } catch (e) {
-        console.error("PeerJS 拉取失败, 回退到原站:", e);
-        return originalUrl;
-      }
-    }
-
-    // 常规分支: HTTP URL 替换 (图片固定 pbs.moonchan.xyz, 视频按所选视频源)
-    if (isVideo) {
-      return overrideVideoProxy(originalUrl, videoProxy);
-    }
-    return overrideImageProxy(originalUrl);
-  };
-
-  // 媒体拉取辅助函数：视频按顺序降级重试（twimg.l.moonchan.xyz:8443 -> pbs.moonchan.xyz -> video-cf.twimg.com 无referer）
-  // 26-10-08: 图片只有一个源 pbs.moonchan.xyz, 不重试、不换源, 所以下面图片分支是单元素数组。
-  // 注意视频情况下 pbs.moonchan.xyz 会返回 302，302 = 正常响应，按 Location 跟随重定向
-  const fetchMediaWithFallback = async (originalUrl, type) => {
-    const isVideo = type === "video" || type === "animated_gif";
-    if (isVideo && videoProxy === "peerjs") {
-      const finalUrl = await getProxiedUrl(originalUrl, type);
-      const response = await fetch(finalUrl, {
-        cache: "force-cache",
-        referrerPolicy: "no-referrer",
-      });
-      const isOk = response.ok || response.status === 200 || response.status === 302 || response.status === 206;
-      if (!isOk) throw new Error(`HTTP ${response.status}`);
-      return { response, finalUrl };
-    }
-
-    const candidates = isVideo
-      ? getVideoCandidates(originalUrl, videoProxy)
-      : [overrideImageProxy(originalUrl)];
-
-    let lastErr = null;
-    for (let i = 0; i < candidates.length; i++) {
-      const candUrl = candidates[i];
-      try {
-        const response = await fetch(candUrl, {
-          cache: "force-cache",
-          referrerPolicy: "no-referrer",
-        });
-        const isOk = response.ok || response.status === 200 || response.status === 302 || response.status === 206;
-        if (!isOk) throw new Error(`HTTP ${response.status}`);
-
-        // 视频 302 正常响应处理：跟进重定向获取实际媒体流
-        if (response.status === 302) {
-          const loc = response.headers.get("Location") || response.headers.get("location");
-          if (loc) {
-            const nextResp = await fetch(loc, {
-              cache: "force-cache",
-              referrerPolicy: "no-referrer",
-            });
-            if (nextResp.ok || nextResp.status === 200 || nextResp.status === 206) {
-              return { response: nextResp, finalUrl: loc };
-            }
-          }
-          return { response, finalUrl: candUrl };
-        }
-        return { response, finalUrl: candUrl };
-      } catch (err) {
-        lastErr = err;
-      }
-    }
-    throw lastErr || new Error(`All ${type} candidates failed`);
-  };
-
-  // 1. 极其严苛的文件名提取逻辑
-  const extractFileName = (urlStr, index, type) => {
+  const handleRefreshUser = async () => {
+    if (!username || lastUsername === username) return;
+    setLastUsername(username);
     try {
-      if (!urlStr) throw new Error("URL is empty");
-
-      const url = new URL(urlStr);
-      // 获取路径最后一段，并移除参数（如 ?tag=21）
-      let baseName = url.pathname.split("/").pop() || "";
-      baseName = baseName.split("?")[0];
-
-      // 处理 Twitter 的 format 参数情况 (如 G7FkId5aoAA3odu?format=jpg)
-      const format = url.searchParams.get("format");
-
-      let finalName = "";
-      if (baseName.includes(".")) {
-        finalName = baseName;
-      } else if (format) {
-        finalName = `${baseName}.${format}`;
-      } else {
-        finalName = `${baseName || index}.${type === "video" ? "mp4" : "jpg"}`;
-      }
-
-      // 最终检查：确保文件名不为空且不包含非法字符
-      return finalName.trim() || `file_${index}_${Date.now()}`;
-    } catch (e) {
-      return `file_${index}_${Date.now()}.${type === "video" ? "mp4" : "jpg"}`;
+      await createMetaData(username, null, true, false);
+      setRefreshMsg("已提交后台更新队列");
+      setTimeout(() => setRefreshMsg(""), 3000);
+    } catch (err) {
+      setRefreshMsg("更新提交失败");
+      setTimeout(() => setRefreshMsg(""), 3000);
     }
   };
 
-  // 2. 核心下载函数
-  // ---------------------------------------------------------
-  // --- 核心修复：handleBatchDownload ---
-  // ---------------------------------------------------------
-  const handleBatchDownload = async () => {
-    if (!profile?.timeline || profile.timeline.length === 0) return;
-
-    try {
-      setDownloadStatus("loading");
-      setStatusMsg("初始化中...");
-      setDebugLog("开始下载流程..."); // Log start
-
-      const zipFilename = `${username}_media_${new Date()
-        .toISOString()
-        .slice(0, 10)}.zip`;
-      let writable;
-      let useNativeFS = false;
-
-      // 1. 尝试获取写入流
-      if (window.showSaveFilePicker) {
-        try {
-          // PC 端逻辑
-          const fileHandle = await window.showSaveFilePicker({
-            suggestedName: zipFilename,
-            types: [
-              {
-                description: "ZIP Archive",
-                accept: { "application/zip": [".zip"] },
-              },
-            ],
-          });
-          writable = await fileHandle.createWritable();
-          useNativeFS = true;
-          logToScreen("模式: PC Native FileSystem");
-        } catch (err) {
-          if (err.name === "AbortError")
-            return (setDownloadStatus(""), setStatusMsg(""));
-          throw err;
-        }
-      } else {
-        // 手机/不支持原生FS的浏览器
-        // [关键] StreamSaver 在手机上必须通过点击事件同步触发创建，否则可能被拦截
-        logToScreen("模式: StreamSaver (Mobile/Legacy)");
-        try {
-          // 确保 mitm 地址绝对正确，建议在生产环境写死完整域名，例如 https://your-site.com/mitm.html
-          // 如果是在本地测试，确保 localhost 访问
-          writable = streamSaver.createWriteStream(zipFilename);
-          logToScreen("StreamSaver流创建成功");
-        } catch (err) {
-          logToScreen("StreamSaver创建失败: " + err.message);
-          throw err;
-        }
-      }
-
-      // 2. 异步生成器 (保持不变，这部分逻辑是好的)
-      async function* createZipFolder() {
-        for (let i = 0; i < profile.timeline.length; i++) {
-          const item = profile.timeline[i];
-          const fileName = extractFileName(item.url, i, item.type);
-
-          setStatusMsg(
-            `处理 (${i + 1}/${profile.timeline.length}): ${fileName}`,
-          );
-
-          try {
-            const { response } = await fetchMediaWithFallback(item.url, item.type);
-            yield {
-              name: fileName,
-              lastModified: new Date(item.date || Date.now()),
-              input: response,
-            };
-          } catch (err) {
-            logToScreen(`文件失败[${i}]: ${fileName} - ${err.message}`);
-            yield {
-              name: `FAILED_${fileName}.txt`,
-              lastModified: new Date(),
-              input: `URL: ${item.url}\nError: ${err.message}`,
-            };
-          }
-        }
-      }
-
-      // 3. 开始传输
-      setStatusMsg("正在打包...");
-      const zipResponse = downloadZip(createZipFolder());
-
-      // [核心修复点] 手机端坚决不使用 pipeTo
-      // StreamSaver 的 writable stream 在手机浏览器上对 pipeTo 的兼容性很差
-      if (useNativeFS) {
-        // PC 端原生支持 pipeTo，效率最高
-        logToScreen("使用 pipeTo 传输");
-        await zipResponse.body.pipeTo(writable);
-      } else {
-        // 手机端/StreamSaver：强制使用手动泵 (Manual Pump)
-        logToScreen("使用 Manual Reader/Writer Loop 传输");
-
-        const reader = zipResponse.body.getReader();
-        const writer = writable.getWriter();
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            await writer.write(value);
-          }
-          logToScreen("写入循环完成");
-          writer.close();
-        } catch (pumpErr) {
-          logToScreen("写入循环中断: " + pumpErr.message);
-          writer.abort(pumpErr); // 尝试通知 StreamSaver 停止
-          throw pumpErr;
-        }
-      }
-
-      setStatusMsg("下载完成！");
-      logToScreen("全部流程结束: Success");
-      setDownloadStatus("success");
-      setTimeout(() => {
-        setStatusMsg("");
-        setDownloadStatus("");
-      }, 3000);
-    } catch (error) {
-      logToScreen(
-        "致命错误: " + error.message + "\nStack: " + (error.stack || "N/A"),
-      );
-      setStatusMsg("出错: " + error.message);
-      setDownloadStatus("error");
-    }
-  };
-
-  // --- 逻辑 B: 使用 JSZip 的兼容模式下载 ---
-  const handleCompatibleDownload = async () => {
-    if (!profile?.timeline || profile.timeline.length === 0) return;
-
-    try {
-      setDownloadStatus("loading");
-      setStatusMsg("准备中...");
-
-      const zip = new JSZip();
-      const zipFilename = `${username}_media_${new Date()
-        .toISOString()
-        .slice(0, 10)}.zip`;
-
-      // 遍历下载所有文件并添加到 zip
-      for (let i = 0; i < profile.timeline.length; i++) {
-        const item = profile.timeline[i];
-        const fileName = extractFileName(item.url, i, item.type);
-
-        setStatusMsg(`下载中 (${i + 1}/${profile.timeline.length})...`);
-
-        try {
-          const { response } = await fetchMediaWithFallback(item.url, item.type);
-          const blob = await response.blob();
-          // 将文件添加到压缩包
-          zip.file(fileName, blob, { binary: true });
-        } catch (err) {
-          console.error(`文件 ${fileName} 下载失败:`, err);
-          zip.file(
-            `ERROR_${fileName}.txt`,
-            `URL: ${item.url}\nError: ${err.message}`,
-          );
-        }
-      }
-
-      setStatusMsg("正在打包压缩...");
-      // 生成 ZIP Blob
-      const content = await zip.generateAsync({
-        type: "blob",
-        compression: "DEFLATE",
-      });
-
-      setStatusMsg("开始下载...");
-      // 触发浏览器下载
-      saveAs(content, zipFilename);
-
-      setDownloadStatus("success");
-      setStatusMsg("下载完成！");
-      setTimeout(() => {
-        setStatusMsg("");
-        setDownloadStatus("");
-      }, 3000);
-    } catch (error) {
-      console.error("JSZip下载错误:", error);
-      setStatusMsg("出错: " + error.message);
-      setDownloadStatus("error");
-    }
-  };
-
-  const handleEmergencyDownload = async () => {
-    if (!profile?.timeline || profile.timeline.length === 0) return;
-
-    // 确认提示，因为这会触发大量浏览器下载弹窗
-    if (
-      !window.confirm(
-        `即将开始下载 ${profile.timeline.length} 个文件，浏览器可能会提示“允许下载多个文件”，请点击允许。`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      setDownloadStatus("loading");
-      setStatusMsg("正在启动批量下载...");
-
-      for (let i = 0; i < profile.timeline.length; i++) {
-        const item = profile.timeline[i];
-        const fileName = extractFileName(item.url, i, item.type);
-
-        setStatusMsg(
-          `正在推送第 (${i + 1}/${profile.timeline.length}) 个到下载列表...`,
-        );
-
-        try {
-          // 方法 A: 跨域友好方案 (推荐)
-          // 通过 fetch 获取 blob 再下载，可以确保 'download' 属性生效并自定义文件名
-          const { response } = await fetchMediaWithFallback(item.url, item.type);
-
-          const blob = await response.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-
-          const link = document.createElement("a");
-          link.href = blobUrl;
-          link.download = fileName; // 指定文件名
-          document.body.appendChild(link);
-          link.click();
-
-          // 清理
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(blobUrl);
-
-          // 关键：稍微等待一下（例如100-300ms），避免浏览器因瞬间触发太多下载而卡死或被拦截
-          await new Promise((resolve) => setTimeout(resolve, 300));
-        } catch (err) {
-          console.error(`文件 ${fileName} 推送失败:`, err);
-          // 备用方案：如果 Fetch 失败，直接交给浏览器下载。
-          // 26-10-08: 图片只有 pbs.moonchan.xyz 一个源 (单元素数组, candidates[1] 为空自动落到 candidates[0]);
-          // 视频的降级链保留, 见 src/api/endpoints.ts 的 VIDEO_BASES 注释。
-          const isItemVideo = item.type === "video" || item.type === "animated_gif";
-          const candidates = isItemVideo ? getVideoCandidates(item.url, videoProxy) : [overrideImageProxy(item.url)];
-          window.open(candidates[1] || candidates[0] || item.url, "_blank");
-        }
-      }
-
-      setDownloadStatus("success");
-      setStatusMsg("已全部移交浏览器下载队列");
-      setTimeout(() => {
-        setStatusMsg("");
-        setDownloadStatus("");
-      }, 3000);
-    } catch (error) {
-      console.error("紧急下载发生错误:", error);
-      setStatusMsg("下载中断: " + error.message);
-      setDownloadStatus("error");
-    }
-  };
-
-  // 5. 投票处理函数
   const handleEmojiVote = async (emoji) => {
-    if (votingEmoji) return; // 防止重复点击
-
-    setVotingEmoji(emoji); // 开始投票，设置禁用状态
-
+    if (votingEmoji) return;
+    setVotingEmoji(emoji);
     try {
-      await voteUpEmoji(username, emoji);
-
-      // 投票成功，更新本地计数 (乐观更新)
-      setEmojiCounts((prev) => ({
-        ...prev,
-        [emoji]: (prev[emoji] || 0) + 1,
-      }));
+      const updated = await voteUpEmoji(username, emoji);
+      if (updated && typeof updated === "object" && updated[emoji] !== undefined) {
+        setEmojiCounts(updated);
+      } else {
+        setEmojiCounts((prev) => ({
+          ...prev,
+          [emoji]: (prev[emoji] || 0) + 1,
+        }));
+      }
     } catch (err) {
       console.error("投票失败:", err);
     } finally {
-      setVotingEmoji(null); // 结束投票，解除禁用
+      setVotingEmoji(null);
     }
   };
 
-  // function 插入位置
-
-  if (!(profile?.timeline?.length > 0))
+  if (!(profile?.timeline?.length > 0)) {
     return <HelpPage onClick={handleSetProfile} />;
+  }
 
   return (
     <main>
       <div className="mb-4 flex flex-col space-y-2">
-        {/* 第一行按钮组 */}
-        <div className="flex space-x-2">
-          {/* 展开全部按钮 */}
+        {/* 第一行：展开全部 + 收藏 + 更新 + 屏蔽 + 修改标签（已去掉下载全部） */}
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowAll(true)}
-            className="flex-1 py-2 px-2 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200"
+            className="flex-1 min-w-[90px] py-2 px-2 flex items-center justify-center bg-green-100 text-green-700 rounded-md hover:bg-green-500 hover:text-white transition-colors duration-200 text-sm font-medium"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 9l6 6 6-6"
-              />
-            </svg>
-            <span className="ml-2">展开全部</span>
+            <span>展开全部 ({profile?.timeline?.length || 0})</span>
           </button>
 
-          {/* 收藏按钮 */}
           <button
             onClick={handleFavorite}
-            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 ${
+            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 text-sm font-medium ${
               favMap?.[username]
                 ? "bg-yellow-500 text-white"
                 : "bg-yellow-100 hover:bg-yellow-500 text-yellow-700"
             }`}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill={favMap?.[username] ? "currentColor" : "none"}
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-              />
-            </svg>
-            <span className="ml-2">
-              {favMap?.[username] ? "已收藏" : "收藏"}
-            </span>
+            <span>{favMap?.[username] ? "★ 已收藏" : "☆ 收藏"}</span>
           </button>
 
-          {/* 更新按钮 */}
           <button
-            onClick={() => {
-              console.log(username, lastUsername, lastUsername === username);
-              if (lastUsername === username) return;
-              setLastUsername(username);
-              createMetaData(username);
-            }}
-            className="flex-1 py-2 px-2 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
+            onClick={handleRefreshUser}
+            className="flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center bg-blue-100 text-blue-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200 text-sm font-medium"
             aria-label="更新"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span className="ml-2">更新</span>
+            <span>{refreshMsg || "更新"}</span>
           </button>
 
-          {/* 屏蔽按钮 */}
           <button
             onClick={handleBlockUser}
-            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md  hover:text-white transition-colors duration-200 ${
+            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md hover:text-white transition-colors duration-200 text-sm font-medium ${
               username && blockMap[username]
                 ? "bg-red-500 text-white"
                 : "bg-red-100 hover:bg-red-500 text-red-700"
             }`}
             aria-label="屏蔽用户"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-            <span className="ml-2">
-              {username && blockMap[username] ? "取消屏蔽" : "屏蔽"}
-            </span>
+            <span>{username && blockMap[username] ? "取消屏蔽" : "屏蔽"}</span>
           </button>
-        </div>
 
-        {/* 在按钮组下方，增加一个用于显示 Debug 日志的区域 */}
-        {/* 只有在有日志内容时才显示，方便手机查看报错 */}
-        {/* {debugLog && (
-          <div className="mt-4 p-2 bg-black text-green-400 text-xs font-mono whitespace-pre-wrap break-all rounded border border-green-600 overflow-auto max-h-40">
-            <strong>Debug Console:</strong>
-            {debugLog}
-          </div>
-        )} */}
-
-        {/* 第二行：打包下载 + 修改标签 */}
-        {/* 第二行：下载按钮组 + 修改标签 */}
-        <div className="flex space-x-2">
-          {/* 按钮容器：三个下载按钮平分空间 */}
-          <div className="flex-1 flex space-x-1">
-            {/* 原有的流式下载按钮 (主要针对 Chrome/大文件) */}
-            <button
-              onClick={handleBatchDownload}
-              disabled={downloadStatus === "loading"}
-              className={`
-                flex-1 py-2 px-2 text-xs flex items-center justify-center rounded-md transition-colors duration-200
-                ${
-                  downloadStatus === "loading"
-                    ? "bg-gray-300 cursor-not-allowed text-gray-600"
-                    : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
-                }
-              `}
-              title="使用流式传输下载，适合超大文件 (Chrome首选)"
-            >
-              {downloadStatus === "loading" ? (
-                "..."
-              ) : (
-                <span className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 10V3L4 14h7v7l9-11h-7z"
-                    />
-                  </svg>
-                  下载 {profile?.total_urls || 0}
-                </span>
-              )}
-            </button>
-
-            {/* 兼容模式下载按钮 */}
-            <button
-              onClick={handleCompatibleDownload}
-              disabled={downloadStatus === "loading"}
-              className={`
-                flex-1 py-2 px-2 text-xs flex items-center justify-center rounded-md transition-colors duration-200
-                ${
-                  downloadStatus === "loading"
-                    ? "bg-gray-300 cursor-not-allowed text-gray-600"
-                    : "bg-green-100 text-green-700 hover:bg-green-500 hover:text-white"
-                }
-              `}
-              title="使用兼容模式下载，解决Firefox报错"
-            >
-              {downloadStatus === "loading" ? (
-                "..."
-              ) : (
-                <span className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                  兼容下载
-                </span>
-              )}
-            </button>
-
-            {/* 新增：应急下载按钮 */}
-            <button
-              onClick={handleEmergencyDownload} // 确保在组件中定义了此函数
-              disabled={downloadStatus === "loading"}
-              className={`
-                flex-1 py-2 px-2 text-xs flex items-center justify-center rounded-md transition-colors duration-200
-                ${
-                  downloadStatus === "loading"
-                    ? "bg-gray-300 cursor-not-allowed text-gray-600"
-                    : "bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white"
-                }
-              `}
-              title="应急下载：当以上方式均失败时使用"
-            >
-              {downloadStatus === "loading" ? (
-                "..."
-              ) : (
-                <span className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10.17 4.67L6.66 8.18a3.89 3.89 0 000 5.5l.1.1a3.89 3.89 0 005.5 0l3.51-3.51a3.89 3.89 0 000-5.5l-.1-.1a3.89 3.89 0 00-5.5 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.83 19.33l3.51-3.51a3.89 3.89 0 000-5.5l-.1-.1a3.89 3.89 0 00-5.5 0l-3.51 3.51a3.89 3.89 0 000 5.5l.1.1a3.89 3.89 0 005.5 0z"
-                    />
-                  </svg>
-                  应急下载
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* 状态文字显示 */}
-          {statusMsg && (
-            <div className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-50">
-              {statusMsg}
-            </div>
-          )}
-
-          {/* 原有的标签修改按钮 */}
           <button
             onClick={handleModifyTagsClick}
-            disabled={loadingTags || downloadStatus === "loading"}
-            className={`
-              px-4 py-2 flex items-center justify-center rounded-md border border-gray-300 transition-colors duration-200
-              ${
-                loadingTags
-                  ? "bg-gray-100 cursor-wait text-gray-400"
-                  : "bg-white text-gray-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
-              }
-            `}
+            disabled={loadingTags}
+            className={`py-2 px-3 flex items-center justify-center rounded-md border border-gray-300 transition-colors duration-200 text-sm font-medium ${
+              loadingTags
+                ? "bg-gray-100 cursor-wait text-gray-400"
+                : "bg-white text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+            }`}
             title="修改标签"
           >
-            {loadingTags ? (
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                />
-              </svg>
-            )}
+            <span>{loadingTags ? "加载中..." : "🏷 修改标签"}</span>
           </button>
         </div>
 
-        {/* 第三行：表情投票组 (新添加) */}
-        {/* 第三行：表情投票组 (可横向滚动版) */}
-        {/* overflow-x-auto: 允许横向滚动 whitespace-nowrap: 禁止换行 */}
-        {/* 第三行：表情投票组 (PC占满，移动可滑) */}
-        {/* overflow-x-auto: 允许横向滚动 */}
-        <div className="flex space-x-2 overflow-x-auto pb-2">
+        {/* 第二行：媒体类型筛选（全部 / 图片 / 视频） */}
+        <div className="flex space-x-2">
+          {[
+            { key: "all", label: "全部媒体" },
+            { key: "photo", label: "仅看图片" },
+            { key: "video", label: "仅看视频 (点击跳 ouo.io)" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setMediaFilter(tab.key)}
+              className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
+                mediaFilter === tab.key
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 第三行：表情投票组 */}
+        <div className="flex space-x-2 overflow-x-auto pb-1">
           {[
             {
               emoji: "😍",
@@ -1038,12 +363,11 @@ const Main = ({ profile, handleSetProfile }) => {
                 key={item.emoji}
                 onClick={() => handleEmojiVote(item.emoji)}
                 disabled={!!votingEmoji}
-                className={`
-                  /* 核心逻辑：flex-1 占满PC宽度，shrink-0 防止移动端被压缩，min-w 保证触发滚动 */
-                  flex-1 shrink-0 min-w-[60px] 
-                  py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200
-                  ${isVoting ? "bg-gray-300 cursor-not-allowed text-gray-500" : `${item.bg} ${item.text} ${item.hover}`}
-                `}
+                className={`flex-1 shrink-0 min-w-[60px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 ${
+                  isVoting
+                    ? "bg-gray-300 cursor-not-allowed text-gray-500"
+                    : `${item.bg} ${item.text} ${item.hover}`
+                }`}
                 title={`为 ${item.emoji} 投票`}
               >
                 <span className="text-lg">{item.emoji}</span>
@@ -1054,15 +378,16 @@ const Main = ({ profile, handleSetProfile }) => {
             );
           })}
         </div>
-
-        {/* bar结尾 */}
       </div>
 
       <TagDisplayArea tags={userTags} />
 
-      <MediaList timeline={profile?.timeline} showAll={showAll} />
+      <MediaList
+        timeline={profile?.timeline}
+        showAll={showAll}
+        mediaFilter={mediaFilter}
+      />
 
-      {/* 插入 Modal */}
       <TagSelectorModal
         isOpen={showTagModal}
         onClose={() => setShowTagModal(false)}
@@ -1070,49 +395,43 @@ const Main = ({ profile, handleSetProfile }) => {
         username={username}
         initialValues={userTags}
       />
-
-      <Advertisement />
     </main>
   );
 };
 
-// ... 保持 ResponsiveLayout 不变 ...
-// 主布局组件
+// 主布局组件（已移除顶部与底部旧广告栏）
 const ResponsiveLayout = () => {
   const isMobile = useScreenMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [gayMode, toggleGayMode] = useGayMode();
 
-  // 26-09-11: 图片源固定 pbs.moonchan.xyz —— 挂在最外层, 所有页面 (主页/排行榜/帮助页)
-  // 都会跑一次; 这个 hook 不读自动档 / 手动档, 所以图片行为和档位无关。
   useFixedImageProxy();
 
-  const [ranking, setRanking] = useState(false); // 正在投票的 emoji，用于禁用按钮
-  // 首次加载时
+  const [ranking, setRanking] = useState(false);
+
   useEffect(() => {
-    // 得到path，split by "/"，得到第一个非空字符串，然后console.log（如果为空直接return）
-    const fullPath = window.location.pathname; // 获取完整路径，如 "/user/123/profile"
+    const fullPath = window.location.pathname;
     const parts = fullPath.split("/");
     const firstNonEmptyPart = parts.find((elem) => elem !== "");
     if (firstNonEmptyPart) {
-      getMetaData(firstNonEmptyPart).then((data) => setProfile(data));
+      getMetaData(firstNonEmptyPart)
+        .then((data) => setProfile(data))
+        .catch((err) => console.error("加载初始用户失败:", err));
     }
   }, []);
 
-  // 切换抽屉状态
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
-  };
+  const toggleDrawer = () => setDrawerOpen(!drawerOpen);
+  const closeDrawer = () => setDrawerOpen(false);
 
-  // 关闭抽屉
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-  };
-
-  const handleSetProfile = (profile) => {
-    window.history.pushState({}, null, "/" + profile.account_info.name);
-    setProfile(profile);
+  const handleSetProfile = (nextProfile) => {
+    const name =
+      nextProfile?.account_info?.name || nextProfile?.username || "";
+    if (name) {
+      window.history.pushState({}, null, "/" + name);
+    }
+    setProfile(nextProfile);
+    setRanking(false);
   };
 
   const onClickHome = () => {
@@ -1129,95 +448,53 @@ const ResponsiveLayout = () => {
 
   return (
     <div className="flex h-screen bg-gray-100 relative">
-      {/* 主要内容区域 */}
       <div
         className={`flex-1 p-4 overflow-auto ${isMobile ? "w-full" : "w-3/4"}`}
       >
-        <Advertisement />
-
-        {/* 修改后的按钮区域：使用 flex 布局并排显示 */}
-        {/* 按钮区域：flex布局并排，风格统一，朴素灰色调 */}
         <div className="mb-4 flex space-x-2">
-          {/* 左侧：返回主页 */}
           <button
             onClick={onClickHome}
-            className="flex-1 py-2 px-3 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200"
+            className="flex-1 py-2 px-3 flex items-center justify-center bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-blue-500 hover:text-white transition-colors duration-200 shadow-sm"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-              />
-            </svg>
-            <span className="ml-1.5 font-medium">返回主页</span>
+            <span className="font-medium">🏠 返回主页</span>
           </button>
 
-          {/* 中间：排行榜 */}
           <button
             onClick={onClickRanking}
-            // 样式同上，仅 Hover 颜色改为紫色以示区分
-            className="flex-1 py-2 px-3 flex items-center justify-center bg-gray-100 text-gray-700 rounded-md hover:bg-purple-500 hover:text-white transition-colors duration-200"
+            className="flex-1 py-2 px-3 flex items-center justify-center bg-white border border-gray-200 text-gray-700 rounded-md hover:bg-purple-500 hover:text-white transition-colors duration-200 shadow-sm"
           >
-            {/* 柱状图图标 */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-              />
-            </svg>
-            <span className="ml-1.5 font-medium">排行榜</span>
+            <span className="font-medium">📊 排行榜</span>
           </button>
 
-          {/* 右侧：Gay模式 */}
           <button
             onClick={toggleGayMode}
-            className={`flex-1 py-2 px-3 flex items-center justify-center rounded-md transition-colors duration-200 ${
+            className={`flex-1 py-2 px-3 flex items-center justify-center rounded-md transition-colors duration-200 shadow-sm ${
               gayMode
-                ? "bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200 font-semibold shadow-sm"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-purple-100 text-purple-700 border border-purple-300 hover:bg-purple-200 font-semibold"
+                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-200"
             }`}
             title="切换 Gay 模式（显示男同/男性/露屌等标签）"
           >
             <span className="text-base mr-1">🌈</span>
-            <span className="font-medium">{gayMode ? "Gay模式 (开)" : "Gay模式"}</span>
+            <span className="font-medium">
+              {gayMode ? "Gay模式 (开)" : "Gay模式"}
+            </span>
           </button>
         </div>
 
         {ranking && profile === null ? (
-          <Ranking handleSetProfile={handleSetProfile}  />
+          <Ranking handleSetProfile={handleSetProfile} />
         ) : (
           <Main profile={profile} handleSetProfile={handleSetProfile} />
         )}
       </div>
 
-      {/* 桌面模式下的用户列表 */}
       {!isMobile && (
         <div className="w-1/4 p-4 bg-white border-l border-gray-200 overflow-auto">
-          <SideBar
-            onClick={(data) => {
-              handleSetProfile(data);
-            }}
-          />
+          <SideBar onClick={(data) => handleSetProfile(data)} />
         </div>
       )}
 
-      {/* 移动模式下的抽屉按钮 */}
       {isMobile && (
         <button
           onClick={toggleDrawer}
@@ -1241,10 +518,8 @@ const ResponsiveLayout = () => {
         </button>
       )}
 
-      {/* 移动模式下的抽屉式用户列表 */}
       {isMobile && (
         <>
-          {/* 抽屉遮罩层 */}
           {drawerOpen && (
             <div
               className="fixed inset-0 bg-black bg-opacity-50 z-40"
@@ -1252,7 +527,6 @@ const ResponsiveLayout = () => {
             />
           )}
 
-          {/* 抽屉内容 */}
           <div
             className={`fixed top-0 right-0 h-full w-4/5 max-w-sm bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${
               drawerOpen ? "translate-x-0" : "translate-x-full"
@@ -1264,27 +538,14 @@ const ResponsiveLayout = () => {
                 className="p-2 text-gray-500 hover:text-gray-700"
                 aria-label="关闭抽屉"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                ✕
               </button>
             </div>
-            <div className="overflow-auto h-full">
+            <div className="overflow-auto h-full p-2">
               <SideBar
-                onClick={(profile) => {
+                onClick={(nextProfile) => {
                   closeDrawer();
-                  handleSetProfile(profile);
+                  handleSetProfile(nextProfile);
                 }}
               />
             </div>

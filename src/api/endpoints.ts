@@ -1,28 +1,27 @@
-export const ENDPOINT = "https://x.moonchan.xyz/api/twitter"
-// export const ENDPOINT = "http://172.29.89.192:8888/api/twitter"
+// ============================================================================
+// 新版 twitter-pic-react API 与资源 CDN 端点配置
+// 配套后端：twitter-pic-go 新版 V2 API (/api/twitter/v2) + 旧版 V1 兼容兜底 (/api/twitter)
+// ============================================================================
 
-// export const ENDPOINT = window.location.origin + "/api/twitter";
-// export const ENDPOINT = "/api/twitter"
+export const ENDPOINT =
+  process.env.REACT_APP_API_ENDPOINT || "https://x.moonchan.xyz/api/twitter";
 
-// 26-10-08: 图片源固定为 https://pbs.moonchan.xyz —— 唯一来源, 没有任何 fallback / 候选列表。
-// 实测 (真实资源, HEAD):
-//   https://pbs.moonchan.xyz/media/HQQFyW8aIAAwogx?format=jpg&name=medium -> 200 image/jpeg, cf-cache-status: HIT
-// 所以图片不再需要 twimg.l.moonchan.xyz:8443 / video-cf.twimg.com 这两个候选。
+// 新版 V2 API 根地址（对齐 twitter-pic-go 的 /api/twitter/v2 路由组）
+export const V2_ENDPOINT =
+  process.env.REACT_APP_V2_ENDPOINT || `${ENDPOINT}/v2`;
+
+// 唯一图片与视频封面（cover）资源 CDN：直接将 pbs.twimg.com 的 host 替换为 pbs.moonchan.xyz
 export const FIXED_IMAGE_PROXY = "https://pbs.moonchan.xyz";
 
-// 26-10-08: 视频仍然保留候选列表, 这是刻意的, 不是漏改。
-// 实测: pbs.moonchan.xyz 对视频只回 302 跳转到 https://twimg.moonchan.xyz, 而 twimg.moonchan.xyz
-// 目前返回 Cloudflare 429 (body: "error code: 1027")。换过出口 IP、换浏览器 UA+Referer、等 90s
-// 冷却后复测, 结果都不变。所以视频此刻不能像图片那样单一写死成 pbs.moonchan.xyz, 否则所有视频都会挂。
-// 等 twimg.moonchan.xyz 恢复 (或 pbs.moonchan.xyz 改为直连 video.twimg.com) 再按图片的方式收敛。
-export const VIDEO_BASES = [
-  "https://twimg.l.moonchan.xyz:8443",
-  "https://pbs.moonchan.xyz",
-  "https://video-cf.twimg.com",
-] as const;
+// 视频代理目标域名（由后端视频端点直接替换 video.twimg.com 的 host 为 twimg.moonchan.xyz）
+export const FIXED_VIDEO_PROXY = "https://twimg.moonchan.xyz";
 
-export const FIXED_VIDEO_PROXY = VIDEO_BASES[0];
+// 后端专属视频处理与 ouo.io 广告跳转端点：
+// 前端点击视频封面时访问 `${VIDEO_REDIRECT_ENDPOINT}/<video_path>?<query>`，
+// 后端将该视频链接的 host 直接替换为 twimg.moonchan.xyz，并通过 ouo.io/qs 或 ouo.io/api
+// 302 重定向到 ouo.io 广告中转页面收钱，随后转到 https://twimg.moonchan.xyz/<video_path>?<query>。
+export const VIDEO_REDIRECT_ENDPOINT =
+  process.env.REACT_APP_VIDEO_ENDPOINT || `${V2_ENDPOINT}/video`;
 
-// 兼容旧 import: 默认源 = 固定源。
 export const DEFAULT_IMAGE_PROXY: string = FIXED_IMAGE_PROXY;
 export const DEFAULT_VIDEO_PROXY: string = FIXED_VIDEO_PROXY;

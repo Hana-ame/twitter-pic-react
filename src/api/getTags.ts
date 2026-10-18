@@ -1,16 +1,39 @@
-import { ENDPOINT } from "./endpoints";
+import { ENDPOINT, V2_ENDPOINT } from "./endpoints";
+import { getCachedUserCard, updateCachedUserTags } from "./clientCache";
 
-// 25-08-14: 支持 AbortSignal。
-// 坑: 快速切换 profile 时旧请求若不取消, 会一直占用浏览器对该 host 的连接池,
-// 导致新 profile 的请求排队(HTTP/1.1 每 host 并发有限), 界面表现为卡顿。
-export default function getTags(username: string, signal?: AbortSignal) {
-    return new Promise((resolve, reject) => {
-        fetch(`${ENDPOINT}/tags/${username}`, {
-            signal,
-        }).then(res => res.json()).then(data => {
-            resolve(data);
-        }).catch(err => {
-            reject(err);
-        });
-    });
+export default async function getTags(
+  username: string,
+  signal?: AbortSignal
+): Promise<{ username: string; tags: Record<string, number> }> {
+  const cleanUser = (username || "").trim();
+  if (!cleanUser) return { username: "", tags: {} };
+
+  try {
+    const res = await fetch(
+      `${V2_ENDPOINT}/users/${encodeURIComponent(cleanUser)}`,
+      { signal }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const tags = data?.tags || {};
+      updateCachedUserTags(cleanUser, tags);
+      return { username: cleanUser, tags };
+    }
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw err;
+  }
+
+  const cached = getCachedUserCard(cleanUser);
+  if (cached?.tags && Object.keys(cached.tags).length > 0) {
+    return { username: cleanUser, tags: cached.tags };
+  }
+
+  const res = await fetch(`${ENDPOINT}/tags/${encodeURIComponent(cleanUser)}`, {
+    signal,
+  });
+  const data = await res.json();
+  if (data?.tags) {
+    updateCachedUserTags(cleanUser, data.tags);
+  }
+  return data;
 }

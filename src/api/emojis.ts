@@ -1,55 +1,89 @@
-// 26.02.15
-// GLM5
+import { ENDPOINT, V2_ENDPOINT } from "./endpoints";
+import {
+  V2UserCard,
+  setCachedUserCards,
+  updateCachedUserEmojis,
+} from "./clientCache";
 
-import { ENDPOINT } from "./endpoints";
+export async function getEmojis(
+  username: string,
+  signal?: AbortSignal
+): Promise<Record<string, number>> {
+  const cleanUser = (username || "").trim();
+  if (!cleanUser) return {};
 
-// 获取指定用户的所有 Emoji 计数
-// 对应后端: GET /emojis?username=xxx
-// 25-08-14: 支持 AbortSignal, 原因同 getTags (快速切 profile 时旧请求占用连接池)。
-export function getEmojis(username: string, signal?: AbortSignal) {
-    return new Promise((resolve, reject) => {
-        // 修复: username 含 # & 空格 时会破坏 URL, 用 encodeURIComponent 编码。
-        fetch(`${ENDPOINT}/emojis?username=${encodeURIComponent(username)}`, {
-            method: 'GET',
-            signal,
-        }).then(res => res.json()).then(data => {
-            resolve(data);
-        }).catch(err => {
-            reject(err);
-        });
-    });
+  try {
+    const res = await fetch(
+      `${V2_ENDPOINT}/users/${encodeURIComponent(cleanUser)}/emojis`,
+      { signal }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      updateCachedUserEmojis(cleanUser, data || {});
+      return data || {};
+    }
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw err;
+  }
+
+  const res = await fetch(
+    `${ENDPOINT}/emojis?username=${encodeURIComponent(cleanUser)}`,
+    { method: "GET", signal }
+  );
+  const data = await res.json();
+  updateCachedUserEmojis(cleanUser, data || {});
+  return data || {};
 }
 
-export function getRanking() {
-    return getEmojis("")
-    // 尼玛，后端写挂了，先凑合一个
-    return new Promise((resolve, reject) => {
-        fetch(`${ENDPOINT}/emojis.json.gz`, {
-            method: 'GET'
-        }).then(res => res.json()).then(data => {
-            resolve(data);
-        }).catch(err => {
-            reject(err);
-        });
-    });
+export async function getRanking(): Promise<{
+  rankings: Record<string, any>;
+  users: Record<string, V2UserCard>;
+}> {
+  try {
+    const res = await fetch(`${V2_ENDPOINT}/ranking`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.rankings) {
+        const usersMap: Record<string, V2UserCard> = data.users || {};
+        setCachedUserCards(Object.values(usersMap));
+        return { rankings: data.rankings, users: usersMap };
+      }
+    }
+  } catch (err) {
+    console.warn("V2 ranking fallback to V1:", err);
+  }
+
+  const res = await fetch(`${ENDPOINT}/emojis?username=`);
+  const rankings = await res.json();
+  return { rankings: rankings || {}, users: {} };
 }
 
-// 为指定用户的某个 Emoji 投票 (+1)
-// 对应后端: POST /emojis?username=xxx&emoji=xxx
-export function voteUpEmoji(username: string, emoji: string) {
-    // 使用 URLSearchParams 处理参数可以自动处理特殊字符编码，更安全
-    const params = new URLSearchParams({
-        username: username,
-        emoji: emoji
-    });
+export async function voteUpEmoji(
+  username: string,
+  emoji: string
+): Promise<Record<string, number>> {
+  const cleanUser = (username || "").trim();
+  try {
+    const res = await fetch(
+      `${V2_ENDPOINT}/users/${encodeURIComponent(cleanUser)}/emojis?emoji=${encodeURIComponent(emoji)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleanUser, emoji }),
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      updateCachedUserEmojis(cleanUser, data || {});
+      return data || {};
+    }
+  } catch {}
 
-    return new Promise((resolve, reject) => {
-        fetch(`${ENDPOINT}/emojis?${params.toString()}`, {
-            method: 'POST'
-        }).then(res => res.json()).then(data => {
-            resolve(data);
-        }).catch(err => {
-            reject(err);
-        });
-    });
+  const params = new URLSearchParams({ username: cleanUser, emoji });
+  const res = await fetch(`${ENDPOINT}/emojis?${params.toString()}`, {
+    method: "POST",
+  });
+  const data = await res.json();
+  updateCachedUserEmojis(cleanUser, data || {});
+  return data || {};
 }
