@@ -487,6 +487,18 @@ const ResponsiveLayout = () => {
         ) : (
           <Main profile={profile} handleSetProfile={handleSetProfile} />
         )}
+
+        {/* 免责与协议（2026-10-22 加） */}
+        <footer className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-400 pb-6">
+          <p className="mb-1">
+            <a href="#terms" className="mr-2 hover:text-gray-600">Terms of Service</a>
+            <span>·</span>
+            <a href="#privacy" className="mx-2 hover:text-gray-600">Privacy Policy</a>
+            <span>·</span>
+            <a href="#dmca" className="ml-2 hover:text-gray-600">DMCA</a>
+          </p>
+          <p>🔞 本网站包含成人内容，仅限年满 18 周岁的成年人访问。</p>
+        </footer>
       </div>
 
       {!isMobile && (
