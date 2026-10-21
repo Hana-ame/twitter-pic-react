@@ -495,7 +495,7 @@ const ResponsiveLayout = () => {
             <span>·</span>
             <a href="#privacy" className="mx-2 hover:text-gray-600">Privacy Policy</a>
             <span>·</span>
-            <a href="#dmca" className="ml-2 hover:text-gray-600">DMCA</a>
+            <a href="mailto:admin@moonchan.xyz" className="ml-2 hover:text-gray-600">DMCA</a>
           </p>
           <p>🔞 本网站包含成人内容，仅限年满 18 周岁的成年人访问。</p>
         </footer>
