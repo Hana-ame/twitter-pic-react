@@ -49,6 +49,36 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
+        {/* 豆腐块0 - 广告插入问题 */}
+        <Block
+          title="关于广告插入问题"
+          closed={isClosedMap["广告插入问题"]}
+          onClick={() => handleOnClickBlock("广告插入问题")}
+        >
+          <p className="text-gray-500">
+            如有任何意见建议请到聊天室问答。
+          </p>
+          <p className="text-gray-500">
+            <button
+              onClick={() => window.open("https://chatto.moonchan.xyz", "_blank")}
+              style={{
+                display: "inline-block",
+                padding: "8px 20px",
+                background: "linear-gradient(135deg, #a04ab8, #8041a6)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "18px",
+                fontWeight: "bold",
+                fontSize: "16px",
+                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+                cursor: "pointer",
+              }}
+            >
+              点击添加聊天群
+            </button>
+          </p>
+        </Block>
+
         <Block
           title="DeepSeek V4.1 太牛啦"
           closed={isClosedMap["dsv4.1f"]}
