@@ -379,7 +379,7 @@ const Main = ({ profile, handleSetProfile }) => {
   return (
     <main>
       <div className="mb-4 flex flex-col space-y-2">
-        {/* 第一行：展开全部 + 下载全部 + 兼容下载 + 应急下载 + 收藏 + 更新 + 屏蔽 + 修改标签 */}
+        {/* 第一行：展开全部 + 收藏 + 更新 + 屏蔽 + 修改标签 */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowAll(true)}
@@ -387,63 +387,6 @@ const Main = ({ profile, handleSetProfile }) => {
           >
             <span>展开全部 ({profile?.timeline?.length || 0})</span>
           </button>
-
-          {/* 下载全部：client-zip 流式打包；PC 用 showSaveFilePicker 流式写盘，移动端 Blob 兜底 */}
-          <button
-            onClick={handleBatchDownload}
-            disabled={downloadStatus === "loading"}
-            title="流式打包下载，适合大文件（PC 首选）"
-            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
-              downloadStatus === "loading"
-                ? "bg-gray-300 text-gray-500 cursor-wait"
-                : downloadStatus === "success"
-                ? "bg-green-500 text-white"
-                : downloadStatus === "error"
-                ? "bg-red-100 text-red-700 hover:bg-red-500 hover:text-white"
-                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
-            }`}
-          >
-            <span>
-              {downloadStatus === "loading"
-                ? "⏬ 下载中..."
-                : downloadStatus === "success"
-                ? "✓ 完成"
-                : downloadStatus === "error"
-                ? "✗ 重试"
-                : "⬇ 下载全部"}
-            </span>
-          </button>
-
-          {/* 兼容下载：强制 Blob 打包，给 showSaveFilePicker 不可用/被拦的浏览器 */}
-          <button
-            onClick={handleCompatibleDownload}
-            disabled={downloadStatus === "loading"}
-            title="兼容模式：强制打包成 Blob 下载"
-            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
-              downloadStatus === "loading"
-                ? "bg-gray-300 text-gray-500 cursor-wait"
-                : "bg-green-100 text-green-700 hover:bg-green-500 hover:text-white"
-            }`}
-          >
-            <span>兼容下载</span>
-          </button>
-
-          {/* 应急下载：不打包，逐个触发浏览器下载 */}
-          <button
-            onClick={handleEmergencyDownload}
-            disabled={downloadStatus === "loading"}
-            title="应急下载：不打包，逐个触发浏览器下载"
-            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
-              downloadStatus === "loading"
-                ? "bg-gray-300 text-gray-500 cursor-wait"
-                : "bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white"
-            }`}
-          >
-            <span>应急下载</span>
-          </button>
-          {downloadMsg && (
-            <p className="w-full text-xs text-gray-500">{downloadMsg}</p>
-          )}
 
           <button
             onClick={handleFavorite}
@@ -490,7 +433,60 @@ const Main = ({ profile, handleSetProfile }) => {
           </button>
         </div>
 
-        {/* 第二行：媒体类型筛选（全部 / 图片 / 视频） */}
+        {/* 第二行：下载按钮组（三个平分一行） */}
+        <div className="flex gap-1">
+          <button
+            onClick={handleBatchDownload}
+            disabled={downloadStatus === "loading"}
+            title="流式打包下载，适合大文件（PC 首选）"
+            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 text-gray-500 cursor-wait"
+                : downloadStatus === "success"
+                ? "bg-green-500 text-white"
+                : downloadStatus === "error"
+                ? "bg-red-100 text-red-700 hover:bg-red-500 hover:text-white"
+                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
+            }`}
+          >
+            {downloadStatus === "loading"
+              ? "⏬ 下载中..."
+              : downloadStatus === "success"
+              ? "✓ 完成"
+              : downloadStatus === "error"
+              ? "✗ 重试"
+              : "⬇ 下载全部"}
+          </button>
+          <button
+            onClick={handleCompatibleDownload}
+            disabled={downloadStatus === "loading"}
+            title="兼容模式：强制打包成 Blob 下载"
+            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 text-gray-500 cursor-wait"
+                : "bg-green-100 text-green-700 hover:bg-green-500 hover:text-white"
+            }`}
+          >
+            兼容下载
+          </button>
+          <button
+            onClick={handleEmergencyDownload}
+            disabled={downloadStatus === "loading"}
+            title="应急下载：不打包，逐个触发浏览器下载"
+            className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 text-gray-500 cursor-wait"
+                : "bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white"
+            }`}
+          >
+            应急下载
+          </button>
+          {downloadMsg && (
+            <p className="w-full text-xs text-gray-500">{downloadMsg}</p>
+          )}
+        </div>
+
+        {/* 第三行：媒体类型筛选（全部 / 图片 / 视频） */}
         <div className="flex space-x-2">
           {[
             { key: "all", label: "全部媒体" },
@@ -511,7 +507,7 @@ const Main = ({ profile, handleSetProfile }) => {
           ))}
         </div>
 
-        {/* 第三行：表情投票组 */}
+        {/* 第四行：表情投票组 */}
         <div className="flex space-x-2 overflow-x-auto pb-1">
           {[
             {
