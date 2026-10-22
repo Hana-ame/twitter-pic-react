@@ -1,24 +1,19 @@
 // ============================================================================
-// 媒体资源与视频跳转链接转换器（直接替换 host，无任何 fallback 轮询）
+// 媒体资源转换器（直接替换 host，无任何 fallback 轮询）
 // 设计规范：
 //   1. 图片与视频封面（cover）：直接将 pbs.twimg.com 的 host 替换为 pbs.moonchan.xyz，保留完整 path+query；
 //      例如：https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
-//   2. 视频点击链接：前端点击视频封面时，指向 twitter-pic-go 的专属视频处理端点：
-//      https://x.moonchan.xyz/api/twitter/v2/video/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12
-//      后端收到请求后，直接替换 host 为 twimg.moonchan.xyz（保留完整 path+query），
-//      并通过 ouo.io/qs 或 ouo.io/api 重定向到 ouo.io 广告中转页收钱，最后转到 https://twimg.moonchan.xyz/...
+//   2. 视频点击链接（2026-10-23 起无广告、无 302 中转）：直接指向
+//      https://twimg.moonchan.xyz/ext_tw_video/.../<file>.mp4?<query>（host 直接替换 video.twimg.com），
+//      链接即最终播放地址，中间不再经过 /api/twitter/v2/video 端点，也不经 ouo.io 广告页。
 // ============================================================================
 
-import {
-  FIXED_IMAGE_PROXY,
-  FIXED_VIDEO_PROXY,
-  VIDEO_REDIRECT_ENDPOINT,
-} from "./endpoints";
+import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY } from "./endpoints";
 
 export const IMAGE_ORIGINAL_HOST = "pbs.twimg.com";
 export const VIDEO_ORIGINAL_HOST = "video.twimg.com";
 
-export { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY, VIDEO_REDIRECT_ENDPOINT };
+export { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY };
 
 // 提取 media 相对路径与查询参数（保留完整 /path?query#hash）
 export const extractMediaPath = (url: string): string => {
@@ -76,28 +71,19 @@ export const resolveVideoCoverUrl = (
   return "";
 };
 
-// 构造点击视频封面时访问的后端专属视频端点 URL：
-// https://x.moonchan.xyz/api/twitter/v2/video/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12
-// 后端收到后会将 host 替换为 twimg.moonchan.xyz 并通过 ouo.io 重定向到广告中转页面收钱。
-export const buildOuoVideoUrl = (
+// 构造点击视频封面时的最终播放地址（2026-10-23 起无广告、无 302 中转）：
+// 若后端已返回绝对地址（新版 V2 API 的 ouo_url 即直连 https://twimg.moonchan.xyz/...），原样采用；
+// 否则由原始 video.twimg.com 地址直接拼直链 https://twimg.moonchan.xyz/<path>?<query>。
+// 注意：不会再拼 /api/twitter/v2/video 端点（点击该端点会产生一次 302 跳转，已弃用）。
+export const buildVideoDirectUrl = (
   rawVideoUrl: string,
-  prebuiltEndpointUrl?: string | null
+  prebuiltDirectUrl?: string | null
 ): string => {
-  const baseEndpoint = VIDEO_REDIRECT_ENDPOINT.replace(/\/+$/, "");
-  const prebuilt = (prebuiltEndpointUrl || "").trim();
-  if (prebuilt) {
-    if (prebuilt.startsWith("http://") || prebuilt.startsWith("https://")) {
-      return prebuilt;
-    }
-    if (prebuilt.startsWith("/api/twitter/v2/video/")) {
-      const suffix = prebuilt.slice("/api/twitter/v2/video".length);
-      return `${baseEndpoint}${suffix}`;
-    }
+  const prebuilt = (prebuiltDirectUrl || "").trim();
+  if (prebuilt.startsWith("http://") || prebuilt.startsWith("https://")) {
+    return prebuilt;
   }
-  if (!rawVideoUrl) return "";
-  const pathAndQuery = extractVideoPath(rawVideoUrl);
-  if (!pathAndQuery) return "";
-  return `${baseEndpoint}${pathAndQuery.startsWith("/") ? pathAndQuery : "/" + pathAndQuery}`;
+  return overrideVideoProxy(rawVideoUrl);
 };
 
 // 统一入口

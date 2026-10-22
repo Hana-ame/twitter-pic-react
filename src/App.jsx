@@ -65,7 +65,7 @@ const SideBar = ({ onClick }) => {
   );
 };
 
-// 主内容区：已移除旧版广告栏与全部批量下载按钮，视频统一使用 cover 封面 + 点击跳 ouo.io 广告变现
+// 主内容区：已移除旧版广告栏与全部批量下载按钮，视频统一使用 cover 封面 + 点击直连 twimg.moonchan.xyz 播放（无 302 中转）
 const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
@@ -293,7 +293,7 @@ const Main = ({ profile, handleSetProfile }) => {
           {[
             { key: "all", label: "全部媒体" },
             { key: "photo", label: "仅看图片" },
-            { key: "video", label: "仅看视频 (点击跳 ouo.io)" },
+            { key: "video", label: "仅看视频 (点击直连播放)" },
           ].map((tab) => (
             <button
               key={tab.key}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FIXED_IMAGE_PROXY, VIDEO_REDIRECT_ENDPOINT } from "../api/endpoints";
+import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY } from "../api/endpoints";
 import {
   getLocalCacheStats,
   clearAllLocalCache,
@@ -15,9 +15,9 @@ const ImageConfig = () => {
       </div>
       <p className="text-xs text-gray-500 leading-relaxed">
         所有图片、用户头像及视频封面（<code>cover</code>）直接将 host 替换为{" "}
-        <code>pbs.moonchan.xyz</code> 加载；点击视频封面时请求后端视频专属端点{" "}
-        <code>{VIDEO_REDIRECT_ENDPOINT}/...</code>，由后端替换 host 为{" "}
-        <code>twimg.moonchan.xyz/...</code> 并经由 <code>ouo.io</code> 广告中转页跳转。
+        <code>pbs.moonchan.xyz</code> 加载；点击视频封面直接打开{" "}
+        <code>{FIXED_VIDEO_PROXY}/&lt;path&gt;?&lt;query&gt;</code> 上的原始视频，
+        链接即最终播放地址，无任何中间 302（2026-10-23 起已移除 ouo.io 广告与后端跳转端点）。
       </p>
     </div>
   );

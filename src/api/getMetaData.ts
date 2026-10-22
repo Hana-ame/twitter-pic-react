@@ -7,7 +7,7 @@ import {
   setCachedTimeline,
   getCachedUserCard,
 } from "./clientCache";
-import { resolveVideoCoverUrl, buildOuoVideoUrl } from "./proxyOverride";
+import { resolveVideoCoverUrl, buildVideoDirectUrl } from "./proxyOverride";
 
 function normalizeTimelineItems(rawTimeline: any[]): V2TimelineItem[] {
   if (!Array.isArray(rawTimeline)) return [];
@@ -30,7 +30,7 @@ function normalizeTimelineItems(rawTimeline: any[]): V2TimelineItem[] {
       ? resolveVideoCoverUrl(item.cover, "")
       : undefined;
 
-    const ouoUrl = isVideo ? buildOuoVideoUrl(rawUrl, item.ouo_url) : undefined;
+    const ouoUrl = isVideo ? buildVideoDirectUrl(rawUrl, item.ouo_url) : undefined;
 
     out.push({
       tweet_id: item.tweet_id,
@@ -101,7 +101,7 @@ export default async function getMetaData(
     console.warn("V2 timeline request failed, falling back to .json.gz:", err);
   }
 
-  // 3. 兼容兜底：请求 /api/twitter/<username>.json.gz?t=<cfT> 并在客户端完成 cover + ouo.io 转换
+  // 3. 兼容兜底：请求 /api/twitter/<username>.json.gz?t=<cfT> 并在客户端完成 cover + 直链转换
   const legacyUrl = new URL(`${ENDPOINT}/${encodeURIComponent(cleanUser)}.json.gz`);
   legacyUrl.searchParams.set("t", cfT);
 

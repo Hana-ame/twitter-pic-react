@@ -33,6 +33,7 @@ export interface V2TimelineItem {
   type: string;
   date?: string;
   cover?: string;
+  // 历史契约字段名（ouo_url）：2026-10-23 起值为直连地址 https://twimg.moonchan.xyz/<path>?<query>，无广告无 302
   ouo_url?: string;
 }
 

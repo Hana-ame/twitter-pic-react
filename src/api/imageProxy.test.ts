@@ -3,14 +3,10 @@ import {
   overrideVideoProxy,
   imageProxyUrl,
   resolveVideoCoverUrl,
-  buildOuoVideoUrl,
+  buildVideoDirectUrl,
 } from "./proxyOverride";
 import { IMAGE_PROXY_KEY, normalizeStoredImageProxy } from "./imageProxy";
-import {
-  FIXED_IMAGE_PROXY,
-  FIXED_VIDEO_PROXY,
-  VIDEO_REDIRECT_ENDPOINT,
-} from "./endpoints";
+import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY } from "./endpoints";
 
 const PHOTO = "https://pbs.twimg.com/media/AAA.jpg";
 const COVER =
@@ -41,24 +37,30 @@ describe("overrideImageProxy & resolveVideoCoverUrl: 直接替换 host 为 pbs.m
   });
 });
 
-describe("overrideVideoProxy & buildOuoVideoUrl: 视频指向 Go 后端专属视频端点并保留完整 path+query", () => {
+describe("overrideVideoProxy & buildVideoDirectUrl: 视频直连 twimg.moonchan.xyz，无 302 中间跳转", () => {
   it("overrideVideoProxy 直接替换 host 为 https://twimg.moonchan.xyz 并保留完整 path+query", () => {
     expect(overrideVideoProxy(VIDEO)).toBe(
       `${FIXED_VIDEO_PROXY}/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12`
     );
   });
 
-  it("buildOuoVideoUrl 指向 Go 后端专属视频端点 /api/twitter/v2/video/<path+query>", () => {
-    expect(buildOuoVideoUrl(VIDEO)).toBe(
-      `${VIDEO_REDIRECT_ENDPOINT}/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12`
+  it("buildVideoDirectUrl 直连 https://twimg.moonchan.xyz/<path+query>（不再拼 /api/twitter/v2/video 端点）", () => {
+    expect(buildVideoDirectUrl(VIDEO)).toBe(
+      `${FIXED_VIDEO_PROXY}/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12`
     );
   });
 
-  it("若后端已返回相对路径 /api/twitter/v2/video/... 则自动补齐完整后端端点地址", () => {
+  it("后端已返回绝对直链（新版 V2 API 的 ouo_url）时原样采用", () => {
+    const serverDirect =
+      "https://twimg.moonchan.xyz/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12";
+    expect(buildVideoDirectUrl(VIDEO, serverDirect)).toBe(serverDirect);
+  });
+
+  it("后端返回旧版相对路径 /api/twitter/v2/video/... 时忽略并改由原始地址拼直链（不再补齐端点）", () => {
     const serverRel =
       "/api/twitter/v2/video/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12";
-    expect(buildOuoVideoUrl(VIDEO, serverRel)).toBe(
-      `${VIDEO_REDIRECT_ENDPOINT}/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12`
+    expect(buildVideoDirectUrl(VIDEO, serverRel)).toBe(
+      `${FIXED_VIDEO_PROXY}/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/BBB.mp4?tag=12`
     );
   });
 });

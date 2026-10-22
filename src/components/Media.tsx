@@ -1,5 +1,5 @@
 import React from "react";
-import { resolveVideoCoverUrl, buildOuoVideoUrl } from "../api/proxyOverride";
+import { resolveVideoCoverUrl, buildVideoDirectUrl } from "../api/proxyOverride";
 import PhotoV2 from "./PhotoV2";
 
 export type MediaProps = {
@@ -14,7 +14,8 @@ export type MediaProps = {
  * 1. 绝不渲染 <video> 或 <iframe>，不在页面内发起任何 .mp4 请求（彻底防止打满 VPS 出站带宽）；
  * 2. 封面图固定使用 gallery_dl 添加的 cover 字段并经由唯一资源 CDN https://pbs.moonchan.xyz 加载；
  *    例如：https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
- * 3. 点击封面后跳转到 http://ouo.io/api/6z4kqAz7?s=<video_url> 获取广告收益并限流。
+ * 3. 点击封面直接打开 https://twimg.moonchan.xyz/<path>?<query> 上的原始视频
+ *    （2026-10-23 起无 ouo.io 广告、无 /api/twitter/v2/video 302 中转）。
  */
 const VideoCoverCard: React.FC<{
   url: string;
@@ -22,16 +23,16 @@ const VideoCoverCard: React.FC<{
   ouoUrl?: string;
 }> = ({ url, cover, ouoUrl }) => {
   const coverImgUrl = resolveVideoCoverUrl(cover, url);
-  const targetOuoUrl = buildOuoVideoUrl(url, ouoUrl);
+  const targetUrl = buildVideoDirectUrl(url, ouoUrl);
 
   return (
     <div className="flex justify-center items-start my-3">
       <a
-        href={targetOuoUrl}
+        href={targetUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="group relative block w-full max-w-4xl rounded-xl overflow-hidden bg-gray-900 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer"
-        title="点击通过 ouo.io 跳转观看视频"
+        title="点击播放视频"
       >
         {coverImgUrl ? (
           <img
