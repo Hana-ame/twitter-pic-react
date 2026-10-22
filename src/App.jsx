@@ -19,6 +19,8 @@ import { getEmojis, voteUpEmoji } from "./api/emojis";
 import useFixedImageProxy from "./hooks/useFixedImageProxy";
 import Ranking from "./components/Ranking";
 import { useGayMode } from "./utils/gayMode";
+import { downloadZip } from "client-zip";
+import { overrideImageProxy, buildVideoDirectUrl } from "./api/proxyOverride";
 
 // 侧边栏组件：已移除旧版广告栏，使用新版 V2 富卡片列表接口（零 N+1 请求）
 const SideBar = ({ onClick }) => {
@@ -65,7 +67,7 @@ const SideBar = ({ onClick }) => {
   );
 };
 
-// 主内容区：已移除旧版广告栏与全部批量下载按钮，视频统一使用 cover 封面 + 点击直连 twimg.moonchan.xyz 播放（无 302 中转）
+// 主内容区：已移除旧版广告栏，恢复批量下载按钮，视频统一使用 cover 封面 + 点击直连 twimg.moonchan.xyz 播放（无 302 中转）
 const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
@@ -81,12 +83,18 @@ const Main = ({ profile, handleSetProfile }) => {
   const [emojiCounts, setEmojiCounts] = useState({});
   const [votingEmoji, setVotingEmoji] = useState(null);
 
+  // 批量下载状态
+  const [downloadStatus, setDownloadStatus] = useState("");
+  const [downloadMsg, setDownloadMsg] = useState("");
+
   const username = profile?.account_info?.name || profile?.username;
 
   useEffect(() => {
     setShowAll(false);
     setMediaFilter("all");
     setRefreshMsg("");
+    setDownloadStatus("");
+    setDownloadMsg("");
     if (profile?.tags && Object.keys(profile.tags).length > 0) {
       setUserTags(profile.tags);
     }
@@ -227,6 +235,95 @@ const Main = ({ profile, handleSetProfile }) => {
     }
   };
 
+  // 批量下载：把当前用户全部媒体打包成 zip 下载（client-zip 流式打包）
+  //   - PC（支持 showSaveFilePicker）：流式写盘，不占内存
+  //   - 移动端/不支持：收集成单个 Blob 触发 <a download>
+  // 视频用 ouo_url（直链 twimg.moonchan.xyz），图片用 overrideImageProxy（pbs.moonchan.xyz）
+  const handleBatchDownload = async () => {
+    const timeline = profile?.timeline || [];
+    if (timeline.length === 0) return;
+    setDownloadStatus("loading");
+    setDownloadMsg("初始化中...");
+    const zipName = `${username || "media"}_${new Date()
+      .toISOString()
+      .slice(0, 10)}.zip`;
+    try {
+      const makeName = (item, i) => {
+        const isVid =
+          item.type === "video" || item.type === "animated_gif";
+        const ext = isVid ? "mp4" : "jpg";
+        return `${item.tweet_id || `item_${i + 1}`}.${ext}`;
+      };
+      const dlUrl = (item) =>
+        item.type === "video" || item.type === "animated_gif"
+          ? item.ouo_url || buildVideoDirectUrl(item.url)
+          : overrideImageProxy(item.url);
+
+      async function* gen() {
+        for (let i = 0; i < timeline.length; i++) {
+          const item = timeline[i];
+          const name = makeName(item, i);
+          setDownloadMsg(`下载中 (${i + 1}/${timeline.length}) ${name}`);
+          try {
+            const resp = await fetch(dlUrl(item));
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            yield {
+              name,
+              lastModified: new Date(item.date || Date.now()),
+              input: resp.body,
+            };
+          } catch (err) {
+            yield {
+              name: `FAILED_${name}.txt`,
+              lastModified: new Date(),
+              input: `URL: ${dlUrl(item)}\nError: ${err.message}`,
+            };
+          }
+        }
+      }
+
+      const zipResp = downloadZip(gen());
+      if (window.showSaveFilePicker) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: zipName,
+          types: [
+            {
+              description: "ZIP Archive",
+              accept: { "application/zip": [".zip"] },
+            },
+          ],
+        });
+        const writable = await handle.createWritable();
+        await zipResp.body.pipeTo(writable);
+      } else {
+        setDownloadMsg("正在打包...");
+        const blob = await zipResp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = zipName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+      setDownloadMsg("下载完成！");
+      setDownloadStatus("success");
+      setTimeout(() => {
+        setDownloadMsg("");
+        setDownloadStatus("");
+      }, 3000);
+    } catch (err) {
+      if (err.name === "AbortError") {
+        setDownloadMsg("");
+        setDownloadStatus("");
+        return;
+      }
+      setDownloadMsg("出错: " + err.message);
+      setDownloadStatus("error");
+    }
+  };
+
   if (!(profile?.timeline?.length > 0)) {
     return <HelpPage onClick={handleSetProfile} />;
   }
@@ -234,7 +331,7 @@ const Main = ({ profile, handleSetProfile }) => {
   return (
     <main>
       <div className="mb-4 flex flex-col space-y-2">
-        {/* 第一行：展开全部 + 收藏 + 更新 + 屏蔽 + 修改标签（已去掉下载全部） */}
+        {/* 第一行：展开全部 + 下载全部 + 收藏 + 更新 + 屏蔽 + 修改标签 */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowAll(true)}
@@ -242,6 +339,33 @@ const Main = ({ profile, handleSetProfile }) => {
           >
             <span>展开全部 ({profile?.timeline?.length || 0})</span>
           </button>
+
+          <button
+            onClick={handleBatchDownload}
+            disabled={downloadStatus === "loading"}
+            className={`flex-1 min-w-[90px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 text-gray-500 cursor-wait"
+                : downloadStatus === "success"
+                ? "bg-green-500 text-white"
+                : downloadStatus === "error"
+                ? "bg-red-100 text-red-700 hover:bg-red-500 hover:text-white"
+                : "bg-purple-100 text-purple-700 hover:bg-purple-500 hover:text-white"
+            }`}
+          >
+            <span>
+              {downloadStatus === "loading"
+                ? "⏬ 下载中..."
+                : downloadStatus === "success"
+                ? "✓ 完成"
+                : downloadStatus === "error"
+                ? "✗ 重试"
+                : "⬇ 下载全部"}
+            </span>
+          </button>
+          {downloadMsg && (
+            <p className="w-full text-xs text-gray-500">{downloadMsg}</p>
+          )}
 
           <button
             onClick={handleFavorite}
