@@ -235,11 +235,21 @@ const Main = ({ profile, handleSetProfile }) => {
     }
   };
 
-  // 批量下载：把当前用户全部媒体打包成 zip 下载（client-zip 流式打包）
-  //   - PC（支持 showSaveFilePicker）：流式写盘，不占内存
-  //   - 移动端/不支持：收集成单个 Blob 触发 <a download>
+  // 批量下载（三个按钮共用打包逻辑，区别在落盘方式）
+  //   - 下载全部（原生）：PC 用 showSaveFilePicker 流式写盘，移动端 Blob 兜底
+  //   - 兼容下载：强制 Blob 打包 + <a download>，给 showSaveFilePicker 不可用/被拦的浏览器
+  //   - 应急下载：不打包，逐个触发浏览器下载（fetch blob + <a download>，300ms 间隔）
   // 视频用 ouo_url（直链 twimg.moonchan.xyz），图片用 overrideImageProxy（pbs.moonchan.xyz）
-  const handleBatchDownload = async () => {
+  const makeDlName = (item, i) => {
+    const isVid = item.type === "video" || item.type === "animated_gif";
+    return `${item.tweet_id || `item_${i + 1}`}.${isVid ? "mp4" : "jpg"}`;
+  };
+  const dlUrlOf = (item) =>
+    item.type === "video" || item.type === "animated_gif"
+      ? item.ouo_url || buildVideoDirectUrl(item.url)
+      : overrideImageProxy(item.url);
+
+  const runZipDownload = async (forceBlob) => {
     const timeline = profile?.timeline || [];
     if (timeline.length === 0) return;
     setDownloadStatus("loading");
@@ -248,24 +258,13 @@ const Main = ({ profile, handleSetProfile }) => {
       .toISOString()
       .slice(0, 10)}.zip`;
     try {
-      const makeName = (item, i) => {
-        const isVid =
-          item.type === "video" || item.type === "animated_gif";
-        const ext = isVid ? "mp4" : "jpg";
-        return `${item.tweet_id || `item_${i + 1}`}.${ext}`;
-      };
-      const dlUrl = (item) =>
-        item.type === "video" || item.type === "animated_gif"
-          ? item.ouo_url || buildVideoDirectUrl(item.url)
-          : overrideImageProxy(item.url);
-
       async function* gen() {
         for (let i = 0; i < timeline.length; i++) {
           const item = timeline[i];
-          const name = makeName(item, i);
+          const name = makeDlName(item, i);
           setDownloadMsg(`下载中 (${i + 1}/${timeline.length}) ${name}`);
           try {
-            const resp = await fetch(dlUrl(item));
+            const resp = await fetch(dlUrlOf(item));
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             yield {
               name,
@@ -276,14 +275,13 @@ const Main = ({ profile, handleSetProfile }) => {
             yield {
               name: `FAILED_${name}.txt`,
               lastModified: new Date(),
-              input: `URL: ${dlUrl(item)}\nError: ${err.message}`,
+              input: `URL: ${dlUrlOf(item)}\nError: ${err.message}`,
             };
           }
         }
       }
-
       const zipResp = downloadZip(gen());
-      if (window.showSaveFilePicker) {
+      if (!forceBlob && window.showSaveFilePicker) {
         const handle = await window.showSaveFilePicker({
           suggestedName: zipName,
           types: [
@@ -324,6 +322,56 @@ const Main = ({ profile, handleSetProfile }) => {
     }
   };
 
+  const handleBatchDownload = () => runZipDownload(false);
+  const handleCompatibleDownload = () => runZipDownload(true);
+
+  // 应急下载：逐个触发浏览器下载（不打包 zip）
+  const handleEmergencyDownload = async () => {
+    const timeline = profile?.timeline || [];
+    if (timeline.length === 0) return;
+    if (
+      !window.confirm(
+        `即将开始下载 ${timeline.length} 个文件，浏览器可能会提示“允许下载多个文件”，请点击允许。`,
+      )
+    )
+      return;
+    setDownloadStatus("loading");
+    setDownloadMsg("正在启动批量下载...");
+    try {
+      for (let i = 0; i < timeline.length; i++) {
+        const item = timeline[i];
+        const name = makeDlName(item, i);
+        setDownloadMsg(`推送 (${i + 1}/${timeline.length}) ${name}`);
+        try {
+          const resp = await fetch(dlUrlOf(item));
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          await new Promise((r) => setTimeout(r, 300));
+        } catch (err) {
+          // fetch 失败则交给浏览器直接打开
+          window.open(dlUrlOf(item), "_blank");
+        }
+      }
+      setDownloadMsg("已全部移交浏览器下载队列");
+      setDownloadStatus("success");
+      setTimeout(() => {
+        setDownloadMsg("");
+        setDownloadStatus("");
+      }, 3000);
+    } catch (err) {
+      setDownloadMsg("出错: " + err.message);
+      setDownloadStatus("error");
+    }
+  };
+
   if (!(profile?.timeline?.length > 0)) {
     return <HelpPage onClick={handleSetProfile} />;
   }
@@ -331,7 +379,7 @@ const Main = ({ profile, handleSetProfile }) => {
   return (
     <main>
       <div className="mb-4 flex flex-col space-y-2">
-        {/* 第一行：展开全部 + 下载全部 + 收藏 + 更新 + 屏蔽 + 修改标签 */}
+        {/* 第一行：展开全部 + 下载全部 + 兼容下载 + 应急下载 + 收藏 + 更新 + 屏蔽 + 修改标签 */}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowAll(true)}
@@ -340,17 +388,19 @@ const Main = ({ profile, handleSetProfile }) => {
             <span>展开全部 ({profile?.timeline?.length || 0})</span>
           </button>
 
+          {/* 下载全部：client-zip 流式打包；PC 用 showSaveFilePicker 流式写盘，移动端 Blob 兜底 */}
           <button
             onClick={handleBatchDownload}
             disabled={downloadStatus === "loading"}
-            className={`flex-1 min-w-[90px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+            title="流式打包下载，适合大文件（PC 首选）"
+            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
               downloadStatus === "loading"
                 ? "bg-gray-300 text-gray-500 cursor-wait"
                 : downloadStatus === "success"
                 ? "bg-green-500 text-white"
                 : downloadStatus === "error"
                 ? "bg-red-100 text-red-700 hover:bg-red-500 hover:text-white"
-                : "bg-purple-100 text-purple-700 hover:bg-purple-500 hover:text-white"
+                : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
             }`}
           >
             <span>
@@ -362,6 +412,34 @@ const Main = ({ profile, handleSetProfile }) => {
                 ? "✗ 重试"
                 : "⬇ 下载全部"}
             </span>
+          </button>
+
+          {/* 兼容下载：强制 Blob 打包，给 showSaveFilePicker 不可用/被拦的浏览器 */}
+          <button
+            onClick={handleCompatibleDownload}
+            disabled={downloadStatus === "loading"}
+            title="兼容模式：强制打包成 Blob 下载"
+            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 text-gray-500 cursor-wait"
+                : "bg-green-100 text-green-700 hover:bg-green-500 hover:text-white"
+            }`}
+          >
+            <span>兼容下载</span>
+          </button>
+
+          {/* 应急下载：不打包，逐个触发浏览器下载 */}
+          <button
+            onClick={handleEmergencyDownload}
+            disabled={downloadStatus === "loading"}
+            title="应急下载：不打包，逐个触发浏览器下载"
+            className={`flex-1 min-w-[80px] py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
+              downloadStatus === "loading"
+                ? "bg-gray-300 text-gray-500 cursor-wait"
+                : "bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white"
+            }`}
+          >
+            <span>应急下载</span>
           </button>
           {downloadMsg && (
             <p className="w-full text-xs text-gray-500">{downloadMsg}</p>
