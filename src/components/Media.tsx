@@ -30,7 +30,8 @@ const VideoCoverCard: React.FC<{
       <a
         href={targetUrl}
         target="_blank"
-        rel="noopener noreferrer"
+        rel="noopener"
+        referrerPolicy="strict-origin-when-cross-origin"
         className="group relative block w-full max-w-4xl rounded-xl overflow-hidden bg-gray-900 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer"
         title="点击播放视频"
       >
