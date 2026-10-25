@@ -240,9 +240,36 @@ const Main = ({ profile, handleSetProfile }) => {
   //   - 兼容下载：强制 Blob 打包 + <a download>，给 showSaveFilePicker 不可用/被拦的浏览器
   //   - 应急下载：不打包，逐个触发浏览器下载（fetch blob + <a download>，300ms 间隔）
   // 视频用 ouo_url（直链 twimg.moonchan.xyz），图片用 overrideImageProxy（pbs.moonchan.xyz）
+  // 文件名：**一律用原始文件名**（URL 路径最后一段，字母/数字混合，如
+  // G7FkId5aoAA3odu.jpg），绝不重命名成 tweet_id / item_N 这类数字名
+  // （number 存不下且丢失原始名；原始文件名就是字母）。
+  // 原始名缺失时（理论不该发生）才用字母占位 media.jpg / media.mp4。
   const makeDlName = (item, i) => {
     const isVid = item.type === "video" || item.type === "animated_gif";
-    return `${item.tweet_id || `item_${i + 1}`}.${isVid ? "mp4" : "jpg"}`;
+    const ext = isVid ? "mp4" : "jpg";
+    try {
+      if (!item.url) return `media.${ext}`;
+      const url = new URL(item.url);
+      let baseName = url.pathname.split("/").pop() || "";
+      baseName = baseName.split("?")[0];
+      const format = url.searchParams.get("format");
+      let finalName = "";
+      if (baseName.includes(".")) {
+        finalName = baseName;
+      } else if (format) {
+        finalName = `${baseName}.${format}`;
+      } else if (baseName) {
+        finalName = `${baseName}.${ext}`;
+      } else {
+        finalName = `media.${ext}`;
+      }
+      const cleaned = finalName
+        .trim()
+        .replace(/[\\/:*?"<>|\u0000-\u001f]/g, "_");
+      return cleaned || `media.${ext}`;
+    } catch (e) {
+      return `media.${ext}`;
+    }
   };
   const dlUrlOf = (item) =>
     item.type === "video" || item.type === "animated_gif"
