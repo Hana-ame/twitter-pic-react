@@ -460,58 +460,56 @@ const Main = ({ profile, handleSetProfile }) => {
           </button>
         </div>
 
-        {/* 第二行：下载按钮组（三个平分一行） */}
+        {/* 第二行：下载按钮组（回退 v1 下载显示方式：静态按钮 + loading 省略号） */}
         <div className="flex gap-1">
           <button
             onClick={handleBatchDownload}
             disabled={downloadStatus === "loading"}
-            title="流式打包下载，适合大文件（PC 首选）"
+            title="使用流式传输下载，适合超大文件 (Chrome首选)"
             className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
               downloadStatus === "loading"
-                ? "bg-gray-300 text-gray-500 cursor-wait"
-                : downloadStatus === "success"
-                ? "bg-green-500 text-white"
-                : downloadStatus === "error"
-                ? "bg-red-100 text-red-700 hover:bg-red-500 hover:text-white"
+                ? "bg-gray-300 cursor-not-allowed text-gray-600"
                 : "bg-indigo-100 text-indigo-700 hover:bg-indigo-500 hover:text-white"
             }`}
           >
-            {downloadStatus === "loading"
-              ? "⏬ 下载中..."
-              : downloadStatus === "success"
-              ? "✓ 完成"
-              : downloadStatus === "error"
-              ? "✗ 重试"
-              : "⬇ 下载全部"}
+            <span>
+              {downloadStatus === "loading"
+                ? "..."
+                : `下载 ${profile?.total_urls || profile?.timeline?.length || 0}`}
+            </span>
           </button>
           <button
             onClick={handleCompatibleDownload}
             disabled={downloadStatus === "loading"}
-            title="兼容模式：强制打包成 Blob 下载"
+            title="使用兼容模式下载，解决Firefox报错"
             className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
               downloadStatus === "loading"
-                ? "bg-gray-300 text-gray-500 cursor-wait"
+                ? "bg-gray-300 cursor-not-allowed text-gray-600"
                 : "bg-green-100 text-green-700 hover:bg-green-500 hover:text-white"
             }`}
           >
-            兼容下载
+            <span>{downloadStatus === "loading" ? "..." : "兼容下载"}</span>
           </button>
           <button
             onClick={handleEmergencyDownload}
             disabled={downloadStatus === "loading"}
-            title="应急下载：不打包，逐个触发浏览器下载"
+            title="应急下载：当以上方式均失败时使用"
             className={`flex-1 py-2 px-2 flex items-center justify-center rounded-md transition-colors duration-200 text-sm font-medium ${
               downloadStatus === "loading"
-                ? "bg-gray-300 text-gray-500 cursor-wait"
+                ? "bg-gray-300 cursor-not-allowed text-gray-600"
                 : "bg-orange-100 text-orange-700 hover:bg-orange-500 hover:text-white"
             }`}
           >
-            应急下载
+            <span>{downloadStatus === "loading" ? "..." : "应急下载"}</span>
           </button>
-          {downloadMsg && (
-            <p className="w-full text-xs text-gray-500">{downloadMsg}</p>
-          )}
         </div>
+
+        {/* 下载状态提示（回退 v1 下载显示方式：右下角 toast，不再挤进按钮行） */}
+        {downloadMsg && (
+          <div className="fixed bottom-4 right-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm z-50">
+            {downloadMsg}
+          </div>
+        )}
 
         {/* 第三行：媒体类型筛选（全部 / 图片 / 视频） */}
         <div className="flex space-x-2">
