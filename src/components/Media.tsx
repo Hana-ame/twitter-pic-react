@@ -1,5 +1,4 @@
 import React from "react";
-import { resolveVideoCoverUrl, buildVideoDirectUrl } from "../api/proxyOverride";
 import PhotoV2 from "./PhotoV2";
 
 export type MediaProps = {
@@ -9,69 +8,136 @@ export type MediaProps = {
   ouoUrl?: string;
 };
 
+// 将外部输入做 HTML 实体转义, 防止 srcDoc 模板被 URL 注入 (iframe 沙箱逃逸 / 属性注入)
+const escapeHtml = (s: string): string => {
+  if (typeof s !== "string") return "";
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+};
+
+// 原版源头地址：不做任何代理 host 改写。
+// 图片一律 pbs.twimg.com；视频一律 video.twimg.com（原 host 已是 video.twimg.com 时原样保留）。
+const originalPhotoUrl = (url: string): string => {
+  if (!url) return "";
+  return url.replace("https://pbs.moonchan.xyz", "https://pbs.twimg.com");
+};
+
+const originalVideoUrl = (url: string): string => {
+  if (!url) return "";
+  let u = url
+    .replace("https://twimg.moonchan.xyz", "https://video.twimg.com")
+    .replace("https://pbs.moonchan.xyz", "https://pbs.twimg.com");
+  // 视频一律落在 video.twimg.com（少数条目视频 url 写成 pbs.twimg.com 的情况也纠正）
+  u = u.replace("https://pbs.twimg.com", "https://video.twimg.com");
+  return u;
+};
+
+// cover 也回原版源头：pbs.twimg.com / video.twimg.com 上的缩略图
+const originalCoverUrl = (cover?: string | null, fallbackUrl?: string | null): string => {
+  const raw = (cover || "").trim();
+  if (raw) return originalPhotoUrl(raw);
+  const fb = (fallbackUrl || "").trim();
+  if (fb && !fb.includes(".mp4")) return originalPhotoUrl(fb);
+  return "";
+};
+
 /**
- * 视频封面卡片：
- * 1. 绝不渲染 <video> 或 <iframe>，不在页面内发起任何 .mp4 请求（彻底防止打满 VPS 出站带宽）；
- * 2. 封面图固定使用 gallery_dl 添加的 cover 字段并经由唯一资源 CDN https://pbs.moonchan.xyz 加载；
- *    例如：https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
- * 3. 点击封面直接打开 https://twimg.moonchan.xyz/<path>?<query> 上的原始视频
- *    （2026-10-23 起无 ouo.io 广告、无 /api/twitter/v2/video 302 中转）。
+ * 提示条：流量没了你们开vpn看吧。
  */
-const VideoCoverCard: React.FC<{
+const TrafficNotice: React.FC = () => (
+  <div className="max-w-4xl mx-auto my-1 px-3 py-1.5 rounded-md bg-amber-50/90 border border-amber-200 text-amber-700 text-xs text-center">
+    流量没了你们开vpn看吧。
+  </div>
+);
+
+/**
+ * 视频全套 iframe：
+ * 1. iframe srcDoc 内 <meta name="referrer" content="no-referrer"> —— 图片/视频全都不发 Referer，
+ *    这是绕过 twimg 防盗链的核心；
+ * 2. 全部用原版源头：video.twimg.com（视频）/ pbs.twimg.com（封面 poster），不做任何代理改写；
+ * 3. cover 既作为 iframe 外的封面占位，也作为 iframe 内 <video poster>；
+ * 4. sandbox 不含 allow-same-origin（与 allow-scripts 同用等于没有沙箱）；
+ * 5. 无 autoplay，保留 controls + poster，默认显示封面不自动播放。
+ */
+const VideoIframe: React.FC<{
   url: string;
   cover?: string;
   ouoUrl?: string;
-}> = ({ url, cover, ouoUrl }) => {
-  const coverImgUrl = resolveVideoCoverUrl(cover, url);
-  const targetUrl = buildVideoDirectUrl(url, ouoUrl);
+}> = ({ url, cover }) => {
+  const target = originalVideoUrl(url);
+  const posterUrl = originalCoverUrl(cover, url);
+  const safeUrl = escapeHtml(target);
+  const safePoster = escapeHtml(posterUrl);
+
+  const iframeHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta name="referrer" content="no-referrer">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+    </style>
+</head>
+<body>
+    <video
+        id="v"
+        controls
+        playsinline
+        preload="metadata"
+        poster="${safePoster}"
+    >
+        <source src="${safeUrl}" type="video/mp4">
+    </video>
+</body>
+</html>`;
 
   return (
-    <div className="flex justify-center items-start my-3">
-      <a
-        href={targetUrl}
-        target="_blank"
-        rel="noopener"
-        referrerPolicy="strict-origin-when-cross-origin"
-        className="group relative block w-full max-w-4xl rounded-xl overflow-hidden bg-gray-900 shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer"
-        title="点击播放视频"
+    <div className="flex flex-col justify-center items-start my-3">
+      <TrafficNotice />
+      <div
+        className="relative w-full max-w-4xl rounded-xl overflow-hidden bg-black shadow-md"
+        style={{ aspectRatio: "16:9" }}
       >
-        {coverImgUrl ? (
+        <iframe
+          title="video-player"
+          srcDoc={iframeHtml}
+          className="w-full h-full border-none"
+          referrerPolicy="no-referrer"
+          sandbox="allow-scripts allow-forms allow-presentation"
+          allowFullScreen
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * 图片：原版源头 pbs.twimg.com，不发 Referer。
+ */
+const PhotoOriginal: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
+  const imageUrl = originalPhotoUrl(url);
+
+  if (!imageUrl) return null;
+
+  return (
+    <div className="flex flex-col justify-center items-start">
+      <TrafficNotice />
+      <div className="flex justify-center items-start max-h-screen">
+        <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
           <img
-            src={coverImgUrl}
-            alt="视频封面"
-            loading="lazy"
+            src={imageUrl}
+            alt={alt || url}
             referrerPolicy="no-referrer"
-            className="w-full max-h-[80vh] object-contain mx-auto transition-transform duration-300 group-hover:scale-[1.01]"
+            loading="lazy"
+            decoding="async"
+            className="mx-auto max-h-screen object-contain"
           />
-        ) : (
-          <div
-            className="w-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 text-gray-300"
-            style={{ aspectRatio: "16/9" }}
-          >
-            <span className="text-base font-medium">视频资源（无预览封面）</span>
-            <span className="text-xs text-gray-400 mt-1">点击跳转播放</span>
-          </div>
-        )}
-
-        {/* 半透明暗角遮罩与中央播放图标 */}
-        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center pointer-events-none">
-          <div className="w-16 h-16 rounded-full bg-black/65 group-hover:bg-blue-600/90 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-200 border border-white/30">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8 ml-1"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M8 5v14l11-7z" />
-            </svg>
-          </div>
         </div>
-
-        {/* 右上角视频跳转标识 */}
-        <div className="absolute top-3 right-3 px-2.5 py-1 rounded-md bg-black/70 text-white text-xs font-medium backdrop-blur-sm border border-white/15 pointer-events-none">
-          ▶ 视频 · 点击跳转播放
-        </div>
-      </a>
+      </div>
     </div>
   );
 };
@@ -84,7 +150,7 @@ const Media: React.FC<MediaProps> = ({ url, type, cover, ouoUrl }) => {
     cleanType === "animated_gif" ||
     cleanType === "article:video"
   ) {
-    return <VideoCoverCard url={url} cover={cover} ouoUrl={ouoUrl} />;
+    return <VideoIframe url={url} cover={cover} ouoUrl={ouoUrl} />;
   }
 
   if (
@@ -93,7 +159,7 @@ const Media: React.FC<MediaProps> = ({ url, type, cover, ouoUrl }) => {
     cleanType === "article:cover" ||
     cleanType === "article:image"
   ) {
-    return <PhotoV2 url={url} />;
+    return <PhotoOriginal url={url} alt={url} />;
   }
 
   return null;
