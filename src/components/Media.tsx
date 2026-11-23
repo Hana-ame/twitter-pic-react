@@ -50,9 +50,11 @@ const originalCoverUrl = (cover?: string | null, fallbackUrl?: string | null): s
  * 1. iframe srcDoc 内 <meta name="referrer" content="no-referrer"> —— 图片/视频全都不发 Referer，
  *    这是绕过 twimg 防盗链的核心；
  * 2. 全部用原版源头：video.twimg.com（视频）/ pbs.twimg.com（封面 poster），不做任何代理改写；
- * 3. cover 既作为 iframe 外的封面占位，也作为 iframe 内 <video poster>；
+ * 3. cover 作为 iframe 内 <video poster>；
  * 4. sandbox 不含 allow-same-origin（与 allow-scripts 同用等于没有沙箱）；
- * 5. 无 autoplay，保留 controls + poster，默认显示封面不自动播放。
+ * 5. 无 autoplay，保留 controls + poster，默认显示封面不自动播放；
+ * 6. 高度由 CSS aspect-ratio 撑开 —— 必须是斜杠写法 "16/9"，写成 "16:9" 是无效值，
+ *    浏览器会忽略该属性导致容器高度塌成 0（原版 68dc740 就是 "16/9"）。
  */
 const VideoIframe: React.FC<{
   url: string;
@@ -70,7 +72,7 @@ const VideoIframe: React.FC<{
     <meta name="referrer" content="no-referrer">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: black; }
-        video { width: 100%; height: 100%; object-fit: contain; }
+        video { display: block; width: 100%; height: 100%; object-fit: contain; }
     </style>
 </head>
 <body>
@@ -90,7 +92,7 @@ const VideoIframe: React.FC<{
     <div className="flex justify-center items-start my-3">
       <div
         className="relative w-full max-w-4xl rounded-xl overflow-hidden bg-black shadow-md"
-        style={{ aspectRatio: "16:9" }}
+        style={{ aspectRatio: "16/9" }}
       >
         <iframe
           title="video-player"
