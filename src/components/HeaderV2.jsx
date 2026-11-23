@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
-import { overrideImageProxy } from "../api/proxyOverride";
+import { originalImageUrl } from "../api/proxyOverride";
 import { extractDisplayTags } from "../utils/extract.js";
 import {
   useGayMode,
@@ -129,7 +129,8 @@ const HeaderV2 = ({ user, onClick, bypassFilters = false }) => {
     }
   };
 
-  const avatarSrc = overrideImageProxy(
+  // 2026-11-24: 头像走原版源头 pbs.twimg.com（配 no-referrer 破防盗链）
+  const avatarSrc = originalImageUrl(
     card?.avatar || card?.account_info?.profile_image || ""
   );
   const nick = card?.nick || card?.account_info?.nick || user.username;

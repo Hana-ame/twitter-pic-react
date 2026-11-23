@@ -1,5 +1,4 @@
 import React from "react";
-import PhotoV2 from "./PhotoV2";
 
 export type MediaProps = {
   url: string;

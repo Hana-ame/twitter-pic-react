@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { overrideImageProxy } from "../api/proxyOverride";
+import { originalImageUrl } from "../api/proxyOverride";
 
 /**
  * 26-10-31: 图片改为原生 <img> 直接加载（删除 fetch + ReadableStream + Blob 渐进方案）。
@@ -19,7 +19,7 @@ import { overrideImageProxy } from "../api/proxyOverride";
  * 唯一丢弃的是字节级进度条（旧实现也只转圈，没有百分比）。
  */
 const PhotoV2: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
-  const imageUrl = overrideImageProxy(url);
+  const imageUrl = originalImageUrl(url);
   const [status, setStatus] = useState<"loading" | "loaded" | "error">(
     "loading"
   );

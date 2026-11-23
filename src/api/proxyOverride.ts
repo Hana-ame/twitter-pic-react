@@ -45,6 +45,15 @@ export const imageProxyUrl = (url: string): string => {
 
 export const overrideImageProxy = (url: string): string => imageProxyUrl(url);
 
+// 原版源头图片地址：不做任何代理 host 改写，一律回 pbs.twimg.com（保留完整 path+query）。
+// 2026-11-24: 头像、图片、封面统一走原版源头（配 referrerPolicy="no-referrer" 破防盗链）。
+export const originalImageUrl = (url: string): string => {
+  if (!url) return "";
+  return url
+    .replace(/^https?:\/\/pbs\.moonchan\.xyz/i, "https://" + IMAGE_ORIGINAL_HOST)
+    .replace(/^https?:\/\/twimg\.moonchan\.xyz/i, "https://" + IMAGE_ORIGINAL_HOST);
+};
+
 // 视频代理地址（直接替换 host 为 https://twimg.moonchan.xyz，保留完整 path+query）
 export const overrideVideoProxy = (url: string): string => {
   if (!url) return "";

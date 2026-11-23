@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import getMetaData from "../api/getMetaData";
 import { getBatchUsers } from "../api/getUserList";
 import { getCachedUserCard } from "../api/clientCache";
-import { overrideImageProxy } from "../api/proxyOverride";
+import { originalImageUrl } from "../api/proxyOverride";
 
 const Header = ({ username, userCard, onClick }) => {
   const [card, setCard] = useState(
@@ -86,7 +86,8 @@ const Header = ({ username, userCard, onClick }) => {
     }
   };
 
-  const avatarSrc = overrideImageProxy(card?.avatar || "");
+  // 2026-11-24: 头像走原版源头 pbs.twimg.com（配 no-referrer 破防盗链）
+  const avatarSrc = originalImageUrl(card?.avatar || "");
   const nick = card?.nick || username;
 
   return (
