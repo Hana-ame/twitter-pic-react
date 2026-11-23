@@ -10,7 +10,7 @@ import {
 } from "../utils/gayMode";
 import { getCachedUserCard } from "../api/clientCache";
 
-const HeaderV2 = ({ user, onClick }) => {
+const HeaderV2 = ({ user, onClick, bypassFilters = false }) => {
   const [card, setCard] = useState(() => user || {});
   const [loadingClick, setLoadingClick] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -27,6 +27,17 @@ const HeaderV2 = ({ user, onClick }) => {
 
   useEffect(() => {
     if (!user || !user.username) return;
+
+    // 搜索场景（显式查询）不做任何客户端筛选：
+    // 侧边栏浏览列表按 Gay 模式 / 标签屏蔽规则过滤是有意设计，但同一套过滤
+    // 作用到搜索结果上会让「API 明明返回了」的账号静默消失（搜男性账号必然
+    // 空列表）。搜索是用户明确要这个结果，因此原样展示。
+    if (bypassFilters) {
+      setBlocked(false);
+      setDisplayTags([]);
+      return;
+    }
+
     let flag = true;
     const tagsToShow = [];
 
