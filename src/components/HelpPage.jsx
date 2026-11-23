@@ -57,8 +57,6 @@ const HelpPage = ({ onClick }) => {
         >
           <p className="text-gray-500">草，跑掉20块流量费。</p>
           <p className="text-gray-500">你们发支付宝口令红包赔我。</p>
-          <p className="text-gray-500">流量没了你们开vpn看吧。</p>
-          <p className="text-gray-500">哪个傻逼不加缓存在打我服务器？</p>
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"
@@ -70,6 +68,8 @@ const HelpPage = ({ onClick }) => {
             </a>
             ，私聊nanaka
           </p>
+          <p className="text-gray-500">看了下还有不知道哪个傻逼不加缓存在打我服务器。</p>
+          <p className="text-gray-500">流量没了你们开vpn看吧。</p>
         </Block>
 
         {/* 豆腐块0 - 广告插入问题 */}
