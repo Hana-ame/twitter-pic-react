@@ -57,6 +57,7 @@ const HelpPage = ({ onClick }) => {
         >
           <p className="text-gray-500">草，跑掉20块流量费。</p>
           <p className="text-gray-500">你们发支付宝口令红包赔我。</p>
+          <p className="text-gray-500">流量没了你们开vpn看吧。</p>
           <p className="text-gray-500">
             <a
               className="text-blue-500 cursor-pointer border-blue-700"

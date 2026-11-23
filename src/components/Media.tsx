@@ -46,15 +46,6 @@ const originalCoverUrl = (cover?: string | null, fallbackUrl?: string | null): s
 };
 
 /**
- * 提示条：流量没了你们开vpn看吧。
- */
-const TrafficNotice: React.FC = () => (
-  <div className="max-w-4xl mx-auto my-1 px-3 py-1.5 rounded-md bg-amber-50/90 border border-amber-200 text-amber-700 text-xs text-center">
-    流量没了你们开vpn看吧。
-  </div>
-);
-
-/**
  * 视频全套 iframe：
  * 1. iframe srcDoc 内 <meta name="referrer" content="no-referrer"> —— 图片/视频全都不发 Referer，
  *    这是绕过 twimg 防盗链的核心；
@@ -96,8 +87,7 @@ const VideoIframe: React.FC<{
 </html>`;
 
   return (
-    <div className="flex flex-col justify-center items-start my-3">
-      <TrafficNotice />
+    <div className="flex justify-center items-start my-3">
       <div
         className="relative w-full max-w-4xl rounded-xl overflow-hidden bg-black shadow-md"
         style={{ aspectRatio: "16:9" }}
@@ -124,19 +114,16 @@ const PhotoOriginal: React.FC<{ url: string; alt?: string }> = ({ url, alt }) =>
   if (!imageUrl) return null;
 
   return (
-    <div className="flex flex-col justify-center items-start">
-      <TrafficNotice />
-      <div className="flex justify-center items-start max-h-screen">
-        <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
-          <img
-            src={imageUrl}
-            alt={alt || url}
-            referrerPolicy="no-referrer"
-            loading="lazy"
-            decoding="async"
-            className="mx-auto max-h-screen object-contain"
-          />
-        </div>
+    <div className="flex justify-center items-start max-h-screen">
+      <div className="relative w-full max-w-6xl h-full rounded-lg overflow-hidden bg-gray-50">
+        <img
+          src={imageUrl}
+          alt={alt || url}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
+          className="mx-auto max-h-screen object-contain"
+        />
       </div>
     </div>
   );
