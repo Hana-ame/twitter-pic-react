@@ -49,6 +49,27 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
+        {/* 播报 - 置顶第一条 */}
+        <Block
+          title="播报"
+          closed={isClosedMap["播报"]}
+          onClick={() => handleOnClickBlock("播报")}
+        >
+          <p className="text-gray-500">草，跑掉20块流量费。</p>
+          <p className="text-gray-500">你们发支付宝口令红包赔我。</p>
+          <p className="text-gray-500">
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://chatto.moonchan.xyz"
+              target="_blank"
+              rel="noreferrer"
+            >
+              chatto.moonchan.xyz
+            </a>
+            ，私聊nanaka
+          </p>
+        </Block>
+
         {/* 豆腐块0 - 广告插入问题 */}
         <Block
           title="关于广告插入问题"
