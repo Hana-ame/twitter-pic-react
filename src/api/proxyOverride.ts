@@ -1,17 +1,18 @@
 // ============================================================================
 // 媒体资源转换器（直接替换 host，无任何 fallback 轮询）
-// 设计规范：
-//   1. 图片与视频封面（cover）：直接将 pbs.twimg.com 的 host 替换为 pbs.moonchan.xyz，保留完整 path+query；
-//      例如：https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
+// 设计规范（2026-11-26 统一收拢到 video-cf.twimg.com）：
+//   1. 图片、视频封面（cover）、头像、视频：一律用 https://video-cf.twimg.com，
+//      完整保留 path+query（host 直接替换 pbs.twimg.com / video.twimg.com）。
+//      例如：https://video-cf.twimg.com/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig
 //   2. 视频点击链接（2026-10-23 起无广告、无 302 中转）：直接指向
-//      https://twimg.moonchan.xyz/ext_tw_video/.../<file>.mp4?<query>（host 直接替换 video.twimg.com），
+//      https://video-cf.twimg.com/ext_tw_video/.../<file>.mp4?<query>（host 直接替换 video.twimg.com），
 //      链接即最终播放地址，中间不再经过 /api/twitter/v2/video 端点，也不经 ouo.io 广告页。
 // ============================================================================
 
 import { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY } from "./endpoints";
 
-export const IMAGE_ORIGINAL_HOST = "pbs.twimg.com";
-export const VIDEO_ORIGINAL_HOST = "video.twimg.com";
+export const IMAGE_ORIGINAL_HOST = "video-cf.twimg.com";
+export const VIDEO_ORIGINAL_HOST = "video-cf.twimg.com";
 
 export { FIXED_IMAGE_PROXY, FIXED_VIDEO_PROXY };
 
@@ -37,7 +38,7 @@ export const extractVideoPath = (url: string): string => {
   }
 };
 
-// 图片与视频封面（cover）：直接替换 host 为 https://pbs.moonchan.xyz，保留完整 path+query
+// 图片与视频封面（cover）：直接替换 host 为 https://video-cf.twimg.com，保留完整 path+query
 export const imageProxyUrl = (url: string): string => {
   if (!url) return "";
   return FIXED_IMAGE_PROXY + extractMediaPath(url);
@@ -45,22 +46,24 @@ export const imageProxyUrl = (url: string): string => {
 
 export const overrideImageProxy = (url: string): string => imageProxyUrl(url);
 
-// 原版源头图片地址：不做任何代理 host 改写，一律回 pbs.twimg.com（保留完整 path+query）。
-// 2026-11-24: 头像、图片、封面统一走原版源头（配 referrerPolicy="no-referrer" 破防盗链）。
+// 原版源头图片地址：不做任何代理 host 改写，一律回 video-cf.twimg.com（保留完整 path+query）。
+// 2026-11-26: 头像、图片、封面统一走 video-cf.twimg.com（配 referrerPolicy="no-referrer" 破防盗链）。
 export const originalImageUrl = (url: string): string => {
   if (!url) return "";
   return url
     .replace(/^https?:\/\/pbs\.moonchan\.xyz/i, "https://" + IMAGE_ORIGINAL_HOST)
-    .replace(/^https?:\/\/twimg\.moonchan\.xyz/i, "https://" + IMAGE_ORIGINAL_HOST);
+    .replace(/^https?:\/\/twimg\.moonchan\.xyz/i, "https://" + IMAGE_ORIGINAL_HOST)
+    .replace(/^https?:\/\/pbs\.twimg\.com/i, "https://" + IMAGE_ORIGINAL_HOST)
+    .replace(/^https?:\/\/video\.twimg\.com/i, "https://" + IMAGE_ORIGINAL_HOST);
 };
 
-// 视频代理地址（直接替换 host 为 https://twimg.moonchan.xyz，保留完整 path+query）
+// 视频代理地址（直接替换 host 为 https://video-cf.twimg.com，保留完整 path+query）
 export const overrideVideoProxy = (url: string): string => {
   if (!url) return "";
   return FIXED_VIDEO_PROXY + extractVideoPath(url);
 };
 
-// 解析视频封面图地址：使用 gallery_dl 添加的 cover 字段并直接替换 host 至 pbs.moonchan.xyz
+// 解析视频封面图地址：使用 gallery_dl 添加的 cover 字段并直接替换 host 至 video-cf.twimg.com
 export const resolveVideoCoverUrl = (
   cover?: string | null,
   fallbackUrl?: string | null
@@ -81,8 +84,8 @@ export const resolveVideoCoverUrl = (
 };
 
 // 构造点击视频封面时的最终播放地址（2026-10-23 起无广告、无 302 中转）：
-// 若后端已返回绝对地址（新版 V2 API 的 ouo_url 即直连 https://twimg.moonchan.xyz/...），原样采用；
-// 否则由原始 video.twimg.com 地址直接拼直链 https://twimg.moonchan.xyz/<path>?<query>。
+// 若后端已返回绝对地址（新版 V2 API 的 ouo_url），仍统一改写 host 至 video-cf.twimg.com；
+// 否则由原始 video.twimg.com 地址直接拼直链 https://video-cf.twimg.com/<path>?<query>。
 // 注意：不会再拼 /api/twitter/v2/video 端点（点击该端点会产生一次 302 跳转，已弃用）。
 export const buildVideoDirectUrl = (
   rawVideoUrl: string,
@@ -90,7 +93,11 @@ export const buildVideoDirectUrl = (
 ): string => {
   const prebuilt = (prebuiltDirectUrl || "").trim();
   if (prebuilt.startsWith("http://") || prebuilt.startsWith("https://")) {
-    return prebuilt;
+    // 后端返回的绝对直链（可能还是旧的 twimg.moonchan.xyz / video.twimg.com）统一改写 host
+    return prebuilt
+      .replace(/^https?:\/\/twimg\.moonchan\.xyz/i, "https://video-cf.twimg.com")
+      .replace(/^https?:\/\/video\.twimg\.com/i, "https://video-cf.twimg.com")
+      .replace(/^https?:\/\/pbs\.twimg\.com/i, "https://video-cf.twimg.com");
   }
   return overrideVideoProxy(rawVideoUrl);
 };

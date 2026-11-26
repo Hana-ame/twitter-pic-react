@@ -3,7 +3,8 @@ import useLocalStorage from "../Tools/localstorage/useLocalStorageStatus";
 import { normalizeStoredImageProxy } from "../api/imageProxy";
 
 /**
- * 26-09-11: 图片源固定 pbs.moonchan.xyz —— 挂载时把本地存的历史值纠正回固定源。
+ * 26-09-11: 图片源固定 FIXED_IMAGE_PROXY —— 挂载时把本地存的历史值纠正回固定源
+ * （26-11-26 起固定源为 video-cf.twimg.com）。
  *
  * 这个 hook **不读自动档 / 手动档**, 也不管非CN、不探测、不发请求:
  * 图片行为与视频源选择完全无关。26-10: 自动档已删除 (useMoonchanProbe 移除)。

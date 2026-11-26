@@ -10,15 +10,17 @@ export const ENDPOINT =
 export const V2_ENDPOINT =
   process.env.REACT_APP_V2_ENDPOINT || `${ENDPOINT}/v2`;
 
-// 唯一图片与视频封面（cover）资源 CDN：直接将 pbs.twimg.com 的 host 替换为 pbs.moonchan.xyz
-export const FIXED_IMAGE_PROXY = "https://pbs.moonchan.xyz";
+// 唯一媒体资源 CDN：图片、视频封面（cover）、头像、视频一律走 video-cf.twimg.com。
+// 2026-11-26：pbs.twimg.com / video.twimg.com / pbs.moonchan.xyz / twimg.moonchan.xyz
+// 统一收拢到 video-cf.twimg.com（path+query 完整保留，见 proxyOverride.ts）。
+export const FIXED_IMAGE_PROXY = "https://video-cf.twimg.com";
 
-// 视频直连代理域名：点击视频时直接指向 https://twimg.moonchan.xyz/<path>?<query>
+// 视频直连地址：点击视频时直接指向 https://video-cf.twimg.com/<path>?<query>
 // （host 直接替换 video.twimg.com），链接即最终播放地址，无任何中间 302。
-export const FIXED_VIDEO_PROXY = "https://twimg.moonchan.xyz";
+export const FIXED_VIDEO_PROXY = "https://video-cf.twimg.com";
 
 // 【遗留】旧版后端视频处理端点 /api/twitter/v2/video：点击该端点会产生一次 302 跳转
-// （历史上还经 ouo.io 广告中转）。2026-10-23 起前端不再使用（统一直连 twimg.moonchan.xyz）；
+// （历史上还经 ouo.io 广告中转）。2026-10-23 起前端不再使用（统一直连 video-cf.twimg.com）；
 // 后端仍保留该端点以兼容旧客户端（直接 302 到同一直连地址，无广告）。
 export const VIDEO_REDIRECT_ENDPOINT =
   process.env.REACT_APP_VIDEO_ENDPOINT || `${V2_ENDPOINT}/video`;

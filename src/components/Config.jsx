@@ -14,8 +14,9 @@ const ImageConfig = () => {
         <span className="text-xs text-green-600 font-medium">● 唯一资源 CDN</span>
       </div>
       <p className="text-xs text-gray-500 leading-relaxed">
-        所有图片、用户头像及视频封面（<code>cover</code>）直接将 host 替换为{" "}
-        <code>pbs.moonchan.xyz</code> 加载；点击视频封面直接打开{" "}
+        所有图片、用户头像、视频封面（<code>cover</code>）与视频统一走{" "}
+        <code>{FIXED_IMAGE_PROXY}</code>（host 直接替换 pbs.twimg.com / video.twimg.com）加载；
+        点击视频封面直接打开{" "}
         <code>{FIXED_VIDEO_PROXY}/&lt;path&gt;?&lt;query&gt;</code> 上的原始视频，
         链接即最终播放地址，无任何中间 302（2026-10-23 起已移除 ouo.io 广告与后端跳转端点）。
       </p>

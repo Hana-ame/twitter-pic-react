@@ -67,7 +67,7 @@ const SideBar = ({ onClick }) => {
   );
 };
 
-// 主内容区：已移除旧版广告栏，恢复批量下载按钮，视频统一使用 cover 封面 + 点击直连 twimg.moonchan.xyz 播放（无 302 中转）
+// 主内容区：已移除旧版广告栏，恢复批量下载按钮，视频统一使用 cover 封面 + 点击直连 video-cf.twimg.com 播放（无 302 中转）
 const Main = ({ profile, handleSetProfile }) => {
   const [blockMap, setBlockMap] = useLocalStorage("block-map", {});
   const [favMap, setFavMap] = useLocalStorage("fav-map", {});
@@ -239,7 +239,7 @@ const Main = ({ profile, handleSetProfile }) => {
   //   - 下载全部（原生）：PC 用 showSaveFilePicker 流式写盘，移动端 Blob 兜底
   //   - 兼容下载：强制 Blob 打包 + <a download>，给 showSaveFilePicker 不可用/被拦的浏览器
   //   - 应急下载：不打包，逐个触发浏览器下载（fetch blob + <a download>，300ms 间隔）
-  // 视频用 ouo_url（直链 twimg.moonchan.xyz），图片用 overrideImageProxy（pbs.moonchan.xyz）
+  // 视频用 ouo_url（直链 video-cf.twimg.com），图片用 overrideImageProxy（video-cf.twimg.com）
   // 文件名：**一律用原始文件名**（URL 路径最后一段，字母/数字混合，如
   // G7FkId5aoAA3odu.jpg），绝不重命名成 tweet_id / item_N 这类数字名
   // （number 存不下且丢失原始名；原始文件名就是字母）。

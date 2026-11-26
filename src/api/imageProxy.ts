@@ -1,4 +1,4 @@
-// 26-09-11: 图片源 = 固定唯一源 FIXED_IMAGE_PROXY (26-10-08 起为 https://pbs.moonchan.xyz)。
+// 26-09-11: 图片源 = 固定唯一源 FIXED_IMAGE_PROXY (26-11-26 起为 https://video-cf.twimg.com)。
 //
 // 本文件只处理"本地存的图片源一律纠正回固定值"这一件事, 与自动档 / 手动档
 // 完全无关 —— 它不读 config-mode-v5, 也不接受任何档位参数。

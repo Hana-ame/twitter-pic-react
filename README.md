@@ -4,12 +4,10 @@
 
 ## 核心改动说明
 
-1. **移除旧广告栏，切换为后端专属视频端点 + `ouo.io` 广告中转变现**：
+1. **移除旧广告栏，统一媒体源为 `video-cf.twimg.com`**：
    - 彻底删除原版顶部、底部及侧边栏的 `<Advertisement />` 横幅与 `/ads.json`。
-   - 所有视频条目仅展示 `gallery_dl` 采集的 `cover` 封面图（直接将 `pbs.twimg.com` 的 host 替换为 `pbs.moonchan.xyz`，完整保留 path 与 query，如 `https://pbs.moonchan.xyz/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig`）。
-   - 点击视频封面时，请求 `twitter-pic-go` 新增的视频专属端点：
-     `https://x.moonchan.xyz/api/twitter/v2/video/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12`
-   - Go 后端收到视频链接后，将其 host 直接替换为 `twimg.moonchan.xyz`（即 `https://twimg.moonchan.xyz/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12`），并通过 `ouo.io/qs/6z4kqAz7?s=` 或 `ouo.io/api/6z4kqAz7?s=` **302 Redirect** 到 `ouo.io` 广告中转页获取收益，广告完成后自动跳往 `https://twimg.moonchan.xyz/...` 播放。
+   - 所有媒体（图片、视频、视频封面 `cover`、头像）统一走 `https://video-cf.twimg.com`（host 直接替换 `pbs.twimg.com` / `video.twimg.com`，完整保留 path 与 query，如 `https://video-cf.twimg.com/ext_tw_video_thumb/1916894180884062208/pu/img/X472TmC88Oy-kvGn?format=jpg&name=orig`）。
+   - 点击视频封面时直接播放该统一源地址（无 302 中转、无广告），如 `https://video-cf.twimg.com/ext_tw_video/1916894180884062208/pu/vid/avc1/720x1280/xxx.mp4?tag=12`。
 
 2. **移除「下载全部」功能**：
    - 删除原版瀑布流顶部的「下载 / 兼容下载 / 应急下载」按钮及流式打包逻辑，防止批量拉取打满反代与源站带宽。

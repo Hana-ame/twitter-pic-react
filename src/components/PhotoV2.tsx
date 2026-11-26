@@ -10,7 +10,7 @@ import { originalImageUrl } from "../api/proxyOverride";
  *   2. 旧实现的失败分支会 setDisplayUrl(imageUrl) 让 <img> 再发一次同样的请求，
  *      这条原生请求不受 AbortController 控制，切换后仍然挂着 —— 这才是"旧请求卡住新请求"的来源。
  *   3. 每 50KB 用已收全部 chunks new Blob(chunks) 一次，大图是 O(n²) 拷贝，主线程还抖。
- *   4. 图片只有 pbs.moonchan.xyz 一个源、也不需要字节级进度，fetch 没有收益。
+ *   4. 图片只有 video-cf.twimg.com 一个源、也不需要字节级进度，fetch 没有收益。
  *
  * <img> 的收益：浏览器原生懒加载（离屏不发请求，切换时并发从 12 条降到 2~3 条）、
  * 原生优先级/取消、渐进解码（JPEG 边下边渲染）、直接复用 HTTP 缓存；

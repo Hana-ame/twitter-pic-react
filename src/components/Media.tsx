@@ -18,24 +18,25 @@ const escapeHtml = (s: string): string => {
     .replace(/>/g, "&gt;");
 };
 
-// 原版源头地址：不做任何代理 host 改写。
-// 图片一律 pbs.twimg.com；视频一律 video.twimg.com（原 host 已是 video.twimg.com 时原样保留）。
+// 媒体地址：一律用 video-cf.twimg.com，不做其它 host 改写。
+// 图片、视频、封面统一落 video-cf.twimg.com（原 host 已是该域名时原样保留）。
 const originalPhotoUrl = (url: string): string => {
   if (!url) return "";
-  return url.replace("https://pbs.moonchan.xyz", "https://pbs.twimg.com");
+  return url
+    .replace("https://pbs.moonchan.xyz", "https://video-cf.twimg.com")
+    .replace("https://pbs.twimg.com", "https://video-cf.twimg.com");
 };
 
 const originalVideoUrl = (url: string): string => {
   if (!url) return "";
-  let u = url
-    .replace("https://twimg.moonchan.xyz", "https://video.twimg.com")
-    .replace("https://pbs.moonchan.xyz", "https://pbs.twimg.com");
-  // 视频一律落在 video.twimg.com（少数条目视频 url 写成 pbs.twimg.com 的情况也纠正）
-  u = u.replace("https://pbs.twimg.com", "https://video.twimg.com");
-  return u;
+  return url
+    .replace("https://twimg.moonchan.xyz", "https://video-cf.twimg.com")
+    .replace("https://video.twimg.com", "https://video-cf.twimg.com")
+    .replace("https://pbs.moonchan.xyz", "https://video-cf.twimg.com")
+    .replace("https://pbs.twimg.com", "https://video-cf.twimg.com");
 };
 
-// cover 也回原版源头：pbs.twimg.com / video.twimg.com 上的缩略图
+// cover 也回统一源：video-cf.twimg.com 上的缩略图
 const originalCoverUrl = (cover?: string | null, fallbackUrl?: string | null): string => {
   const raw = (cover || "").trim();
   if (raw) return originalPhotoUrl(raw);
@@ -48,7 +49,7 @@ const originalCoverUrl = (cover?: string | null, fallbackUrl?: string | null): s
  * 视频全套 iframe：
  * 1. iframe srcDoc 内 <meta name="referrer" content="no-referrer"> —— 图片/视频全都不发 Referer，
  *    这是绕过 twimg 防盗链的核心；
- * 2. 全部用原版源头：video.twimg.com（视频）/ pbs.twimg.com（封面 poster），不做任何代理改写；
+ * 2. 全部用统一源 video-cf.twimg.com（视频 / 封面 poster），不做其它代理改写；
  * 3. cover 作为 iframe 内 <video poster>；
  * 4. sandbox 不含 allow-same-origin（与 allow-scripts 同用等于没有沙箱）；
  * 5. 无 autoplay，保留 controls + poster，默认显示封面不自动播放；
@@ -107,7 +108,7 @@ const VideoIframe: React.FC<{
 };
 
 /**
- * 图片：原版源头 pbs.twimg.com，不发 Referer。
+ * 图片：统一源 video-cf.twimg.com，不发 Referer。
  */
 const PhotoOriginal: React.FC<{ url: string; alt?: string }> = ({ url, alt }) => {
   const imageUrl = originalPhotoUrl(url);
