@@ -49,6 +49,37 @@ const HelpPage = ({ onClick }) => {
       {/* 豆腐块容器 - 使用Grid布局实现居中豆腐块 */}
       <div className="max-w-md mx-auto grid grid-cols-1 gap-2">
 
+        {/* 豆腐块按时间顺序从 latest 到 eldest 排列，新块插入位置在这（第一块之前） */}
+        {/* 豆腐块 - Windows 下载 ech-proxy 置顶第一块 */}
+        <Block
+          title="Windows 下载 ech-proxy"
+          closed={isClosedMap["Windows 下载 ech-proxy"]}
+          onClick={() => handleOnClickBlock("Windows 下载 ech-proxy")}
+        >
+          <p className="text-gray-500">
+            windows系统下载
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://github.com/Hana-ame/ech-proxy/releases/download/v3.7.0/ech-proxy-windows-amd64.exe"
+            >
+              ech-proxy
+            </a>
+            或者
+            <a
+              className="text-blue-500 cursor-pointer border-blue-700"
+              href="https://github.com/Hana-ame/ech-proxy/releases/download/v3.7.0/ech-proxy-windows-386.exe"
+            >
+              ech-proxy(win7兼容)
+            </a>
+          </p>
+          <p className="text-gray-500">
+            访问绝大多数黄网和youtube镜像站。当然也包括本站。节约你的流量费。
+          </p>
+          <p className="text-gray-500">
+            请考虑加群援助我，或者在可靠的范围内传播工具，让其他人加群援助我。
+          </p>
+        </Block>
+
         {/* 播报 - 置顶第一条 */}
         <Block
           title="播报"
